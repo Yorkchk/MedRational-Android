@@ -1,4 +1,4 @@
-package com.example.medrational.data.model
+package com.example.medrational_android.data.model
 
 data class Category(
     val id: Long,
@@ -22,6 +22,23 @@ data class StudyFile(
     val fileType: String?,
     val publicUrl: String,
     val fileSizeBytes: Long?
+)
+
+data class AuthMessageResponse(
+    val message: String?
+)
+
+// In data/model/Models.kt
+
+data class CreateCategoryRequest(
+    val name: String,
+    val description: String? = null
+)
+
+data class CreateReasoningRequest(
+    val categoryId: Long,
+    val title: String,
+    val content: String
 )
 
 data class LoginRequest(val email: String, val password: String)
