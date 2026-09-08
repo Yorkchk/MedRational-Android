@@ -22,13 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import com.example.medrational.data.api.ApiClient
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
-import com.example.medrational.data.model.Reasoning
-import com.example.medrational.data.model.StudyFile
-import com.example.medrational_android.ui.components.PdfViewer
-import com.example.medrational.viewmodel.ReasoningUiState
-import com.example.medrational.viewmodel.ReasoningViewModel
+import com.example.medrational_android.data.model.Reasoning
+import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.viewmodel.ReasoningUiState
+import com.example.medrational_android.viewmodel.ReasoningViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,29 +144,6 @@ fun ReasoningDetailScreen(
                         Text("Close")
                     }
                 }
-            }
-        }
-    }
-
-    // Modal PDF Viewer Bottom Sheet
-    previewPdfUrl?.let { url ->
-        ModalBottomSheet(
-            onDismissRequest = { previewPdfUrl = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Document Preview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = { previewPdfUrl = null }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close preview")
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                PdfViewer(pdfUrl = url, modifier = Modifier.weight(1f))
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.example.medrational.ui.welcome
+package com.example.medrational_android.ui.welcome
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

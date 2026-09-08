@@ -20,11 +20,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.medrational.data.api.ApiClient
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
-import com.example.medrational.data.model.Category
-import com.example.medrational.viewmodel.CategoryUiState
-import com.example.medrational.viewmodel.CategoryViewModel
+import com.example.medrational_android.data.model.Category
+import com.example.medrational_android.viewmodel.CategoryUiState
+import com.example.medrational_android.viewmodel.CategoryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

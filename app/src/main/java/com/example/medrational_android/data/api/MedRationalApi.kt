@@ -1,6 +1,6 @@
-package com.example.medrational.data.api
+package com.example.medrational_android.data.api
 
-import com.example.medrational.data.model.*
+import com.example.medrational_android.data.model.*
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -18,8 +18,9 @@ interface MedRationalApi {
 
     // Auth
     @POST("api/v1/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<String>
+    suspend fun login(@Body request: LoginRequest): Response<AuthMessageResponse>
 
     @POST("api/v1/auth/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
+
 }

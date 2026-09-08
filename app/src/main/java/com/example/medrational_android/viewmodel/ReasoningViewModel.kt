@@ -1,9 +1,9 @@
-package com.example.medrational.viewmodel
+package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.medrational.data.api.ApiClient
-import com.example.medrational.data.model.Reasoning
+import com.example.medrational_android.data.api.ApiClient
+import com.example.medrational_android.data.model.Reasoning
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
