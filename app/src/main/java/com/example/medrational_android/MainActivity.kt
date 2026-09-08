@@ -71,6 +71,11 @@ fun MedRationalApp() {
                 viewModel = categoryViewModel,
                 onCategoryClick = { id, name ->
                     navController.navigate("reasonings/$id/$name")
+                },
+                onSignOut = {
+                    navController.navigate("welcome") {
+                        popUpTo("categories") { inclusive = true }
+                    }
                 }
             )
         }

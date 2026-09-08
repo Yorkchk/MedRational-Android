@@ -95,5 +95,6 @@ class AuthViewModel(private val tokenManager: TokenManager) : ViewModel() {
         tokenManager.clearToken()
         _currentStep.value = AuthStep.EnterCredentials
         _uiState.value = AuthUiState.Idle
+        savedEmail = ""
     }
 }

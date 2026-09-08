@@ -28,6 +28,19 @@ data class AuthMessageResponse(
     val message: String?
 )
 
+// In data/model/Models.kt
+
+data class CreateCategoryRequest(
+    val name: String,
+    val description: String? = null
+)
+
+data class CreateReasoningRequest(
+    val categoryId: Long,
+    val title: String,
+    val content: String
+)
+
 data class LoginRequest(val email: String, val password: String)
 data class VerifyOtpRequest(val email: String, val code: String)
 data class AuthResponse(val token: String, val message: String)

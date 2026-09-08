@@ -1,6 +1,9 @@
 package com.example.medrational_android.ui.reasonings
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,9 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
+import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
@@ -40,9 +42,22 @@ fun ReasoningDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val downloader = remember { AndroidDownloader(context) }
+    val tokenManager = remember { TokenManager(context) }
+    val isAdmin = tokenManager.isLoggedIn()
 
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
-    var previewPdfUrl by remember { mutableStateOf<String?>(null) }
+    var showCreateReasoningDialog by remember { mutableStateOf(false) }
+    var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
+
+    // Android File Picker launcher for PDF/Docs/Images
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null && activeUploadReasoningId != null) {
+            viewModel.uploadFile(context, activeUploadReasoningId!!, uri)
+            Toast.makeText(context, "Uploading file...", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(categoryId) {
         viewModel.loadReasoningsForCategory(categoryId)
@@ -58,7 +73,6 @@ fun ReasoningDetailScreen(
                     }
                 },
                 actions = {
-                    // Download Entire Category
                     IconButton(onClick = {
                         val categoryZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/category/$categoryId/zip"
                         downloader.downloadFile(categoryZipUrl, "${categoryName}_Materials.zip")
@@ -68,6 +82,13 @@ fun ReasoningDetailScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if (isAdmin) {
+                FloatingActionButton(onClick = { showCreateReasoningDialog = true }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Clinical Reasoning")
+                }
+            }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -98,8 +119,14 @@ fun ReasoningDetailScreen(
                             items(state.reasonings, key = { it.id }) { reasoning ->
                                 ReasoningItemCard(
                                     reasoning = reasoning,
+                                    isAdmin = isAdmin,
                                     onImageClick = { url -> previewImageUrl = url },
-                                    onPdfClick = { url -> previewPdfUrl = url },
+                                    onDeleteReasoning = { viewModel.deleteReasoning(reasoning.id) },
+                                    onAddFile = {
+                                        activeUploadReasoningId = reasoning.id
+                                        filePickerLauncher.launch("*/*")
+                                    },
+                                    onDeleteFile = { fileId -> viewModel.deleteFile(fileId) },
                                     onDownloadReasoningZip = {
                                         val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
                                         downloader.downloadFile(reasoningZipUrl, "${reasoning.title}_Files.zip")
@@ -117,6 +144,16 @@ fun ReasoningDetailScreen(
                 }
             }
         }
+    }
+
+    if (showCreateReasoningDialog) {
+        CreateReasoningDialog(
+            onDismiss = { showCreateReasoningDialog = false },
+            onConfirm = { title, content ->
+                viewModel.createReasoning(title, content)
+                showCreateReasoningDialog = false
+            }
+        )
     }
 
     // Modal Image Preview Dialog
@@ -152,8 +189,11 @@ fun ReasoningDetailScreen(
 @Composable
 fun ReasoningItemCard(
     reasoning: Reasoning,
+    isAdmin: Boolean,
     onImageClick: (String) -> Unit,
-    onPdfClick: (String) -> Unit,
+    onDeleteReasoning: () -> Unit,
+    onAddFile: () -> Unit,
+    onDeleteFile: (Long) -> Unit,
     onDownloadReasoningZip: () -> Unit,
     onDownloadSingleFile: (StudyFile) -> Unit
 ) {
@@ -175,13 +215,31 @@ fun ReasoningItemCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (!reasoning.files.isNullOrEmpty()) {
-                    IconButton(onClick = onDownloadReasoningZip) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = "Download all files for this reasoning",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                Row {
+                    if (!reasoning.files.isNullOrEmpty()) {
+                        IconButton(onClick = onDownloadReasoningZip) {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Download all files",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    if (isAdmin) {
+                        IconButton(onClick = onAddFile) {
+                            Icon(
+                                imageVector = Icons.Default.UploadFile,
+                                contentDescription = "Upload Study File",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = onDeleteReasoning) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete reasoning",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
@@ -203,8 +261,9 @@ fun ReasoningItemCard(
                 reasoning.files.forEach { file ->
                     StudyFileRow(
                         file = file,
+                        isAdmin = isAdmin,
                         onImageClick = onImageClick,
-                        onPdfClick = onPdfClick,
+                        onDeleteFile = { onDeleteFile(file.id) },
                         onDownloadFile = { onDownloadSingleFile(file) }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -217,12 +276,13 @@ fun ReasoningItemCard(
 @Composable
 fun StudyFileRow(
     file: StudyFile,
+    isAdmin: Boolean,
     onImageClick: (String) -> Unit,
-    onPdfClick: (String) -> Unit,
+    onDeleteFile: () -> Unit,
     onDownloadFile: () -> Unit
 ) {
-    val isImage = file.fileType?.startsWith("image/") == true || file.fileName.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE))
-    val isPdf = file.fileType == "application/pdf" || file.fileName.endsWith(".pdf", ignoreCase = true)
+    val isImage = file.fileType?.startsWith("image/") == true ||
+            file.fileName.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE))
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -231,7 +291,7 @@ fun StudyFileRow(
             .fillMaxWidth()
             .clickable {
                 if (isImage) onImageClick(file.publicUrl)
-                else if (isPdf) onPdfClick(file.publicUrl)
+                else onDownloadFile()
             }
     ) {
         Row(
@@ -263,19 +323,62 @@ fun StudyFileRow(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = if (isImage) "Tap to preview image" else if (isPdf) "Tap to preview PDF" else "Document",
+                    text = if (isImage) "Tap to preview image" else "Tap to download document",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             IconButton(onClick = onDownloadFile) {
-                Icon(
-                    imageVector = Icons.Default.Download,
-                    contentDescription = "Download file",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Icon(imageVector = Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+            }
+
+            if (isAdmin) {
+                IconButton(onClick = onDeleteFile) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete file", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
+}
+
+@Composable
+fun CreateReasoningDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, content: String) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New Clinical Reasoning") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title / Diagnosis Algorithm") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("Algorithm / Protocol Steps") },
+                    minLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (title.isNotBlank() && content.isNotBlank()) onConfirm(title, content) },
+                enabled = title.isNotBlank() && content.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }

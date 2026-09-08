@@ -20,13 +20,23 @@ object ApiClient {
         tokenManager = TokenManager(context.applicationContext)
     }
 
+    // Inside ApiClient.kt
     private val authInterceptor = Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()
         val token = tokenManager?.getToken()
+
         if (!token.isNullOrBlank()) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
-        chain.proceed(requestBuilder.build())
+
+        val response = chain.proceed(requestBuilder.build())
+
+        // If the server rejects the token (user deleted or revoked), clear the stored credentials
+        if (response.code == 401 || response.code == 403) {
+            tokenManager?.clearToken()
+        }
+
+        response
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
