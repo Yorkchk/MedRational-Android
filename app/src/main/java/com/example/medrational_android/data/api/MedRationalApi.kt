@@ -7,13 +7,6 @@ import retrofit2.http.*
 
 interface MedRationalApi {
 
-    // Auth
-    @POST("api/v1/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<AuthMessageResponse>
-
-    @POST("api/v1/auth/verify-otp")
-    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
-
     // Categories
     @GET("api/v1/categories")
     suspend fun getCategories(): Response<List<Category>>
@@ -44,4 +37,21 @@ interface MedRationalApi {
 
     @DELETE("api/v1/files/{id}")
     suspend fun deleteFile(@Path("id") id: Long): Response<Unit>
+
+
+    @POST("api/v1/auth/login")
+    suspend fun login(@Body request: LoginRequest): Response<AuthMessageResponse>
+
+    // 2. Unified Login OTP Verify -> /api/v1/auth/verify-otp
+    @POST("api/v1/auth/verify-otp")
+    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
+
+    // 3. User Register -> /api/v1/auth/user/register
+    @POST("api/v1/auth/user/register")
+    suspend fun requestUserOtp(@Body request: UserRegisterRequest): Response<AuthMessageResponse>
+
+    // 4. User Register OTP Verify -> /api/v1/auth/user/verify-registration
+    @POST("api/v1/auth/user/verify-registration")
+    suspend fun verifyUserOtp(@Body request: UserVerifyOtpRequest): Response<UserAuthResponse>
+
 }

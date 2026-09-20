@@ -1,8 +1,10 @@
 package com.example.medrational_android.ui.auth
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
@@ -21,14 +23,16 @@ import com.example.medrational_android.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+fun SignUpScreen(
     viewModel: AuthViewModel,
-    onNavigateToAdminDashboard: () -> Unit,
-    onNavigateToUserDashboard: () -> Unit,
+    onSignUpCompleted: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -38,21 +42,16 @@ fun LoginScreen(
     val isLoading = uiState is AuthUiState.Loading
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.LoginSuccess) {
-            val role = (uiState as AuthUiState.LoginSuccess).role
-            if (role.equals("ROLE_ADMIN", ignoreCase = true) || role.equals("ADMIN", ignoreCase = true)) {
-                onNavigateToAdminDashboard()
-            } else {
-                onNavigateToUserDashboard()
-            }
+        if (uiState is AuthUiState.SignUpCompleted) {
             viewModel.resetState()
+            onSignUpCompleted()
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isOtpStep) "Verify Login OTP" else "Log In") },
+                title = { Text(if (isOtpStep) "Verify Account" else "Create Account") },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (isOtpStep) viewModel.resetState() else onBackClick()
@@ -67,23 +66,46 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (!isOtpStep) {
                 Text(
-                    text = "Welcome Back",
+                    text = "Sign Up",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Enter your credentials to receive an authentication code.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Spacer(modifier = Modifier.height(20.dp))
+
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+                    label = { Text("First Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = lastName,
+                    onValueChange = { lastName = it },
+                    label = { Text("Last Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Phone Number") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = email,
@@ -93,7 +115,7 @@ fun LoginScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = password,
@@ -105,36 +127,38 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        val description = if (passwordVisible) "Hide password" else "Show password"
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = icon, contentDescription = description)
+                            Icon(imageVector = icon, contentDescription = null)
                         }
                     }
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { viewModel.requestLoginOtp(email, password) },
+                    onClick = { viewModel.registerUser(firstName, lastName, phoneNumber, email, password) },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(10.dp),
-                    enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                    enabled = !isLoading &&
+                            firstName.isNotBlank() && lastName.isNotBlank() &&
+                            phoneNumber.isNotBlank() && email.isNotBlank() &&
+                            password.isNotBlank()
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Send Login Code")
+                        Text("Send Verification Code")
                     }
                 }
             } else {
                 val currentEmail = (uiState as? AuthUiState.OtpSent)?.email ?: email
                 Text(
-                    text = "Enter 6-Digit Code",
+                    text = "Verify Your Email",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "We sent a code to $currentEmail",
+                    text = "We sent a 6-digit code to $currentEmail",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -143,7 +167,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = otpCode,
                     onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpCode = it },
-                    label = { Text("OTP Code") },
+                    label = { Text("6-Digit Code") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -151,7 +175,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { viewModel.verifyLoginOtp(currentEmail, otpCode) },
+                    onClick = { viewModel.verifySignUpOtp(currentEmail, otpCode) },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(10.dp),
                     enabled = !isLoading && otpCode.length == 6
@@ -159,14 +183,8 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Verify & Continue")
+                        Text("Verify & Complete Registration")
                     }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                TextButton(onClick = { viewModel.resetState() }) {
-                    Text("Back to Login")
                 }
             }
 

@@ -43,13 +43,17 @@ fun ReasoningDetailScreen(
     val context = LocalContext.current
     val downloader = remember { AndroidDownloader(context) }
     val tokenManager = remember { TokenManager(context) }
-    val isAdmin = tokenManager.isLoggedIn()
+
+    // Check if the current user holds the admin role
+    val isAdmin = remember {
+        val role = tokenManager.getRole() ?: ""
+        role.contains("ADMIN", ignoreCase = true)
+    }
 
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var showCreateReasoningDialog by remember { mutableStateOf(false) }
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
 
-    // Android File Picker launcher for PDF/Docs/Images
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -156,7 +160,6 @@ fun ReasoningDetailScreen(
         )
     }
 
-    // Modal Image Preview Dialog
     previewImageUrl?.let { url ->
         Dialog(onDismissRequest = { previewImageUrl = null }) {
             Card(

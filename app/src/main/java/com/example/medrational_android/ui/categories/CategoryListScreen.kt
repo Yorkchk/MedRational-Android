@@ -32,8 +32,11 @@ fun CategoryListScreen(
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
 
-    // Track admin status in mutable state so UI updates immediately on logout
-    var isAdmin by remember { mutableStateOf(tokenManager.isLoggedIn()) }
+    val isAdmin = remember {
+        val role = tokenManager.getRole() ?: ""
+        role.contains("ADMIN", ignoreCase = true)
+    }
+
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
 
@@ -42,7 +45,7 @@ fun CategoryListScreen(
             TopAppBar(
                 title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
                 actions = {
-                    if (isAdmin) {
+                    if (tokenManager.isLoggedIn()) {
                         IconButton(onClick = { showSignOutDialog = true }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -71,7 +74,9 @@ fun CategoryListScreen(
                 is CategoryUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 is CategoryUiState.Error -> {
                     Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = state.message, color = MaterialTheme.colorScheme.error)
@@ -102,12 +107,11 @@ fun CategoryListScreen(
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
             title = { Text("Sign Out") },
-            text = { Text("Are you sure you want to exit Admin Mode?") },
+            text = { Text("Are you sure you want to sign out?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         tokenManager.clearToken()
-                        isAdmin = false
                         showSignOutDialog = false
                         onSignOut()
                     }

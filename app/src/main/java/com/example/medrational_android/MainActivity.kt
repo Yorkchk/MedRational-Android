@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.ui.auth.LoginScreen
+import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
@@ -42,22 +43,47 @@ fun MedRationalApp() {
     val categoryViewModel: CategoryViewModel = viewModel()
     val reasoningViewModel: ReasoningViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "welcome") {
+    // Determine initial destination: if already authenticated, jump to categories
+    val startScreen = if (tokenManager.isLoggedIn()) "categories" else "welcome"
+
+    NavHost(navController = navController, startDestination = startScreen) {
+
+        // 1. Welcome Landing Screen (2 buttons: Log In & Sign Up)
         composable("welcome") {
             WelcomeScreen(
-                onContinueAsGuest = { navController.navigate("categories") },
-                onAdminLogin = { navController.navigate("login") }
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToSignUp = { navController.navigate("signup") }
             )
         }
 
-        composable("login") {
+        // 2. Sign Up Screen (New Users -> OTP -> return to Welcome)
+        composable("signup") {
             val authViewModel: AuthViewModel = viewModel {
+                AuthViewModel(tokenManager)
+            }
+
+            SignUpScreen(
+                viewModel = authViewModel,
+                onSignUpCompleted = {
+                    navController.popBackStack()
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = "login") {
+            val authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
                 AuthViewModel(tokenManager)
             }
 
             LoginScreen(
                 viewModel = authViewModel,
-                onAuthSuccess = {
+                onNavigateToAdminDashboard = {
+                    navController.navigate("categories") {
+                        popUpTo("welcome") { inclusive = true }
+                    }
+                },
+                onNavigateToUserDashboard = {
                     navController.navigate("categories") {
                         popUpTo("welcome") { inclusive = true }
                     }
@@ -66,6 +92,7 @@ fun MedRationalApp() {
             )
         }
 
+        // 4. Categories Main Screen
         composable("categories") {
             CategoryListScreen(
                 viewModel = categoryViewModel,
@@ -73,6 +100,7 @@ fun MedRationalApp() {
                     navController.navigate("reasonings/$id/$name")
                 },
                 onSignOut = {
+                    tokenManager.clearToken()
                     navController.navigate("welcome") {
                         popUpTo("categories") { inclusive = true }
                     }
@@ -80,6 +108,9 @@ fun MedRationalApp() {
             )
         }
 
+
+
+        // 5. Reasoning & Files Detail Screen
         composable(
             route = "reasonings/{categoryId}/{categoryName}",
             arguments = listOf(
