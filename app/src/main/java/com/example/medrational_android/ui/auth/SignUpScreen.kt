@@ -1,5 +1,6 @@
 package com.example.medrational_android.ui.auth
 
+import android.util.Patterns
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,16 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var otpCode by remember { mutableStateOf("") }
+
+    // Validation rules
+    val isFirstNameValid = firstName.trim().isNotEmpty() && firstName.length <= 50
+    val isLastNameValid = lastName.trim().isNotEmpty() && lastName.length <= 50
+    val cleanPhone = phoneNumber.filter { it.isDigit() }
+    val isPhoneValid = cleanPhone.length == 10
+    val isEmailValid = email.trim().isNotEmpty() && Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()
+    val isPasswordValid = password.length >= 6
+
+    val isFormValid = isFirstNameValid && isLastNameValid && isPhoneValid && isEmailValid && isPasswordValid
 
     val isOtpStep = uiState is AuthUiState.OtpSent
     val isLoading = uiState is AuthUiState.Loading
@@ -79,44 +90,87 @@ fun SignUpScreen(
                 )
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // First Name (Max 50 chars)
                 OutlinedTextField(
                     value = firstName,
-                    onValueChange = { firstName = it },
+                    onValueChange = { if (it.length <= 50) firstName = it },
                     label = { Text("First Name") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    isError = firstName.isNotEmpty() && !isFirstNameValid,
+                    supportingText = {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            if (firstName.isNotEmpty() && !isFirstNameValid) {
+                                Text("Max 50 characters", color = MaterialTheme.colorScheme.error)
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Text("${firstName.length}/50")
+                        }
+                    }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Last Name (Max 50 chars)
                 OutlinedTextField(
                     value = lastName,
-                    onValueChange = { lastName = it },
+                    onValueChange = { if (it.length <= 50) lastName = it },
                     label = { Text("Last Name") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    isError = lastName.isNotEmpty() && !isLastNameValid,
+                    supportingText = {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            if (lastName.isNotEmpty() && !isLastNameValid) {
+                                Text("Max 50 characters", color = MaterialTheme.colorScheme.error)
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Text("${lastName.length}/50")
+                        }
+                    }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Phone Number (Digits only, exactly 10 digits)
                 OutlinedTextField(
                     value = phoneNumber,
-                    onValueChange = { phoneNumber = it },
+                    onValueChange = { input ->
+                        val digits = input.filter { it.isDigit() }
+                        if (digits.length <= 10) phoneNumber = digits
+                    },
                     label = { Text("Phone Number") },
+                    placeholder = { Text("e.g. 0661234567") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = phoneNumber.isNotEmpty() && !isPhoneValid,
+                    supportingText = {
+                        if (phoneNumber.isNotEmpty() && !isPhoneValid) {
+                            Text("Must be exactly 10 digits (${cleanPhone.length}/10)", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Email Address
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email Address") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    isError = email.isNotEmpty() && !isEmailValid,
+                    supportingText = {
+                        if (email.isNotEmpty() && !isEmailValid) {
+                            Text("Please enter a valid email address", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Password
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -130,18 +184,22 @@ fun SignUpScreen(
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(imageVector = icon, contentDescription = null)
                         }
+                    },
+                    isError = password.isNotEmpty() && !isPasswordValid,
+                    supportingText = {
+                        if (password.isNotEmpty() && !isPasswordValid) {
+                            Text("Minimum 6 characters", color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Send Button: Enabled only when all constraints pass
                 Button(
-                    onClick = { viewModel.registerUser(firstName, lastName, phoneNumber, email, password) },
+                    onClick = { viewModel.registerUser(firstName, lastName, cleanPhone, email, password) },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(10.dp),
-                    enabled = !isLoading &&
-                            firstName.isNotBlank() && lastName.isNotBlank() &&
-                            phoneNumber.isNotBlank() && email.isNotBlank() &&
-                            password.isNotBlank()
+                    enabled = !isLoading && isFormValid
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
