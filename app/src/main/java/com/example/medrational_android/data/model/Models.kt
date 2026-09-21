@@ -89,3 +89,22 @@ data class ResetPasswordRequest(
     val code: String,
     val newPassword: String
 )
+data class FileSearchResult(
+    val id: Long,
+    val reasoningId: Long?,
+    val reasoningTitle: String,
+    val categoryId: Long?,
+    val categoryName: String,
+    val fileName: String,
+    val fileType: String?,
+    val publicUrl: String,
+    val fileSizeBytes: Long?,
+    val hashtags: List<String> = emptyList()
+)
+
+data class PageResponse<T>(
+    val content: List<T> = emptyList(),
+    val totalElements: Long,
+    val totalPages: Int,
+    val number: Int
+)

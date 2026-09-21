@@ -17,6 +17,7 @@ import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
+import com.example.medrational_android.ui.search.SearchScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
@@ -119,11 +120,22 @@ fun MedRationalApp() {
                     navController.navigate("welcome") {
                         popUpTo("categories") { inclusive = true }
                     }
+                },
+                onNavigateToSearch = {
+                    navController.navigate("search")
                 }
             )
         }
 
-
+        // Search & Discovery Screen
+        composable("search") {
+            SearchScreen(
+                onNavigateToReasoning = { categoryId, reasoningId ->
+                    navController.navigate("reasonings/$categoryId/Details")
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
 
         // 5. Reasoning & Files Detail Screen
         composable(
@@ -143,5 +155,7 @@ fun MedRationalApp() {
                 onBackClick = { navController.popBackStack() }
             )
         }
+
+
     }
 }

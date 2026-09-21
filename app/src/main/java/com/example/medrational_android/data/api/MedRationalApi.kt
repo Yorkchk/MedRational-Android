@@ -59,4 +59,10 @@ interface MedRationalApi {
 
     @POST("api/v1/auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<AuthMessageResponse>
+
+    @GET("api/v1/search/files")
+    suspend fun searchFiles(
+        @Query("query") query: String?,
+        @Query("categoryId") categoryId: Long?
+    ): Response<PageResponse<FileSearchResult>>
 }
