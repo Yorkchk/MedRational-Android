@@ -12,6 +12,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
@@ -72,24 +73,38 @@ fun MedRationalApp() {
         }
 
         composable(route = "login") {
-            val authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+            val authViewModel: AuthViewModel = viewModel {
                 AuthViewModel(tokenManager)
             }
 
             LoginScreen(
                 viewModel = authViewModel,
                 onNavigateToAdminDashboard = {
-                    navController.navigate("categories") {
-                        popUpTo("welcome") { inclusive = true }
-                    }
+                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
                 },
                 onNavigateToUserDashboard = {
-                    navController.navigate("categories") {
-                        popUpTo("welcome") { inclusive = true }
-                    }
+                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
+                },
+                onNavigateToForgotPassword = {
+                    navController.navigate("forgot_password")
                 },
                 onBackClick = { navController.popBackStack() }
             )
+        }
+
+        composable(route = "forgot_password") {
+            val authViewModel: AuthViewModel = viewModel {
+                AuthViewModel(tokenManager)
+            }
+
+            ForgotPasswordScreen(
+                viewModel = authViewModel,
+                onPasswordResetCompleted = {
+                    navController.popBackStack() // Returns to login screen once reset is complete
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+
         }
 
         // 4. Categories Main Screen

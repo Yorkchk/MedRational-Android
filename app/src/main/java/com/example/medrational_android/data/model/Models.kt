@@ -80,4 +80,12 @@ data class UserAuthResponse(
 data class MessageResponse(
     val message: String
 )
+data class ForgotPasswordRequest(
+    val email: String
+)
 
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)

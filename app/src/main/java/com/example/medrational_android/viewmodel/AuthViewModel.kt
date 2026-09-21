@@ -9,6 +9,8 @@ import com.example.medrational_android.data.model.LoginRequest
 import com.example.medrational_android.data.model.UserRegisterRequest
 import com.example.medrational_android.data.model.UserVerifyOtpRequest
 import com.example.medrational_android.data.model.VerifyOtpRequest
+import com.example.medrational_android.data.model.ResetPasswordRequest
+import com.example.medrational_android.data.model.ForgotPasswordRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +24,7 @@ sealed class AuthUiState {
     data class LoginSuccess(val role: String, val message: String) : AuthUiState()
     data object SignUpCompleted : AuthUiState()
     data class Error(val error: String) : AuthUiState()
+    data object PasswordResetCompleted : AuthUiState() // <-- NEW
 }
 
 class AuthViewModel(
@@ -150,17 +153,73 @@ class AuthViewModel(
         }
     }
 
-    fun resetState() {
-        _uiState.value = AuthUiState.Idle
-    }
+    // Inside AuthViewModel:
+    fun requestPasswordResetOtp(email: String) {
+        if (email.isBlank()) {
+            _uiState.value = AuthUiState.Error("Please enter your email.")
+            return
+        }
 
-    private fun extractErrorMessage(rawBody: String?): String? {
-        if (rawBody.isNullOrBlank()) return null
-        return try {
-            val json = JSONObject(rawBody)
-            json.optString("message", json.optString("error", rawBody))
-        } catch (_: Exception) {
-            rawBody
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            try {
+                val response = api.forgotPassword(ForgotPasswordRequest(email.trim()))
+                if (response.isSuccessful && response.body() != null) {
+                    _uiState.value = AuthUiState.OtpSent(
+                        email = email.trim(),
+                        message = response.body()?.message ?: "Reset code sent."
+                    )
+                } else {
+                    _uiState.value = AuthUiState.Error(
+                        extractErrorMessage(response.errorBody()?.string()) ?: "Failed to send reset code."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+            }
         }
     }
-}
+
+    fun confirmPasswordReset(email: String, code: String, newPassword: String) {
+        if (code.isBlank() || code.length < 6) {
+            _uiState.value = AuthUiState.Error("Please enter a valid 6-digit code.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            try {
+                val response = api.resetPassword(
+                    ResetPasswordRequest(
+                        email = email.trim(),
+                        code = code.trim(),
+                        newPassword = newPassword
+                    )
+                )
+                if (response.isSuccessful) {
+                    _uiState.value = AuthUiState.PasswordResetCompleted
+                } else {
+                    _uiState.value = AuthUiState.Error(
+                        extractErrorMessage(response.errorBody()?.string())
+                            ?: "Password reset failed."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+            }
+        }}
+
+        fun resetState() {
+            _uiState.value = AuthUiState.Idle
+        }
+
+        private fun extractErrorMessage(rawBody: String?): String? {
+            if (rawBody.isNullOrBlank()) return null
+            return try {
+                val json = JSONObject(rawBody)
+                json.optString("message", json.optString("error", rawBody))
+            } catch (_: Exception) {
+                rawBody
+            }
+        }
+    }
