@@ -19,3 +19,9 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# Gson maps JSON to these DTOs by field name via reflection, so R8 must not rename or strip them
+-keep class com.example.medrational_android.data.model.** { *; }
+-keepattributes Signature, *Annotation*, InnerClasses, EnclosingMethod
+
+# Tink (used by security-crypto) references compile-time-only Error Prone annotations
+-dontwarn com.google.errorprone.annotations.**
