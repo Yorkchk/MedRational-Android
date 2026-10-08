@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Backend URLs come from local.properties (not committed) so they never live in source.
+// Defaults target the backend on the host machine as seen from the Android emulator.
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+val debugBaseUrl = localProps.getProperty("api.baseUrl", "http://10.0.2.2:8080/")
+val releaseBaseUrl = localProps.getProperty("api.releaseBaseUrl", debugBaseUrl)
 
 android {
     namespace = "com.example.medrational_android"
@@ -19,8 +29,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+        }
         release {
-            isMinifyEnabled = false
+            buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -36,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

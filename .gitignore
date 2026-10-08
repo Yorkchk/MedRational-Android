@@ -32,3 +32,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Supabase CLI state (the Supabase project lives in the backend repo)
+supabase/
