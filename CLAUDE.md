@@ -43,7 +43,7 @@ Package root: `app/src/main/java/com/example/medrational_android`
 
 ## Backend Connection & Networking
 
-- **Local Host Mapping:** `ApiClient.BASE_URL` in `data/api/ApiClient.kt` defaults to `http://10.0.2.2:8080/` (reaches host machine from Android emulator). For physical devices, change to the host machine's LAN IP (e.g., `http://192.168.x.x:8080/`). Ensure the Spring Boot backend in `../MedRational` is running.
+- **Local Host Mapping:** `ApiClient.BASE_URL` comes from `BuildConfig.BASE_URL`, set per build type in `app/build.gradle.kts` from `local.properties` (`api.baseUrl`, `api.releaseBaseUrl`). It defaults to `http://10.0.2.2:8080/` (reaches host machine from Android emulator). For physical devices, set `api.baseUrl` to the host machine's LAN IP (e.g., `http://192.168.x.x:8080/`). Ensure the Spring Boot backend in `../MedRational` is running.
 - **Cleartext Traffic:** Enabled in `AndroidManifest.xml` (`android:usesCleartextTraffic="true"`) for local HTTP development.
 - **DTO Mirroring:** Models in `data/model/Models.kt` mirror the Spring backend DTOs field-for-field using Gson serialization. Paginated endpoints return `PageResponse<T>` (extract records via `.content`). Always verify target endpoints in `../MedRational/src` before altering models.
 - **File Downloads:** Downloads bypass Retrofit. UI components assemble download URLs (`${ApiClient.BASE_URL}api/v1/downloads/file/{id}` or `.../downloads/category/{id}/zip`) and pass them to `AndroidDownloader`, which delegates to the system's `DownloadManager` with bearer token authentication headers.
@@ -87,6 +87,10 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 
 ## Common Pitfalls & Troubleshooting
 
-- **Connection Refused (`ECONNREFUSED`):** Verify the Spring Boot backend is running locally on port 8080. If testing on a physical device, confirm the device and computer share the same Wi-Fi subnet and update `ApiClient.BASE_URL` to the computer's LAN IP.
+- **Connection Refused (`ECONNREFUSED`):** Verify the Spring Boot backend is running locally on port 8080. If testing on a physical device, confirm the device and computer share the same Wi-Fi subnet and set `api.baseUrl` in `local.properties` to the computer's LAN IP.
 - **Unexpected Logouts:** A 403 Forbidden on an expired token or missing endpoint permissions will trigger `TokenManager.clear()`, wiping the stored token. Check backend security filters and Spring logs if requests trigger logout loops.
 - **Context Initialization Crash:** If `ApiClient.api` throws `IllegalStateException` or `UninitializedPropertyAccessException`, verify `ApiClient.initialize(applicationContext)` ran inside `MainActivity.onCreate()`.
+
+## Git workflow
+
+`main` is protected: changes go through short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and pull requests that must pass the Android CI workflow (`.github/workflows/android-ci.yml`: `lint testDebugUnitTest assembleDebug`). PRs are squash-merged, so PR titles use Conventional Commits (`feat(favorites): …`). Record user-facing changes under `[Unreleased]` in `CHANGELOG.md`.
