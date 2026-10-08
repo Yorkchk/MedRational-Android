@@ -165,7 +165,7 @@ fun SearchResultCard(
     onDownload: () -> Unit
 ) {
     val isImage = file.fileType?.startsWith("image/") == true ||
-            file.fileName.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE))
+            file.fileName?.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE)) == true
 
     Card(
         modifier = Modifier

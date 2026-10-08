@@ -16,12 +16,14 @@ import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
+import com.example.medrational_android.ui.favorites.FavoritesScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
+import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 
 class MainActivity : ComponentActivity() {
@@ -108,22 +110,30 @@ fun MedRationalApp() {
 
         }
 
-        // 4. Categories Main Screen
         composable("categories") {
             CategoryListScreen(
                 viewModel = categoryViewModel,
-                onCategoryClick = { id, name ->
-                    navController.navigate("reasonings/$id/$name")
-                },
+                onCategoryClick = { id, name -> navController.navigate("reasonings/$id/$name") },
                 onSignOut = {
                     tokenManager.clearToken()
-                    navController.navigate("welcome") {
-                        popUpTo("categories") { inclusive = true }
-                    }
+                    navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
-                onNavigateToSearch = {
-                    navController.navigate("search")
-                }
+                onNavigateToSearch = { navController.navigate("search") },
+                onNavigateToFavorites = { navController.navigate("favorites") } // <-- Add this
+            )
+        }
+
+        composable("favorites") {
+            val favoriteViewModel: FavoriteViewModel = viewModel {
+                FavoriteViewModel(tokenManager)
+            }
+
+            FavoritesScreen(
+                viewModel = favoriteViewModel,
+                onNavigateToReasoning = { catId, reasonId ->
+                    navController.navigate("reasonings/$catId/Details")
+                },
+                onBackClick = { navController.popBackStack() }
             )
         }
 
