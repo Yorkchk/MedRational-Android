@@ -94,3 +94,7 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 ## Git workflow
 
 `main` is protected: changes go through short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and pull requests that must pass the Android CI workflow (`.github/workflows/android-ci.yml`: `lint testDebugUnitTest assembleDebug`). PRs are squash-merged, so PR titles use Conventional Commits (`feat(favorites): …`). Record user-facing changes under `[Unreleased]` in `CHANGELOG.md`.
+
+## Testing policy
+
+Every new feature or behavior change ships with tests in the same PR, and every bug fix includes a regression test that fails without the fix. Untested features are not considered done. See `docs/CI_AND_TESTS.md` §10 for test patterns and examples.
