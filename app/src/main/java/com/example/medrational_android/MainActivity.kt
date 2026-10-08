@@ -1,5 +1,6 @@
 package com.example.medrational_android
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -113,7 +114,7 @@ fun MedRationalApp() {
         composable("categories") {
             CategoryListScreen(
                 viewModel = categoryViewModel,
-                onCategoryClick = { id, name -> navController.navigate("reasonings/$id/$name") },
+                onCategoryClick = { id, name -> navController.navigate("reasonings/$id/${Uri.encode(name)}") },
                 onSignOut = {
                     tokenManager.clearToken()
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
@@ -130,8 +131,8 @@ fun MedRationalApp() {
 
             FavoritesScreen(
                 viewModel = favoriteViewModel,
-                onNavigateToReasoning = { catId, reasonId ->
-                    navController.navigate("reasonings/$catId/Details")
+                onNavigateToReasoning = { catId, catName ->
+                    navController.navigate("reasonings/$catId/${Uri.encode(catName)}")
                 },
                 onBackClick = { navController.popBackStack() }
             )
@@ -140,8 +141,8 @@ fun MedRationalApp() {
         // Search & Discovery Screen
         composable("search") {
             SearchScreen(
-                onNavigateToReasoning = { categoryId, reasoningId ->
-                    navController.navigate("reasonings/$categoryId/Details")
+                onNavigateToReasoning = { categoryId, categoryName ->
+                    navController.navigate("reasonings/$categoryId/${Uri.encode(categoryName)}")
                 },
                 onBackClick = { navController.popBackStack() }
             )
