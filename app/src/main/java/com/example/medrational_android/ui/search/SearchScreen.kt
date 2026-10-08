@@ -32,7 +32,7 @@ import com.example.medrational_android.viewmodel.SearchViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    onNavigateToReasoning: (categoryId: Long, reasoningId: Long) -> Unit,
+    onNavigateToReasoning: (categoryId: Long, categoryName: String) -> Unit,
     onBackClick: () -> Unit,
     searchViewModel: SearchViewModel = viewModel()
 ) {
@@ -138,8 +138,8 @@ fun SearchScreen(
                                         file = file,
                                         onHashtagClick = { tag -> searchViewModel.onQueryChanged(tag) },
                                         onCardClick = {
-                                            if (file.categoryId != null && file.reasoningId != null) {
-                                                onNavigateToReasoning(file.categoryId, file.reasoningId)
+                                            if (file.categoryId != null) {
+                                                onNavigateToReasoning(file.categoryId, file.categoryName)
                                             }
                                         },
                                         onDownload = {

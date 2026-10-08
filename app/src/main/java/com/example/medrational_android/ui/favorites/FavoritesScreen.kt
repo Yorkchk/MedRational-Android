@@ -31,7 +31,7 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 @Composable
 fun FavoritesScreen(
     viewModel: FavoriteViewModel,
-    onNavigateToReasoning: (categoryId: Long, reasoningId: Long) -> Unit,
+    onNavigateToReasoning: (categoryId: Long, categoryName: String) -> Unit,
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -106,8 +106,8 @@ fun FavoritesScreen(
                                 FavoriteItemCard(
                                     favorite = fav,
                                     onCardClick = {
-                                        if (file.categoryId != null && file.reasoningId != null) {
-                                            onNavigateToReasoning(file.categoryId, file.reasoningId)
+                                        if (file.categoryId != null) {
+                                            onNavigateToReasoning(file.categoryId, file.categoryName ?: "Details")
                                         }
                                     },
                                     onRemoveFavorite = {
