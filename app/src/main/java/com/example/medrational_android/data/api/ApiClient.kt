@@ -2,6 +2,7 @@ package com.example.medrational_android.data.api
 
 import android.content.Context
 import com.example.medrational_android.data.api.MedRationalApi
+import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.data.auth.TokenManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -12,8 +13,8 @@ import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
 
 object ApiClient {
-//    const val BASE_URL = "http://10.0.0.18:8080/"
-    const val BASE_URL = "http://10.0.2.2:8080/"
+    // Set per build type from local.properties (api.baseUrl / api.releaseBaseUrl), see app/build.gradle.kts
+    const val BASE_URL = BuildConfig.BASE_URL
     private var tokenManager: TokenManager? = null
 
     fun initialize(context: Context) {
@@ -40,7 +41,8 @@ object ApiClient {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        // Full bodies (incl. JWTs) are logged in debug only
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
     }
 
     private val okHttpClient = OkHttpClient.Builder()
