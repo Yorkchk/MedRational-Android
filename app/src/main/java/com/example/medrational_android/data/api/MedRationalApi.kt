@@ -65,4 +65,22 @@ interface MedRationalApi {
         @Query("query") query: String?,
         @Query("categoryId") categoryId: Long?
     ): Response<PageResponse<FileSearchResult>>
+
+    @POST("api/v1/users/{userId}/favorites/{fileId}/toggle")
+    suspend fun toggleFavorite(
+        @Path("userId") userId: Long,
+        @Path("fileId") fileId: Long
+    ): Response<FavoriteToggleResponse>
+
+    @GET("api/v1/users/{userId}/favorites")
+    suspend fun getUserFavorites(
+        @Path("userId") userId: Long,
+        @Query("size") size: Int = 1000 // fetch all favorites so every heart reflects its state
+    ): Response<PageResponse<FavoriteResponse>>
+
+    @GET("api/v1/users/{userId}/favorites/{fileId}/status")
+    suspend fun isFileFavorited(
+        @Path("userId") userId: Long,
+        @Path("fileId") fileId: Long
+    ): Response<Map<String, Boolean>>
 }

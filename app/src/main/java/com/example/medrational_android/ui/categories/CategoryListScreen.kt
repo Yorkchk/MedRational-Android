@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +29,8 @@ fun CategoryListScreen(
     viewModel: CategoryViewModel,
     onCategoryClick: (Long, String) -> Unit,
     onSignOut: () -> Unit,
-    onNavigateToSearch: () -> Unit
+    onNavigateToSearch: () -> Unit,
+    onNavigateToFavorites: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -47,6 +49,13 @@ fun CategoryListScreen(
             TopAppBar(
                 title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onNavigateToFavorites) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "My Favorites",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                     if (tokenManager.isLoggedIn()) {
                         IconButton(onClick = { showSignOutDialog = true }) {
                             Icon(

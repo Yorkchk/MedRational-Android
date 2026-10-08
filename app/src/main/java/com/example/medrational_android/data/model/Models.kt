@@ -108,3 +108,28 @@ data class PageResponse<T>(
     val totalPages: Int,
     val number: Int
 )
+
+// Mirrors backend FavoriteResponseDTO: file details are nested under "file"
+data class FavoriteResponse(
+    val favoriteId: Long,
+    val userId: Long,
+    val file: FavoriteFile,
+    val createdAt: String?
+)
+
+data class FavoriteFile(
+    val id: Long,
+    val fileName: String?,
+    val fileType: String?,
+    val publicUrl: String?,
+    val reasoningId: Long?,
+    val reasoningTitle: String?,
+    val categoryId: Long?,
+    val categoryName: String?
+)
+
+data class FavoriteToggleResponse(
+    val fileId: Long,
+    val isFavorited: Boolean,
+    val message: String
+)

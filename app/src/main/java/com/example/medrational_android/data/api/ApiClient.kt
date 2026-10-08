@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
 
 object ApiClient {
-    const val BASE_URL = "http://10.0.0.18:8080/"
-
+//    const val BASE_URL = "http://10.0.0.18:8080/"
+    const val BASE_URL = "http://10.0.2.2:8080/"
     private var tokenManager: TokenManager? = null
 
     fun initialize(context: Context) {

@@ -28,6 +28,7 @@ import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.ReasoningUiState
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 
@@ -43,6 +44,17 @@ fun ReasoningDetailScreen(
     val context = LocalContext.current
     val downloader = remember { AndroidDownloader(context) }
     val tokenManager = remember { TokenManager(context) }
+    val favoriteViewModel: FavoriteViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+        FavoriteViewModel(tokenManager)
+    }
+    val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
+
+    // Re-runs whenever this destination re-enters composition (e.g. back from Favorites),
+    // so hearts always reflect the latest server state
+    LaunchedEffect(categoryId) {
+        viewModel.loadReasoningsForCategory(categoryId)
+        favoriteViewModel.loadFavorites()
+    }
 
     // Check if the current user holds the admin role
     val isAdmin = remember {
@@ -61,10 +73,6 @@ fun ReasoningDetailScreen(
             viewModel.uploadFile(context, activeUploadReasoningId!!, uri)
             Toast.makeText(context, "Uploading file...", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    LaunchedEffect(categoryId) {
-        viewModel.loadReasoningsForCategory(categoryId)
     }
 
     Scaffold(
@@ -124,6 +132,8 @@ fun ReasoningDetailScreen(
                                 ReasoningItemCard(
                                     reasoning = reasoning,
                                     isAdmin = isAdmin,
+                                    favoritedIds = favoritedIds, // <-- Pass the set of favorited IDs
+                                    onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) }, // <-- Pass the toggle lambda
                                     onImageClick = { url -> previewImageUrl = url },
                                     onDeleteReasoning = { viewModel.deleteReasoning(reasoning.id) },
                                     onAddFile = {
@@ -195,6 +205,8 @@ fun ReasoningItemCard(
     isAdmin: Boolean,
     onImageClick: (String) -> Unit,
     onDeleteReasoning: () -> Unit,
+    favoritedIds: Set<Long>,
+    onToggleFavorite: (Long) -> Unit,
     onAddFile: () -> Unit,
     onDeleteFile: (Long) -> Unit,
     onDownloadReasoningZip: () -> Unit,
@@ -261,10 +273,12 @@ fun ReasoningItemCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                reasoning.files.forEach { file ->
+                reasoning.files?.forEach { file ->
                     StudyFileRow(
                         file = file,
                         isAdmin = isAdmin,
+                        isFavorited = favoritedIds.contains(file.id), // <-- Fixes 'No value passed for parameter isFavorited'
+                        onToggleFavorite = { onToggleFavorite(file.id) }, // <-- Fixes 'No value passed for parameter onToggleFavorite'
                         onImageClick = onImageClick,
                         onDeleteFile = { onDeleteFile(file.id) },
                         onDownloadFile = { onDownloadSingleFile(file) }
@@ -280,12 +294,14 @@ fun ReasoningItemCard(
 fun StudyFileRow(
     file: StudyFile,
     isAdmin: Boolean,
+    isFavorited: Boolean,
+    onToggleFavorite: () -> Unit,
     onImageClick: (String) -> Unit,
     onDeleteFile: () -> Unit,
     onDownloadFile: () -> Unit
 ) {
     val isImage = file.fileType?.startsWith("image/") == true ||
-            file.fileName.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE))
+            file.fileName?.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE)) == true
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -331,14 +347,29 @@ fun StudyFileRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            IconButton(onClick = onDownloadFile) {
-                Icon(imageVector = Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = if (isFavorited) "Remove from favorites" else "Add to favorites",
+                    tint = if (isFavorited) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+                )
             }
+            IconButton(onClick = onDownloadFile) {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = "Download",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
 
             if (isAdmin) {
                 IconButton(onClick = onDeleteFile) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete file", tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete file",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
