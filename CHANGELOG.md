@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `docs/CI_AND_TESTS.md` and `docs/GITHUB_REPO_SETUP.md` guides, linked from the README.
 - GitHub Actions CI (lint, unit tests, debug build), Dependabot, and a PR template.
 - Backend URL configurable per build type through `local.properties`.
 
