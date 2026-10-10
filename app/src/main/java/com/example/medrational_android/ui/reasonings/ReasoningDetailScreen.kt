@@ -20,14 +20,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.ReasoningUiState
 import com.example.medrational_android.viewmodel.ReasoningViewModel
@@ -38,6 +40,7 @@ fun ReasoningDetailScreen(
     categoryId: Long,
     categoryName: String,
     viewModel: ReasoningViewModel,
+    onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -62,7 +65,6 @@ fun ReasoningDetailScreen(
         role.contains("ADMIN", ignoreCase = true)
     }
 
-    var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var showCreateReasoningDialog by remember { mutableStateOf(false) }
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
 
@@ -134,7 +136,7 @@ fun ReasoningDetailScreen(
                                     isAdmin = isAdmin,
                                     favoritedIds = favoritedIds, // <-- Pass the set of favorited IDs
                                     onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) }, // <-- Pass the toggle lambda
-                                    onImageClick = { url -> previewImageUrl = url },
+                                    onFileClick = { file -> onFileClick(reasoning.id, file.id) },
                                     onDeleteReasoning = { viewModel.deleteReasoning(reasoning.id) },
                                     onAddFile = {
                                         activeUploadReasoningId = reasoning.id
@@ -169,41 +171,13 @@ fun ReasoningDetailScreen(
             }
         )
     }
-
-    previewImageUrl?.let { url ->
-        Dialog(onDismissRequest = { previewImageUrl = null }) {
-            Card(
-                modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    AsyncImage(
-                        model = url,
-                        contentDescription = "Image preview",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 450.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Fit
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    TextButton(
-                        onClick = { previewImageUrl = null },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Close")
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
 fun ReasoningItemCard(
     reasoning: Reasoning,
     isAdmin: Boolean,
-    onImageClick: (String) -> Unit,
+    onFileClick: (StudyFile) -> Unit,
     onDeleteReasoning: () -> Unit,
     favoritedIds: Set<Long>,
     onToggleFavorite: (Long) -> Unit,
@@ -279,7 +253,7 @@ fun ReasoningItemCard(
                         isAdmin = isAdmin,
                         isFavorited = favoritedIds.contains(file.id), // <-- Fixes 'No value passed for parameter isFavorited'
                         onToggleFavorite = { onToggleFavorite(file.id) }, // <-- Fixes 'No value passed for parameter onToggleFavorite'
-                        onImageClick = onImageClick,
+                        onClick = { onFileClick(file) },
                         onDeleteFile = { onDeleteFile(file.id) },
                         onDownloadFile = { onDownloadSingleFile(file) }
                     )
@@ -296,22 +270,18 @@ fun StudyFileRow(
     isAdmin: Boolean,
     isFavorited: Boolean,
     onToggleFavorite: () -> Unit,
-    onImageClick: (String) -> Unit,
+    onClick: () -> Unit,
     onDeleteFile: () -> Unit,
     onDownloadFile: () -> Unit
 ) {
-    val isImage = file.fileType?.startsWith("image/") == true ||
-            file.fileName?.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE)) == true
+    val isImage = isImageFile(file.fileName, file.fileType)
 
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                if (isImage) onImageClick(file.publicUrl)
-                else onDownloadFile()
-            }
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(10.dp),
@@ -326,9 +296,9 @@ fun StudyFileRow(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.PictureAsPdf,
+                    imageVector = fileTypeIcon(file.fileName, file.fileType),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -339,10 +309,12 @@ fun StudyFileRow(
                 Text(
                     text = file.fileName,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (isImage) "Tap to preview image" else "Tap to download document",
+                    text = if (isImage || file.previewable) "Tap to preview" else "Tap to open",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

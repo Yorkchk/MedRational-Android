@@ -2,6 +2,7 @@ package com.example.medrational_android.data.api
 
 import com.example.medrational_android.data.model.*
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -21,6 +22,9 @@ interface MedRationalApi {
     @GET("api/v1/reasonings/category/{categoryId}")
     suspend fun getReasoningsByCategory(@Path("categoryId") categoryId: Long): Response<List<Reasoning>>
 
+    @GET("api/v1/reasonings/{id}")
+    suspend fun getReasoning(@Path("id") id: Long): Response<Reasoning>
+
     @POST("api/v1/reasonings")
     suspend fun createReasoning(@Body request: CreateReasoningRequest): Response<Reasoning>
 
@@ -34,6 +38,11 @@ interface MedRationalApi {
         @Path("reasoningId") reasoningId: Long,
         @Part file: MultipartBody.Part
     ): Response<StudyFile>
+
+    // PDF rendition of the file; 415 when the format can't be previewed, 503 when conversion fails
+    @Streaming
+    @GET("api/v1/files/{id}/preview")
+    suspend fun getFilePreview(@Path("id") id: Long): Response<ResponseBody>
 
     @DELETE("api/v1/files/{id}")
     suspend fun deleteFile(@Path("id") id: Long): Response<Unit>

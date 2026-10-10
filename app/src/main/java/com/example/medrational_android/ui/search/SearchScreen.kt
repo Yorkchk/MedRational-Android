@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +25,8 @@ import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FileSearchResult
+import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.SearchUiState
 import com.example.medrational_android.viewmodel.SearchViewModel
 
@@ -33,6 +34,7 @@ import com.example.medrational_android.viewmodel.SearchViewModel
 @Composable
 fun SearchScreen(
     onNavigateToReasoning: (categoryId: Long, categoryName: String) -> Unit,
+    onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit,
     searchViewModel: SearchViewModel = viewModel()
 ) {
@@ -138,7 +140,9 @@ fun SearchScreen(
                                         file = file,
                                         onHashtagClick = { tag -> searchViewModel.onQueryChanged(tag) },
                                         onCardClick = {
-                                            if (file.categoryId != null) {
+                                            if (file.reasoningId != null) {
+                                                onFileClick(file.reasoningId, file.id)
+                                            } else if (file.categoryId != null) {
                                                 onNavigateToReasoning(file.categoryId, file.categoryName)
                                             }
                                         },
@@ -164,8 +168,7 @@ fun SearchResultCard(
     onCardClick: () -> Unit,
     onDownload: () -> Unit
 ) {
-    val isImage = file.fileType?.startsWith("image/") == true ||
-            file.fileName?.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE)) == true
+    val isImage = isImageFile(file.fileName, file.fileType)
 
     Card(
         modifier = Modifier
@@ -185,9 +188,9 @@ fun SearchResultCard(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.PictureAsPdf,
+                        imageVector = fileTypeIcon(file.fileName, file.fileType),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(40.dp)
                     )
                 }

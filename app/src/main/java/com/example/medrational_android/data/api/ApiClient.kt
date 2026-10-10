@@ -13,8 +13,10 @@ import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
 
 object ApiClient {
-    // Set per build type from local.properties (api.baseUrl / api.releaseBaseUrl), see app/build.gradle.kts
-    const val BASE_URL = BuildConfig.BASE_URL
+    // Set per build type from local.properties (api.baseUrl / api.releaseBaseUrl), see app/build.gradle.kts.
+    // Not `const`: a const would be inlined into every caller, and incremental builds would keep the old URL
+    // after local.properties changes.
+    val BASE_URL: String = BuildConfig.BASE_URL
     private var tokenManager: TokenManager? = null
 
     fun initialize(context: Context) {
@@ -40,13 +42,36 @@ object ApiClient {
         response
     }
 
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        // Full bodies (incl. JWTs) are logged in debug only
+    private const val PREVIEW_READ_TIMEOUT_SECONDS = 120
+
+    private fun Interceptor.Chain.isPreview() = request().url.encodedPath.endsWith("/preview")
+
+    // First-time Office-to-PDF conversion on the backend can take longer than the default timeout
+    private val previewTimeoutInterceptor = Interceptor { chain ->
+        if (chain.isPreview()) {
+            chain.withReadTimeout(PREVIEW_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS).proceed(chain.request())
+        } else {
+            chain.proceed(chain.request())
+        }
+    }
+
+    // Full bodies (incl. JWTs) are logged in debug only
+    private val bodyLogger = HttpLoggingInterceptor().apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+    }
+
+    // Preview PDFs are only header-logged: dumping megabytes of binary into logcat takes seconds
+    private val headerLogger = HttpLoggingInterceptor().apply {
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE
+    }
+
+    private val loggingInterceptor = Interceptor { chain ->
+        if (chain.isPreview()) headerLogger.intercept(chain) else bodyLogger.intercept(chain)
     }
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        .addInterceptor(previewTimeoutInterceptor)
         .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
