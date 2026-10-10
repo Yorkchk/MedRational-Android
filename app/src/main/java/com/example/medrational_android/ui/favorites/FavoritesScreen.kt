@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +23,8 @@ import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FavoriteResponse
+import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.FavoriteUiState
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 
@@ -32,6 +33,7 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 fun FavoritesScreen(
     viewModel: FavoriteViewModel,
     onNavigateToReasoning: (categoryId: Long, categoryName: String) -> Unit,
+    onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -106,7 +108,9 @@ fun FavoritesScreen(
                                 FavoriteItemCard(
                                     favorite = fav,
                                     onCardClick = {
-                                        if (file.categoryId != null) {
+                                        if (file.reasoningId != null) {
+                                            onFileClick(file.reasoningId, file.id)
+                                        } else if (file.categoryId != null) {
                                             onNavigateToReasoning(file.categoryId, file.categoryName ?: "Details")
                                         }
                                     },
@@ -138,8 +142,7 @@ fun FavoriteItemCard(
     onDownload: () -> Unit
 ) {
     val file = favorite.file
-    val isImage = file.fileType?.startsWith("image/") == true ||
-            file.fileName?.matches(Regex(".*\\.(png|jpg|jpeg|webp)$", RegexOption.IGNORE_CASE)) == true
+    val isImage = isImageFile(file.fileName, file.fileType)
 
     Card(
         modifier = Modifier
@@ -163,9 +166,9 @@ fun FavoriteItemCard(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.PictureAsPdf,
+                    imageVector = fileTypeIcon(file.fileName, file.fileType),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(42.dp)
                 )
             }
