@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- File ratings: rate any file from 1 to 5 stars on its page, change your rating, or remove it. Each file's average and number of ratings show on its page and next to it in category, search, favorites, What's new and recent downloads lists, and a change shows up on every screen at once.
 - Hashtags on the file detail screen. Admins can add, rename, and remove a file's hashtags; other users see them read-only.
 - Hashtag autocomplete for admins: existing tags are suggested, most used first, with how many files use each.
 - Hashtags can be chosen when uploading a file.

@@ -64,6 +64,19 @@ interface MedRationalApi {
         @Path("hashtagId") hashtagId: Long
     ): Response<Unit>
 
+    // Ratings: the rater comes from the JWT. Each call returns the file's new average and count
+    @GET("api/v1/files/{fileId}/ratings")
+    suspend fun getFileRating(@Path("fileId") fileId: Long): Response<FileRatingSummary>
+
+    @POST("api/v1/files/{fileId}/ratings")
+    suspend fun rateFile(
+        @Path("fileId") fileId: Long,
+        @Body request: RateFileRequest
+    ): Response<FileRatingSummary>
+
+    @DELETE("api/v1/files/{fileId}/ratings")
+    suspend fun removeFileRating(@Path("fileId") fileId: Long): Response<FileRatingSummary>
+
     // Admin only: a 403 here would log a regular user out, so only call it when TokenManager.isAdmin()
     @GET("api/v1/admin/analytics/trending-hashtags")
     suspend fun getHashtagUsage(@Query("limit") limit: Int = 500): Response<List<HashtagUsage>>

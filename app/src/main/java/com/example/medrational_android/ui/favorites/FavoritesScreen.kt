@@ -23,7 +23,10 @@ import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FavoriteResponse
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.FavoriteUiState
 import com.example.medrational_android.viewmodel.FavoriteViewModel
@@ -39,6 +42,8 @@ fun FavoritesScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val downloader = remember { AndroidDownloader(context) }
+
+    val ratings by FileRatingStore.shared.ratings.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadFavorites()
@@ -107,6 +112,7 @@ fun FavoritesScreen(
                                 val file = fav.file
                                 FavoriteItemCard(
                                     favorite = fav,
+                                    knownRating = ratings[file.id],
                                     onCardClick = {
                                         if (file.reasoningId != null) {
                                             onFileClick(file.reasoningId, file.id)
@@ -137,6 +143,7 @@ fun FavoritesScreen(
 @Composable
 fun FavoriteItemCard(
     favorite: FavoriteResponse,
+    knownRating: FileRatingSummary?,
     onCardClick: () -> Unit,
     onRemoveFavorite: () -> Unit,
     onDownload: () -> Unit
@@ -185,6 +192,12 @@ fun FavoriteItemCard(
                     text = "${file.categoryName ?: "General"} • ${file.reasoningTitle ?: ""}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                RatingBadge(
+                    known = knownRating,
+                    avgRating = file.avgRating,
+                    totalRatings = file.totalRatings,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
 

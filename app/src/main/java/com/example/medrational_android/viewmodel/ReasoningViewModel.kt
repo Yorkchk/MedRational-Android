@@ -9,7 +9,9 @@ import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.CreateReasoningRequest
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
+import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.upload.describePickedFile
 import com.example.medrational_android.data.upload.toPart
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,10 @@ sealed interface ReasoningUiState {
 }
 
 // Every parameter has a default, so the no-arg constructor used by viewModel() in MainActivity still exists
-class ReasoningViewModel(private val api: MedRationalApi = ApiClient.api) : ViewModel() {
+class ReasoningViewModel(
+    private val api: MedRationalApi = ApiClient.api,
+    private val ratingStore: FileRatingStore = FileRatingStore.shared
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ReasoningUiState>(ReasoningUiState.Loading)
     val uiState: StateFlow<ReasoningUiState> = _uiState.asStateFlow()
@@ -45,7 +50,9 @@ class ReasoningViewModel(private val api: MedRationalApi = ApiClient.api) : View
             try {
                 val response = api.getReasoningsByCategory(categoryId)
                 if (response.isSuccessful && response.body() != null) {
-                    _uiState.value = ReasoningUiState.Success(response.body()!!)
+                    val reasonings = response.body()!!
+                    ratingStore.seed(reasonings.flatMap { it.files.orEmpty() }.map { FileRatingSummary(it.id, it.avgRating, it.totalRatings) })
+                    _uiState.value = ReasoningUiState.Success(reasonings)
                 } else {
                     _uiState.value = ReasoningUiState.Error("Failed to fetch reasonings")
                 }

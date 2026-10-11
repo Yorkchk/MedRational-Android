@@ -3,8 +3,10 @@ package com.example.medrational_android.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.medrational_android.data.api.MedRationalApi
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.NoveltiesFeed
 import com.example.medrational_android.data.model.NoveltyItem
+import com.example.medrational_android.data.rating.FileRatingStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,8 @@ sealed interface NoveltiesUiState {
  */
 class NoveltiesViewModel(
     private val api: MedRationalApi,
-    private val pageSize: Int = PAGE_SIZE
+    private val pageSize: Int = PAGE_SIZE,
+    private val ratingStore: FileRatingStore = FileRatingStore.shared
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NoveltiesUiState>(NoveltiesUiState.Loading)
@@ -104,6 +107,7 @@ class NoveltiesViewModel(
         val response = api.getNovelties(page, pageSize)
         val body = response.body()
         if (!response.isSuccessful || body == null) throw HttpException(response)
+        ratingStore.seed(body.feed.content.map { FileRatingSummary(it.fileId, it.avgRating, it.totalRatings) })
         return body
     }
 
