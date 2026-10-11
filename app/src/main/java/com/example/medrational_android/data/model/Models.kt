@@ -57,6 +57,62 @@ data class RecentDownload(
     val reasoningTitle: String?
 )
 
+// --- Suggestions: mirror the backend Suggestion*DTOs ---
+
+// PENDING: open conversation. CLOSED: archived by an admin, read-only for both sides
+enum class SuggestionStatus { PENDING, CLOSED }
+
+// Metadata only; the file is downloaded from /suggestions/{id}/attachment or
+// /suggestions/{id}/messages/{messageId}/attachment
+data class SuggestionAttachment(
+    val fileName: String,
+    val contentType: String?,
+    val sizeBytes: Long?
+)
+
+data class SuggestionSender(
+    val userId: Long,
+    val fullName: String?,
+    val email: String,
+    val phoneNumber: String?
+)
+
+data class SuggestionMessage(
+    val id: Long,
+    val fromAdmin: Boolean,
+    val authorName: String?,
+    val body: String,
+    val attachment: SuggestionAttachment?,
+    val createdAt: String?
+)
+
+data class SuggestionSummary(
+    val id: Long,
+    val title: String,
+    val status: SuggestionStatus,
+    val createdAt: String?,
+    val lastActivityAt: String?,
+    val messageCount: Int = 0,
+    // The other side posted since you last opened it
+    val unread: Boolean = false,
+    val senderName: String?,
+    val senderEmail: String?
+)
+
+data class SuggestionDetail(
+    val id: Long,
+    val title: String,
+    val description: String,
+    val status: SuggestionStatus,
+    val createdAt: String?,
+    val lastActivityAt: String?,
+    val closedAt: String?,
+    val attachment: SuggestionAttachment?,
+    val sender: SuggestionSender,
+    // Oldest first
+    val messages: List<SuggestionMessage> = emptyList()
+)
+
 data class AuthMessageResponse(
     val message: String?
 )
