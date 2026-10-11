@@ -2,7 +2,9 @@ package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
 import com.example.medrational_android.data.api.MedRationalApi
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RecentDownload
+import com.example.medrational_android.data.rating.FileRatingStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -99,6 +101,19 @@ class RecentDownloadsViewModelTest {
         viewModel.load()
 
         assertEquals(RecentDownloadsUiState.Success(listOf(file)), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `loaded ratings go into the shared store`() {
+        val store = FileRatingStore()
+        store.put(FileRatingSummary(3, 2.0, 1, userRating = 2))
+        coEvery { api.getRecentDownloads(USER_ID, any()) } returns Response.success(
+            listOf(download(3).copy(avgRating = 3.5, totalRatings = 2), download(fileId = null))
+        )
+
+        RecentDownloadsViewModel(api, USER_ID, store).load()
+
+        assertEquals(mapOf(3L to FileRatingSummary(3, 3.5, 2, userRating = 2)), store.ratings.value)
     }
 
     private companion object {

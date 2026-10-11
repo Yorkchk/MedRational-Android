@@ -31,10 +31,13 @@ import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.HashtagPickerDialog
+import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.BulkHashtagUiState
 import com.example.medrational_android.viewmodel.BulkHashtagViewModel
@@ -61,6 +64,7 @@ fun ReasoningDetailScreen(
         FavoriteViewModel(tokenManager)
     }
     val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
+    val ratings by FileRatingStore.shared.ratings.collectAsState()
 
     // Re-runs whenever this destination re-enters composition (e.g. back from Favorites),
     // so hearts always reflect the latest server state
@@ -206,6 +210,7 @@ fun ReasoningDetailScreen(
                                     reasoning = reasoning,
                                     isAdmin = isAdmin,
                                     favoritedIds = favoritedIds, // <-- Pass the set of favorited IDs
+                                    ratings = ratings,
                                     onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) }, // <-- Pass the toggle lambda
                                     selectedFileIds = selectedFileIds,
                                     onFileClick = { file ->
@@ -310,6 +315,7 @@ fun ReasoningItemCard(
     selectedFileIds: List<Long>,
     onDeleteReasoning: () -> Unit,
     favoritedIds: Set<Long>,
+    ratings: Map<Long, FileRatingSummary>,
     onToggleFavorite: (Long) -> Unit,
     onAddFile: () -> Unit,
     onDeleteFile: (Long) -> Unit,
@@ -382,6 +388,7 @@ fun ReasoningItemCard(
                         file = file,
                         isAdmin = isAdmin,
                         isFavorited = favoritedIds.contains(file.id), // <-- Fixes 'No value passed for parameter isFavorited'
+                        knownRating = ratings[file.id],
                         onToggleFavorite = { onToggleFavorite(file.id) }, // <-- Fixes 'No value passed for parameter onToggleFavorite'
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
@@ -407,6 +414,8 @@ fun StudyFileRow(
     onClick: () -> Unit,
     onDeleteFile: () -> Unit,
     onDownloadFile: () -> Unit,
+    // Latest rating from the shared store; the file's own figures are used until there is one
+    knownRating: FileRatingSummary? = null,
     onLongClick: () -> Unit = {},
     // While selecting, rows show a checkbox and hide their actions
     selectionMode: Boolean = false,
@@ -453,11 +462,16 @@ fun StudyFileRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = if (isImage || file.previewable) "Tap to preview" else "Tap to open",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RatingBadge(known = knownRating, avgRating = file.avgRating, totalRatings = file.totalRatings)
+                    Text(
+                        text = if (isImage || file.previewable) " · Tap to preview" else " · Tap to open",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             if (selectionMode) return@Row
             IconButton(onClick = onToggleFavorite) {

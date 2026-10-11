@@ -40,8 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RecentDownload
 import com.example.medrational_android.data.model.formatIsoDate
+import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.RecentDownloadsUiState
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
@@ -54,6 +57,7 @@ fun RecentDownloadsScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val ratings by FileRatingStore.shared.ratings.collectAsState()
 
     // Reloads each time the screen is shown, so files downloaded meanwhile appear at the top
     LaunchedEffect(Unit) {
@@ -101,6 +105,7 @@ fun RecentDownloadsScreen(
                             items(state.downloads, key = { it.fileId!! }) { download ->
                                 RecentDownloadCard(
                                     download = download,
+                                    knownRating = ratings[download.fileId],
                                     onClick = { onFileClick(download.reasoningId!!, download.fileId!!) }
                                 )
                             }
@@ -115,6 +120,7 @@ fun RecentDownloadsScreen(
 @Composable
 private fun RecentDownloadCard(
     download: RecentDownload,
+    knownRating: FileRatingSummary?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -163,6 +169,12 @@ private fun RecentDownloadCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                RatingBadge(
+                    known = knownRating,
+                    avgRating = download.avgRating,
+                    totalRatings = download.totalRatings,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }

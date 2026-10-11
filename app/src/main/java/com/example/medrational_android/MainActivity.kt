@@ -21,6 +21,7 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -153,6 +154,8 @@ fun MedRationalApp() {
                 onCategoryClick = { id, name -> navController.navigate("reasonings/$id/${Uri.encode(name)}") },
                 onSignOut = {
                     tokenManager.clearToken()
+                    // The store holds this user's own scores
+                    FileRatingStore.shared.clear()
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },

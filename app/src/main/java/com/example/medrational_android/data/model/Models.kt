@@ -26,8 +26,21 @@ data class StudyFile(
     val fileSizeBytes: Long?,
     // Backend can render it as a PDF (PDF, DOCX, PPTX, XLSX)
     val previewable: Boolean = false,
-    val uploadedAt: String? = null
+    val uploadedAt: String? = null,
+    val avgRating: Double = 0.0,
+    val totalRatings: Int = 0
 )
+
+// Mirrors backend FileRatingSummaryDTO. avgRating is rounded to one decimal; userRating is the
+// signed-in user's score (1-5), null when they haven't rated the file
+data class FileRatingSummary(
+    val fileId: Long,
+    val avgRating: Double,
+    val totalRatings: Int,
+    val userRating: Int? = null
+)
+
+data class RateFileRequest(val score: Int)
 
 // Mirrors backend HashtagResponseDTO; names are stored lower-case without the leading '#'
 data class Hashtag(
@@ -56,7 +69,9 @@ data class RecentDownload(
     val categoryId: Long?,
     val categoryName: String?,
     val reasoningId: Long?,
-    val reasoningTitle: String?
+    val reasoningTitle: String?,
+    val avgRating: Double = 0.0,
+    val totalRatings: Int = 0
 )
 
 // Mirrors backend NoveltyFileItemDTO; ids are null when the file's reasoning was deleted
@@ -71,6 +86,8 @@ data class NoveltyItem(
     val reasoningId: Long?,
     val reasoningTitle: String?,
     val hashtags: List<String> = emptyList(),
+    val avgRating: Double = 0.0,
+    val totalRatings: Int = 0,
     // Uploaded since the user last opened the novelties feed. Older backends sent it as "new"
     @SerializedName(value = "isNew", alternate = ["new"])
     val isNew: Boolean = false
@@ -214,7 +231,9 @@ data class FileSearchResult(
     val publicUrl: String,
     val fileSizeBytes: Long?,
     val previewable: Boolean = false,
-    val hashtags: List<String> = emptyList()
+    val hashtags: List<String> = emptyList(),
+    val avgRating: Double = 0.0,
+    val totalRatings: Int = 0
 )
 
 data class PageResponse<T>(
@@ -240,7 +259,9 @@ data class FavoriteFile(
     val reasoningId: Long?,
     val reasoningTitle: String?,
     val categoryId: Long?,
-    val categoryName: String?
+    val categoryName: String?,
+    val avgRating: Double = 0.0,
+    val totalRatings: Int = 0
 )
 
 data class FavoriteToggleResponse(

@@ -24,8 +24,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.FileSearchResult
 import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.SearchUiState
 import com.example.medrational_android.viewmodel.SearchViewModel
@@ -45,6 +48,7 @@ fun SearchScreen(
     val categories by searchViewModel.categories.collectAsState()
     val query by searchViewModel.searchQuery.collectAsState()
     val selectedCategory by searchViewModel.selectedCategory.collectAsState()
+    val ratings by FileRatingStore.shared.ratings.collectAsState()
 
     Scaffold(
         topBar = {
@@ -138,6 +142,7 @@ fun SearchScreen(
                                 items(state.files, key = { it.id }) { file ->
                                     SearchResultCard(
                                         file = file,
+                                        knownRating = ratings[file.id],
                                         onHashtagClick = { tag -> searchViewModel.onQueryChanged(tag) },
                                         onCardClick = {
                                             if (file.reasoningId != null) {
@@ -164,6 +169,7 @@ fun SearchScreen(
 @Composable
 fun SearchResultCard(
     file: FileSearchResult,
+    knownRating: FileRatingSummary?,
     onHashtagClick: (String) -> Unit,
     onCardClick: () -> Unit,
     onDownload: () -> Unit
@@ -203,6 +209,12 @@ fun SearchResultCard(
                         "${file.categoryName} • ${file.reasoningTitle}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    RatingBadge(
+                        known = knownRating,
+                        avgRating = file.avgRating,
+                        totalRatings = file.totalRatings,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
 

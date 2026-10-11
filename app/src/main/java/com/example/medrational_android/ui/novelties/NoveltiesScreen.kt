@@ -45,9 +45,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.NoveltyItem
 import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.viewmodel.NoveltiesUiState
 import com.example.medrational_android.viewmodel.NoveltiesViewModel
@@ -62,6 +65,7 @@ fun NoveltiesScreen(
     // The ViewModel loads once, not this screen: reloading after the feed was marked seen would
     // drop the highlight when coming back from a file
     val uiState by viewModel.uiState.collectAsState()
+    val ratings by FileRatingStore.shared.ratings.collectAsState()
 
     Scaffold(
         topBar = {
@@ -98,6 +102,7 @@ fun NoveltiesScreen(
                     } else {
                         NoveltiesList(
                             state = state,
+                            ratings = ratings,
                             onFileClick = onFileClick,
                             onLoadMore = viewModel::loadMore
                         )
@@ -111,6 +116,7 @@ fun NoveltiesScreen(
 @Composable
 private fun NoveltiesList(
     state: NoveltiesUiState.Success,
+    ratings: Map<Long, FileRatingSummary>,
     onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
@@ -153,6 +159,7 @@ private fun NoveltiesList(
         items(state.items, key = { it.fileId }) { item ->
             NoveltyCard(
                 item = item,
+                knownRating = ratings[item.fileId],
                 onClick = { onFileClick(item.reasoningId!!, item.fileId) }
             )
         }
@@ -173,6 +180,7 @@ private fun NoveltiesList(
 @Composable
 private fun NoveltyCard(
     item: NoveltyItem,
+    knownRating: FileRatingSummary?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -243,6 +251,12 @@ private fun NoveltyCard(
                         color = colors.onSurfaceVariant
                     )
                 }
+                RatingBadge(
+                    known = knownRating,
+                    avgRating = item.avgRating,
+                    totalRatings = item.totalRatings,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }
