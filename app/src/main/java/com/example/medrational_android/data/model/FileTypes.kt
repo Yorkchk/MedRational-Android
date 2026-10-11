@@ -4,7 +4,7 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif")
+private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "heic", "heif", "avif")
 
 // Lowercase extension without the dot, or "" when the name has none
 fun fileExtension(fileName: String?): String {

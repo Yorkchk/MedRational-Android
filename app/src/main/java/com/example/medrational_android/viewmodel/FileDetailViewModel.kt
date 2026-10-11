@@ -2,6 +2,7 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
@@ -93,7 +94,7 @@ class FileDetailViewModel(
     }
 
     private fun initialPreview(file: StudyFile): PreviewState = when {
-        isImageFile(file.fileName, file.fileType) -> PreviewState.Image(file.publicUrl)
+        isImageFile(file.fileName, file.fileType) -> PreviewState.Image(ApiClient.filePreviewUrl(file.id))
         file.previewable -> PreviewState.Loading
         else -> PreviewState.NotSupported
     }

@@ -23,6 +23,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - HTTP bodies are logged in debug builds only.
 
 ### Fixed
+- Image previews and thumbnails (JPG, PNG and other images) now load. They were requested from private storage and came back blank. Images now also cover BMP, HEIC/HEIF and AVIF, GIFs animate, and an image that can't be displayed shows a Download button instead of an empty box.
 - The app no longer crashes on launch when its saved sign-in can't be read (for example after restoring the phone from a backup). You're signed out and can log in again.
 - File downloads now send the signed-in user's token, so the backend can record them.
 

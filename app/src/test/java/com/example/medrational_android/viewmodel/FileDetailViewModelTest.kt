@@ -105,14 +105,17 @@ class FileDetailViewModelTest {
     }
 
     @Test
-    fun `image file is previewed from its public URL`() {
-        val image = studyFile(fileName = "ecg.png", fileType = "image/png", previewable = false)
+    fun `image file is previewed through the backend, not its private storage URL`() {
+        val image = studyFile(fileName = "ecg.jpg", fileType = "image/jpeg", previewable = true)
         coEvery { api.getReasoning(REASONING_ID) } returns Response.success(reasoningWith(image))
 
         val viewModel = newViewModel()
         viewModel.load(REASONING_ID, FILE_ID)
 
-        assertEquals(PreviewState.Image("https://cdn.example/ecg.png"), viewModel.success().preview)
+        val preview = viewModel.success().preview as PreviewState.Image
+        assertTrue(preview.url.endsWith("api/v1/files/$FILE_ID/preview"))
+        assertFalse(preview.url.contains("cdn.example"))
+        // Coil loads the image itself; the PDF preview path must not run
         coVerify(exactly = 0) { api.getFilePreview(any()) }
     }
 
