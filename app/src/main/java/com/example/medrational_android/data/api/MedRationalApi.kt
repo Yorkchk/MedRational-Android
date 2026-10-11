@@ -182,6 +182,46 @@ interface MedRationalApi {
     @POST("api/v1/novelties/mark-seen")
     suspend fun markNoveltiesSeen(): Response<Unit>
 
+    // Workshop projects need a signed-in user. Sorted by opening time; a null status lists all.
+    // formLink is null for non-admins unless the project is OPEN
+    @GET("api/v1/workshops")
+    suspend fun getWorkshops(
+        @Query("status") status: ProjectStatus?,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 100
+    ): Response<PageResponse<WorkshopProject>>
+
+    @GET("api/v1/workshops/{id}")
+    suspend fun getWorkshop(@Path("id") id: Long): Response<WorkshopProject>
+
+    // Admin only from here on: a 403 would log a regular user out, so only call these when
+    // TokenManager.isAdmin()
+    @POST("api/v1/workshops")
+    suspend fun createWorkshop(
+        @Query("authorId") authorId: Long,
+        @Body request: CreateWorkshopProjectRequest
+    ): Response<WorkshopProject>
+
+    @Multipart
+    @POST("api/v1/workshops/{id}/attachments")
+    suspend fun uploadWorkshopAttachment(
+        @Path("id") id: Long,
+        @Part file: MultipartBody.Part
+    ): Response<WorkshopAttachment>
+
+    @DELETE("api/v1/workshops/attachments/{attachmentId}")
+    suspend fun deleteWorkshopAttachment(@Path("attachmentId") attachmentId: Long): Response<Unit>
+
+    // Manual override, e.g. closing early once the form is full
+    @PATCH("api/v1/workshops/{id}/status")
+    suspend fun updateWorkshopStatus(
+        @Path("id") id: Long,
+        @Query("status") status: ProjectStatus
+    ): Response<WorkshopProject>
+
+    @DELETE("api/v1/workshops/{id}")
+    suspend fun deleteWorkshop(@Path("id") id: Long): Response<Unit>
+
     @GET("api/v1/users/{userId}/favorites/{fileId}/status")
     suspend fun isFileFavorited(
         @Path("userId") userId: Long,

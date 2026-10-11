@@ -1,7 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Workshop reminders: local notifications 10 minutes before registration opens and closes -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- On time rather than up to several minutes late in Doze; granted by default before Android 14.
+         An app-op permission any app may request; lint wrongly treats it as system-only -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
@@ -23,6 +31,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".data.reminders.WorkshopReminderReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
