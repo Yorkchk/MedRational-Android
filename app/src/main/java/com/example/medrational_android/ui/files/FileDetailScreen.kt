@@ -103,6 +103,9 @@ import com.example.medrational_android.data.preview.PdfDocumentRenderer
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.FileDetailUiState
 import com.example.medrational_android.viewmodel.FileDetailViewModel
+import com.example.medrational_android.viewmodel.FileHashtagsViewModel
+import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
+import com.example.medrational_android.viewmodel.HashtagsUiState
 import com.example.medrational_android.viewmodel.PreviewState
 import java.io.File
 
@@ -125,13 +128,30 @@ fun FileDetailScreen(
         FileDetailViewModel(ApiClient.api, File(context.cacheDir, "previews"))
     }
     val favoriteViewModel: FavoriteViewModel = viewModel { FavoriteViewModel(tokenManager) }
+    val hashtagsViewModel: FileHashtagsViewModel = viewModel { FileHashtagsViewModel(ApiClient.api) }
+    val isAdmin = remember { tokenManager.isAdmin() }
+    // Only refreshed from admin controls: its endpoint is admin-only and a 403 logs the user out
+    val catalogViewModel: HashtagCatalogViewModel = viewModel { HashtagCatalogViewModel(ApiClient.api) }
+    val hashtagCatalog by catalogViewModel.catalog.collectAsState()
 
     val uiState by viewModel.uiState.collectAsState()
     val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
+    val hashtagsState by hashtagsViewModel.uiState.collectAsState()
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
         favoriteViewModel.loadFavorites()
+        hashtagsViewModel.load(fileId)
+    }
+
+    val loadedHashtags = hashtagsState as? HashtagsUiState.Success
+    val showHashtags = loadedHashtags != null && (isAdmin || loadedHashtags.hashtags.isNotEmpty())
+    val hashtagMessage = loadedHashtags?.message
+    LaunchedEffect(hashtagMessage) {
+        if (hashtagMessage != null) {
+            Toast.makeText(context, hashtagMessage, Toast.LENGTH_LONG).show()
+            hashtagsViewModel.onMessageShown()
+        }
     }
 
     val listState = rememberLazyListState()
@@ -202,7 +222,22 @@ fun FileDetailScreen(
                     listState = listState,
                     onRetryPreview = viewModel::retryPreview,
                     onPreviewCorrupted = viewModel::onPreviewCorrupted,
-                    onDownload = { onDownload(state.file) }
+                    onDownload = { onDownload(state.file) },
+                    // Skipped entirely when hidden so the list doesn't get an empty, spaced-out row
+                    hashtags = if (!showHashtags) null else {
+                        {
+                            HashtagSection(
+                                state = hashtagsState,
+                                isAdmin = isAdmin,
+                                onAddHashtags = hashtagsViewModel::addHashtags,
+                                onRenameHashtag = hashtagsViewModel::renameHashtag,
+                                onRemoveHashtag = hashtagsViewModel::removeHashtag,
+                                catalog = hashtagCatalog,
+                                onRefreshCatalog = catalogViewModel::refresh,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 )
             }
         }
@@ -215,7 +250,8 @@ private fun BoxScope.FileDetailContent(
     listState: LazyListState,
     onRetryPreview: () -> Unit,
     onPreviewCorrupted: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    hashtags: (@Composable () -> Unit)?
 ) {
     val preview = state.preview
     val pdfFile = (preview as? PreviewState.Pdf)?.file
@@ -246,6 +282,9 @@ private fun BoxScope.FileDetailContent(
     ) {
         item(key = "header") {
             FileHeader(file = state.file, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        }
+        if (hashtags != null) {
+            item(key = "hashtags") { hashtags() }
         }
         item(key = "reasoning") {
             ReasoningCard(reasoning = state.reasoning, modifier = Modifier.padding(horizontal = 16.dp))
