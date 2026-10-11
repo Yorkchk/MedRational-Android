@@ -27,6 +27,23 @@ data class StudyFile(
     val uploadedAt: String? = null
 )
 
+// Mirrors backend HashtagResponseDTO; names are stored lower-case without the leading '#'
+data class Hashtag(
+    val id: Long,
+    val name: String
+)
+
+// Mirrors backend AttachHashtagsRequestDTO; unknown names are created on the fly
+data class AttachHashtagsRequest(
+    val tagNames: List<String>
+)
+
+// Mirrors backend TrendingHashtagMetricDTO: every hashtag in use, with how many files carry it
+data class HashtagUsage(
+    val hashtag: String,
+    val attachedFilesCount: Long
+)
+
 data class AuthMessageResponse(
     val message: String?
 )

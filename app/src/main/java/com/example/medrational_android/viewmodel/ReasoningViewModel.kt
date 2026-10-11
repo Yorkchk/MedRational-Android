@@ -4,7 +4,10 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.VisibleForTesting
 import com.example.medrational_android.data.api.ApiClient
+import com.example.medrational_android.data.api.MedRationalApi
+import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.CreateReasoningRequest
 import com.example.medrational_android.data.model.Reasoning
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +17,8 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.HttpException
+import java.io.IOException
 import java.io.File
 import java.io.FileOutputStream
 import android.provider.OpenableColumns
@@ -25,10 +30,15 @@ sealed interface ReasoningUiState {
     data class Error(val message: String) : ReasoningUiState
 }
 
-class ReasoningViewModel : ViewModel() {
+// Every parameter has a default, so the no-arg constructor used by viewModel() in MainActivity still exists
+class ReasoningViewModel(private val api: MedRationalApi = ApiClient.api) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ReasoningUiState>(ReasoningUiState.Loading)
     val uiState: StateFlow<ReasoningUiState> = _uiState.asStateFlow()
+
+    // One-shot upload feedback, cleared by onMessageShown()
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
 
     private var currentCategoryId: Long = 0L
 
@@ -37,7 +47,7 @@ class ReasoningViewModel : ViewModel() {
         _uiState.value = ReasoningUiState.Loading
         viewModelScope.launch {
             try {
-                val response = ApiClient.api.getReasoningsByCategory(categoryId)
+                val response = api.getReasoningsByCategory(categoryId)
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = ReasoningUiState.Success(response.body()!!)
                 } else {
@@ -52,7 +62,7 @@ class ReasoningViewModel : ViewModel() {
     fun createReasoning(title: String, content: String) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.api.createReasoning(
+                val response = api.createReasoning(
                     CreateReasoningRequest(categoryId = currentCategoryId, title = title, content = content)
                 )
                 if (response.isSuccessful) {
@@ -65,7 +75,7 @@ class ReasoningViewModel : ViewModel() {
     fun deleteReasoning(reasoningId: Long) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.api.deleteReasoning(reasoningId)
+                val response = api.deleteReasoning(reasoningId)
                 if (response.isSuccessful) {
                     loadReasoningsForCategory(currentCategoryId)
                 }
@@ -76,7 +86,7 @@ class ReasoningViewModel : ViewModel() {
     fun deleteFile(fileId: Long) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.api.deleteFile(fileId)
+                val response = api.deleteFile(fileId)
                 if (response.isSuccessful) {
                     loadReasoningsForCategory(currentCategoryId)
                 }
@@ -84,7 +94,11 @@ class ReasoningViewModel : ViewModel() {
         }
     }
 
-    fun uploadFile(context: Context, reasoningId: Long, uri: Uri) {
+    fun onMessageShown() {
+        _message.value = null
+    }
+
+    fun uploadFile(context: Context, reasoningId: Long, uri: Uri, tags: List<String> = emptyList()) {
         viewModelScope.launch {
             try {
                 val contentResolver = context.contentResolver
@@ -117,13 +131,52 @@ class ReasoningViewModel : ViewModel() {
                 val requestFile = tempFile.readBytes().toRequestBody(mimeType.toMediaTypeOrNull())
                 val multipartBody = MultipartBody.Part.createFormData("file", originalFileName!!, requestFile)
 
-                val response = ApiClient.api.uploadFile(reasoningId, multipartBody)
-                tempFile.delete()
-
-                if (response.isSuccessful) {
-                    loadReasoningsForCategory(currentCategoryId)
+                try {
+                    uploadAndTag(reasoningId, multipartBody, tags)
+                } finally {
+                    tempFile.delete()
                 }
-            } catch (_: Exception) {}
+            } catch (e: IOException) {
+                _message.value = "Couldn't read the selected file."
+            } catch (e: SecurityException) {
+                // The picker's permission on the Uri can be revoked before we read it
+                _message.value = "Couldn't read the selected file."
+            }
         }
+    }
+
+    // Uploads, then attaches the tags to the new file; the upload stands even if tagging fails
+    @VisibleForTesting
+    internal suspend fun uploadAndTag(reasoningId: Long, part: MultipartBody.Part, tags: List<String>) {
+        val uploaded = try {
+            val response = api.uploadFile(reasoningId, part)
+            if (response.isSuccessful) response.body() else null
+        } catch (e: IOException) {
+            null
+        } catch (e: HttpException) {
+            null
+        }
+        if (uploaded == null) {
+            _message.value = "Upload failed. Check your connection and try again."
+            return
+        }
+
+        _message.value = if (tags.isEmpty()) {
+            "Uploaded ${uploaded.fileName}"
+        } else {
+            val tagged = try {
+                api.attachHashtags(uploaded.id, AttachHashtagsRequest(tags)).isSuccessful
+            } catch (e: IOException) {
+                false
+            } catch (e: HttpException) {
+                false
+            }
+            if (tagged) {
+                "Uploaded and tagged ${uploaded.fileName}"
+            } else {
+                "Uploaded ${uploaded.fileName}, but its hashtags couldn't be saved."
+            }
+        }
+        loadReasoningsForCategory(currentCategoryId)
     }
 }
