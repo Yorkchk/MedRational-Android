@@ -39,5 +39,14 @@ fun combineDateAndTime(utcDateMillis: Long, hour: Int, minute: Int): Long {
     }.timeInMillis
 }
 
+/** The inverse of [combineDateAndTime]: UTC midnight of [localMillis]'s local day, as a DatePicker expects. */
+fun toUtcDateMillis(localMillis: Long): Long {
+    val local = Calendar.getInstance().apply { timeInMillis = localMillis }
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        clear()
+        set(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH))
+    }.timeInMillis
+}
+
 /** "12 Mar 2026, 10:15" for local epoch millis. */
 fun formatMillisDateTime(millis: Long): String = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.US).format(Date(millis))

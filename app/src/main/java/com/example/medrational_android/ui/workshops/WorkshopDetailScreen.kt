@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -81,6 +82,7 @@ fun WorkshopDetailScreen(
     projectId: Long,
     viewModel: WorkshopDetailViewModel,
     isAdmin: Boolean,
+    onEditClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -138,6 +140,15 @@ fun WorkshopDetailScreen(
                                 Icon(Icons.Default.MoreVert, contentDescription = "Admin actions")
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit project") },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        onEditClick()
+                                    }
+                                )
+                                HorizontalDivider()
                                 ProjectStatus.entries.filter { it != success.project.status }.forEach { status ->
                                     DropdownMenuItem(
                                         text = { Text("Mark as ${status.label().lowercase()}") },

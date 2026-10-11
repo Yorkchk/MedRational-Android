@@ -53,4 +53,13 @@ class DatesTest {
         assertEquals("2026-10-12T09:05:00", toIsoLocalDateTime(millis))
         assertEquals("12 Oct 2026, 09:05", formatMillisDateTime(millis))
     }
+
+    @Test
+    fun `editing opens the date picker on the stored day`() {
+        // Just after midnight locally (UTC+1), which is still the previous day in UTC
+        val stored = parseIsoLocalDateTime("2026-10-12T00:30:00")!!
+
+        assertEquals(1_791_763_200_000L, toUtcDateMillis(stored))
+        assertEquals(stored, combineDateAndTime(toUtcDateMillis(stored), hour = 0, minute = 30))
+    }
 }

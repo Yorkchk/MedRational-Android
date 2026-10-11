@@ -7,6 +7,7 @@ import com.example.medrational_android.data.model.CreateWorkshopProjectRequest
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
+import com.example.medrational_android.data.model.parseIsoLocalDateTime
 import com.example.medrational_android.data.model.toIsoLocalDateTime
 import com.example.medrational_android.data.reminders.WorkshopReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -265,7 +266,7 @@ class WorkshopDetailViewModel(
     }
 }
 
-// --- New project (admin) -------------------------------------------------------------------------
+// --- Project form (admin) -----------------------------------------------------------------------
 
 data class WorkshopForm(
     val title: String = "",
@@ -295,10 +296,37 @@ fun validateWorkshopForm(form: WorkshopForm): String? {
     }
 }
 
+// Call only with a form validateWorkshopForm accepted
+private fun WorkshopForm.toRequest(projectType: ProjectType) = CreateWorkshopProjectRequest(
+    title = title.trim(),
+    description = description.trim(),
+    projectType = projectType,
+    formLink = formLink.trim(),
+    capacity = capacity.trim().toIntOrNull(),
+    registrationOpensAt = toIsoLocalDateTime(requireNotNull(opensAtMillis)),
+    registrationClosesAt = toIsoLocalDateTime(requireNotNull(closesAtMillis))
+)
+
+/** The form prefilled with this project, for editing. Admins receive the link in every status. */
+fun WorkshopProject.toForm() = WorkshopForm(
+    title = title,
+    description = description,
+    formLink = formLink.orEmpty(),
+    capacity = capacity?.toString().orEmpty(),
+    opensAtMillis = parseIsoLocalDateTime(registrationOpensAt),
+    closesAtMillis = parseIsoLocalDateTime(registrationClosesAt)
+)
+
+// --- New project (admin) -------------------------------------------------------------------------
+
+/** A file picked on the new-project form, already read for upload. */
+data class PendingAttachment(val fileName: String, val part: MultipartBody.Part)
+
 sealed interface NewWorkshopUiState {
     data object Idle : NewWorkshopUiState
     data object Sending : NewWorkshopUiState
-    data class Created(val projectId: Long) : NewWorkshopUiState
+    // failedFiles: picked files that couldn't be attached; the project exists regardless
+    data class Created(val projectId: Long, val failedFiles: List<String> = emptyList()) : NewWorkshopUiState
     data class Error(val message: String) : NewWorkshopUiState
 }
 
@@ -312,21 +340,14 @@ class NewWorkshopViewModel(
     private val _uiState = MutableStateFlow<NewWorkshopUiState>(NewWorkshopUiState.Idle)
     val uiState: StateFlow<NewWorkshopUiState> = _uiState.asStateFlow()
 
-    fun submit(form: WorkshopForm) {
+    /** Creates the project, then attaches [attachments] one by one. */
+    fun submit(form: WorkshopForm, attachments: List<PendingAttachment> = emptyList()) {
         if (_uiState.value == NewWorkshopUiState.Sending) return
         validateWorkshopForm(form)?.let {
             _uiState.value = NewWorkshopUiState.Error(it)
             return
         }
-        val request = CreateWorkshopProjectRequest(
-            title = form.title.trim(),
-            description = form.description.trim(),
-            projectType = ProjectType.FIRST_COME_FIRST_SERVED,
-            formLink = form.formLink.trim(),
-            capacity = form.capacity.trim().toIntOrNull(),
-            registrationOpensAt = toIsoLocalDateTime(requireNotNull(form.opensAtMillis)),
-            registrationClosesAt = toIsoLocalDateTime(requireNotNull(form.closesAtMillis))
-        )
+        val request = form.toRequest(ProjectType.FIRST_COME_FIRST_SERVED)
         _uiState.value = NewWorkshopUiState.Sending
         viewModelScope.launch {
             _uiState.value = try {
@@ -334,7 +355,7 @@ class NewWorkshopViewModel(
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
                     reminders.schedule(listOf(body))
-                    NewWorkshopUiState.Created(body.id)
+                    NewWorkshopUiState.Created(body.id, failedFiles = attach(body.id, attachments))
                 } else {
                     NewWorkshopUiState.Error(workshopErrorMessage(response.code()))
                 }
@@ -346,8 +367,107 @@ class NewWorkshopViewModel(
         }
     }
 
+    // Names of the files that couldn't be attached
+    private suspend fun attach(projectId: Long, attachments: List<PendingAttachment>): List<String> =
+        attachments.filterNot { attachment ->
+            try {
+                api.uploadWorkshopAttachment(projectId, attachment.part).isSuccessful
+            } catch (e: IOException) {
+                false
+            } catch (e: HttpException) {
+                false
+            }
+        }.map { it.fileName }
+
     // Lets the form be submitted again after an error was shown
     fun onErrorShown() {
         if (_uiState.value is NewWorkshopUiState.Error) _uiState.value = NewWorkshopUiState.Idle
+    }
+}
+
+// --- Edit project (admin) ------------------------------------------------------------------------
+
+sealed interface EditWorkshopUiState {
+    data object Loading : EditWorkshopUiState
+    data class LoadError(val message: String) : EditWorkshopUiState
+    // initial seeds the form; the screen owns the edits from there
+    data class Editing(val initial: WorkshopForm, val saving: Boolean = false) : EditWorkshopUiState
+    data object Saved : EditWorkshopUiState
+}
+
+class EditWorkshopViewModel(
+    private val api: MedRationalApi,
+    private val reminders: WorkshopReminderScheduler
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<EditWorkshopUiState>(EditWorkshopUiState.Loading)
+    val uiState: StateFlow<EditWorkshopUiState> = _uiState.asStateFlow()
+
+    // One-shot feedback for a rejected save, cleared by onMessageShown()
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+
+    private var project: WorkshopProject? = null
+
+    fun load(id: Long) {
+        // Already loaded: keep the edits, e.g. across a configuration change
+        if (project?.id == id) return
+        _uiState.value = EditWorkshopUiState.Loading
+        viewModelScope.launch {
+            _uiState.value = try {
+                val response = api.getWorkshop(id)
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
+                    project = body
+                    EditWorkshopUiState.Editing(body.toForm())
+                } else {
+                    EditWorkshopUiState.LoadError(workshopErrorMessage(response.code()))
+                }
+            } catch (e: IOException) {
+                EditWorkshopUiState.LoadError(NETWORK_ERROR)
+            } catch (e: HttpException) {
+                EditWorkshopUiState.LoadError(workshopErrorMessage(e.code()))
+            }
+        }
+    }
+
+    fun save(form: WorkshopForm) {
+        val original = project ?: return
+        val current = _uiState.value as? EditWorkshopUiState.Editing ?: return
+        if (current.saving) return
+        validateWorkshopForm(form)?.let {
+            _message.value = it
+            return
+        }
+        // The type isn't on the form, so it stays as it was
+        val request = form.toRequest(original.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED)
+        _uiState.value = current.copy(saving = true)
+        viewModelScope.launch {
+            val error = try {
+                val response = api.updateWorkshop(original.id, request)
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
+                    // New dates mean new reminder times
+                    reminders.schedule(listOf(body))
+                    null
+                } else {
+                    workshopErrorMessage(response.code())
+                }
+            } catch (e: IOException) {
+                NETWORK_ERROR
+            } catch (e: HttpException) {
+                workshopErrorMessage(e.code())
+            }
+            if (error == null) {
+                _uiState.value = EditWorkshopUiState.Saved
+            } else {
+                _message.value = error
+                _uiState.value = current.copy(saving = false)
+            }
+        }
+    }
+
+    fun onMessageShown() {
+        _message.value = null
     }
 }
