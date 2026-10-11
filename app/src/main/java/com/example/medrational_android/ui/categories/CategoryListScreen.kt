@@ -37,6 +37,7 @@ fun CategoryListScreen(
     onNavigateToDownloads: () -> Unit,
     onNavigateToSuggestions: () -> Unit,
     onNavigateToNovelties: () -> Unit,
+    onNavigateToWorkshops: () -> Unit,
     // Files uploaded since the last visit to What's new
     noveltyCount: Long = 0
 ) {
@@ -74,6 +75,7 @@ fun CategoryListScreen(
                         DrawerDestination.HOME -> Unit
                         DrawerDestination.SEARCH -> onNavigateToSearch()
                         DrawerDestination.NOVELTIES -> onNavigateToNovelties()
+                        DrawerDestination.WORKSHOPS -> onNavigateToWorkshops()
                         DrawerDestination.FAVORITES -> onNavigateToFavorites()
                         DrawerDestination.DOWNLOADS -> onNavigateToDownloads()
                         DrawerDestination.SUGGESTIONS -> onNavigateToSuggestions()

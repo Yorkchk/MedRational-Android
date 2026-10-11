@@ -11,7 +11,11 @@ import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+
+/** True when [url] points at the MedRational API, the only host that gets the user's token. */
+internal fun shouldSendToken(url: String, baseUrl: String): Boolean = url.startsWith(baseUrl)
 
 class AndroidDownloader(private val context: Context) {
 
@@ -30,8 +34,11 @@ class AndroidDownloader(private val context: Context) {
             .setTitle(cleanFileName)
             .setDescription("Downloading study resource...")
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, cleanFileName)
-        // Lets the backend add single-file downloads to the user's recent downloads
-        tokenManager.getToken()?.let { request.addRequestHeader("Authorization", "Bearer $it") }
+        // Lets the backend add single-file downloads to the user's recent downloads. Only sent to our
+        // own API: workshop attachments are public R2 URLs, which must never see the JWT
+        if (shouldSendToken(url, ApiClient.BASE_URL)) {
+            tokenManager.getToken()?.let { request.addRequestHeader("Authorization", "Bearer $it") }
+        }
 
         val downloadId = downloadManager.enqueue(request)
 

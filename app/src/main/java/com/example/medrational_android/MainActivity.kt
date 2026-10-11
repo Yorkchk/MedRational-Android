@@ -22,6 +22,8 @@ import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.data.reminders.AlarmWorkshopReminderScheduler
+import com.example.medrational_android.data.reminders.syncWorkshopReminders
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -37,6 +39,9 @@ import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
 import com.example.medrational_android.ui.suggestions.SuggestionListScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
+import com.example.medrational_android.ui.workshops.NewWorkshopScreen
+import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
+import com.example.medrational_android.ui.workshops.WorkshopListScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
@@ -47,6 +52,9 @@ import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
 import com.example.medrational_android.viewmodel.SuggestionListViewModel
+import com.example.medrational_android.viewmodel.NewWorkshopViewModel
+import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
+import com.example.medrational_android.viewmodel.WorkshopListViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +81,13 @@ fun MedRationalApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    val workshopReminders = remember { AlarmWorkshopReminderScheduler(context) }
+
+    // Reminders for every upcoming and open workshop, even if the user never opens Projects.
+    // Once per app start; the workshops API needs a signed-in user
+    LaunchedEffect(Unit) {
+        if (tokenManager.isLoggedIn()) syncWorkshopReminders(ApiClient.api, workshopReminders)
+    }
 
     val categoryViewModel: CategoryViewModel = viewModel()
     val reasoningViewModel: ReasoningViewModel = viewModel()
@@ -156,6 +171,7 @@ fun MedRationalApp() {
                     tokenManager.clearToken()
                     // The store holds this user's own scores
                     FileRatingStore.shared.clear()
+                    workshopReminders.cancelAll()
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },
@@ -163,6 +179,7 @@ fun MedRationalApp() {
                 onNavigateToDownloads = { navController.navigate("downloads") },
                 onNavigateToSuggestions = { navController.navigate("suggestions") },
                 onNavigateToNovelties = { navController.navigate("novelties") },
+                onNavigateToWorkshops = { navController.navigate("workshops") },
                 noveltyCount = noveltyCount
             )
         }
@@ -218,6 +235,54 @@ fun MedRationalApp() {
                 suggestionId = backStackEntry.arguments?.getLong("suggestionId") ?: 0L,
                 viewModel = suggestionDetailViewModel,
                 isAdmin = remember { tokenManager.isAdmin() },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("workshops") {
+            val isAdmin = remember { tokenManager.isAdmin() }
+            val workshopListViewModel: WorkshopListViewModel = viewModel {
+                WorkshopListViewModel(ApiClient.api, workshopReminders)
+            }
+
+            WorkshopListScreen(
+                viewModel = workshopListViewModel,
+                isAdmin = isAdmin,
+                onProjectClick = { id -> navController.navigate("workshops/$id") },
+                onNewProjectClick = { navController.navigate("workshops/new") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Admin only: reached from the list's FAB
+        composable("workshops/new") {
+            val newWorkshopViewModel: NewWorkshopViewModel = viewModel {
+                NewWorkshopViewModel(ApiClient.api, workshopReminders, tokenManager.getUserId())
+            }
+
+            NewWorkshopScreen(
+                viewModel = newWorkshopViewModel,
+                // Open the new project so documents can be attached; back returns to the list
+                onCreated = { id ->
+                    navController.navigate("workshops/$id") { popUpTo("workshops/new") { inclusive = true } }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "workshops/{workshopId}",
+            arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val isAdmin = remember { tokenManager.isAdmin() }
+            val workshopDetailViewModel: WorkshopDetailViewModel = viewModel {
+                WorkshopDetailViewModel(ApiClient.api, workshopReminders)
+            }
+
+            WorkshopDetailScreen(
+                projectId = backStackEntry.arguments?.getLong("workshopId") ?: 0L,
+                viewModel = workshopDetailViewModel,
+                isAdmin = isAdmin,
                 onBackClick = { navController.popBackStack() }
             )
         }

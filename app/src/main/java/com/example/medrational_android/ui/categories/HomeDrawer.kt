@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -30,7 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-enum class DrawerDestination { HOME, SEARCH, NOVELTIES, FAVORITES, DOWNLOADS, SUGGESTIONS, SIGN_OUT }
+enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, SIGN_OUT }
 
 data class DrawerEntry(val destination: DrawerDestination, val label: String)
 
@@ -41,6 +42,8 @@ fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> 
     // What's new is relative to the account's last visit, so it needs a signed-in user
     if (isLoggedIn) {
         add(DrawerEntry(DrawerDestination.NOVELTIES, "What's new"))
+        // The workshops API needs a signed-in user
+        add(DrawerEntry(DrawerDestination.WORKSHOPS, "Projects"))
     }
     add(DrawerEntry(DrawerDestination.FAVORITES, "Favorites"))
     add(DrawerEntry(DrawerDestination.DOWNLOADS, "Recent downloads"))
@@ -55,6 +58,7 @@ private fun DrawerDestination.icon(): ImageVector = when (this) {
     DrawerDestination.HOME -> Icons.Default.Home
     DrawerDestination.SEARCH -> Icons.Default.Search
     DrawerDestination.NOVELTIES -> Icons.Default.NewReleases
+    DrawerDestination.WORKSHOPS -> Icons.Default.Event
     DrawerDestination.FAVORITES -> Icons.Default.Favorite
     DrawerDestination.DOWNLOADS -> Icons.Default.History
     DrawerDestination.SUGGESTIONS -> Icons.Default.Lightbulb
