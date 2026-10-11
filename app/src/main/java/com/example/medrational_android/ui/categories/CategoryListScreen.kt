@@ -1,18 +1,15 @@
 package com.example.medrational_android.ui.categories
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +22,7 @@ import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.Category
 import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,106 +46,98 @@ fun CategoryListScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
-    var showMenu by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    // Back closes the side menu instead of leaving the app
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onNavigateToFavorites) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "My Favorites",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    IconButton(onClick = onNavigateToDownloads) {
-                        Icon(Icons.Default.History, contentDescription = "Recent downloads")
-                    }
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Default.Search, contentDescription = "Search Files")
-                    }
-                    if (tokenManager.isLoggedIn()) {
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                            }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(if (isAdmin) "Suggestions inbox" else "Suggestions") },
-                                    leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
-                                    onClick = {
-                                        showMenu = false
-                                        onNavigateToSuggestions()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Sign out", color = MaterialTheme.colorScheme.error) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Logout,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showMenu = false
-                                        showSignOutDialog = true
-                                    }
-                                )
-                            }
-                        }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            HomeDrawerContent(
+                userName = tokenManager.getUserName(),
+                email = tokenManager.getEmail(),
+                isAdmin = isAdmin,
+                entries = homeDrawerEntries(isAdmin = isAdmin, isLoggedIn = tokenManager.isLoggedIn()),
+                onEntryClick = { destination ->
+                    // Close first so the menu isn't left open when coming back to home
+                    scope.launch { drawerState.close() }
+                    when (destination) {
+                        DrawerDestination.HOME -> Unit
+                        DrawerDestination.SEARCH -> onNavigateToSearch()
+                        DrawerDestination.FAVORITES -> onNavigateToFavorites()
+                        DrawerDestination.DOWNLOADS -> onNavigateToDownloads()
+                        DrawerDestination.SUGGESTIONS -> onNavigateToSuggestions()
+                        DrawerDestination.SIGN_OUT -> showSignOutDialog = true
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            if (isAdmin) {
-                FloatingActionButton(onClick = { showCreateDialog = true }) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Category")
-                }
-            }
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (val state = uiState) {
-                is CategoryUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                is CategoryUiState.Error -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadCategories() }) { Text("Retry") }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Open menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToSearch) {
+                            Icon(Icons.Default.Search, contentDescription = "Search Files")
+                        }
+                    }
+                )
+            },
+            floatingActionButton = {
+                if (isAdmin) {
+                    FloatingActionButton(onClick = { showCreateDialog = true }) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Category")
                     }
                 }
-                is CategoryUiState.Success -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.categories, key = { it.id }) { category ->
-                            CategoryCard(
-                                category = category,
-                                isAdmin = isAdmin,
-                                onClick = { onCategoryClick(category.id, category.name) },
-                                onDelete = { viewModel.deleteCategory(category.id) }
-                            )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when (val state = uiState) {
+                    is CategoryUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    is CategoryUiState.Error -> {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(onClick = { viewModel.loadCategories() }) { Text("Retry") }
+                        }
+                    }
+                    is CategoryUiState.Success -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.categories, key = { it.id }) { category ->
+                                CategoryCard(
+                                    category = category,
+                                    isAdmin = isAdmin,
+                                    onClick = { onCategoryClick(category.id, category.name) },
+                                    onDelete = { viewModel.deleteCategory(category.id) }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
