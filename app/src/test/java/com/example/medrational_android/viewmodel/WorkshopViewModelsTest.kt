@@ -9,12 +9,10 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopAttachment
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.data.model.parseIsoLocalDateTime
-import com.example.medrational_android.data.reminders.WorkshopReminderScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.verify
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -32,7 +30,6 @@ class WorkshopViewModelsTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val api: MedRationalApi = mockk()
-    private val reminders: WorkshopReminderScheduler = mockk(relaxed = true)
 
     private fun <T> error(code: Int): Response<T> = Response.error(code, "".toResponseBody(null))
 
@@ -54,14 +51,13 @@ class WorkshopViewModelsTest {
     // --- list --------------------------------------------------------------------------------------
 
     @Test
-    fun `list loads every project and schedules their reminders`() {
+    fun `list loads every project`() {
         coEvery { api.getWorkshops(null, any(), any()) } returns page(project(1), project(2))
 
-        val viewModel = WorkshopListViewModel(api, reminders)
+        val viewModel = WorkshopListViewModel(api)
         viewModel.load()
 
         assertEquals(WorkshopListUiState.Success(listOf(project(1), project(2))), viewModel.uiState.value)
-        verify { reminders.schedule(listOf(project(1), project(2))) }
     }
 
     @Test
@@ -69,7 +65,7 @@ class WorkshopViewModelsTest {
         coEvery { api.getWorkshops(null, any(), any()) } returns page(project(1))
         coEvery { api.getWorkshops(ProjectStatus.OPEN, any(), any()) } returns page(project(2, ProjectStatus.OPEN))
 
-        val viewModel = WorkshopListViewModel(api, reminders)
+        val viewModel = WorkshopListViewModel(api)
         viewModel.load()
         viewModel.selectTab(ProjectStatus.OPEN)
 
@@ -78,21 +74,20 @@ class WorkshopViewModelsTest {
     }
 
     @Test
-    fun `list network failure is an Error and leaves the reminders alone`() {
+    fun `list network failure is an Error`() {
         coEvery { api.getWorkshops(any(), any(), any()) } throws IOException("offline")
 
-        val viewModel = WorkshopListViewModel(api, reminders)
+        val viewModel = WorkshopListViewModel(api)
         viewModel.load()
 
         assertTrue(viewModel.uiState.value is WorkshopListUiState.Error)
-        verify(exactly = 0) { reminders.schedule(any()) }
     }
 
     // --- detail ------------------------------------------------------------------------------------
 
     private fun loadedDetail(project: WorkshopProject = project()): WorkshopDetailViewModel {
         coEvery { api.getWorkshop(project.id) } returns Response.success(project)
-        return WorkshopDetailViewModel(api, reminders).also { it.load(project.id) }
+        return WorkshopDetailViewModel(api).also { it.load(project.id) }
     }
 
     @Test
@@ -117,25 +112,17 @@ class WorkshopViewModelsTest {
     }
 
     @Test
-    fun `loading a project refreshes its reminders`() {
-        loadedDetail()
-
-        verify { reminders.schedule(listOf(project())) }
-    }
-
-    @Test
-    fun `a project deleted meanwhile loses its reminders`() {
+    fun `a project deleted meanwhile is an Error`() {
         coEvery { api.getWorkshop(ID) } returns error(404)
 
-        val viewModel = WorkshopDetailViewModel(api, reminders)
+        val viewModel = WorkshopDetailViewModel(api)
         viewModel.load(ID)
 
         assertEquals(WorkshopDetailUiState.Error("This project no longer exists."), viewModel.uiState.value)
-        verify { reminders.cancel(ID) }
     }
 
     @Test
-    fun `status override shows the new status and reschedules`() {
+    fun `status override shows the new status`() {
         val viewModel = loadedDetail()
         val closed = project(status = ProjectStatus.CLOSED)
         coEvery { api.updateWorkshopStatus(ID, ProjectStatus.CLOSED) } returns Response.success(closed)
@@ -143,7 +130,6 @@ class WorkshopViewModelsTest {
         viewModel.changeStatus(ProjectStatus.CLOSED)
 
         assertEquals(WorkshopDetailUiState.Success(closed), viewModel.uiState.value)
-        verify { reminders.schedule(listOf(closed)) }
     }
 
     @Test
@@ -158,14 +144,13 @@ class WorkshopViewModelsTest {
     }
 
     @Test
-    fun `deleting goes back and cancels the reminders`() {
+    fun `deleting goes back`() {
         val viewModel = loadedDetail()
         coEvery { api.deleteWorkshop(ID) } returns Response.success(Unit)
 
         viewModel.delete()
 
         assertEquals(WorkshopDetailUiState.Deleted, viewModel.uiState.value)
-        verify { reminders.cancel(ID) }
     }
 
     @Test
@@ -177,7 +162,6 @@ class WorkshopViewModelsTest {
 
         assertEquals(WorkshopDetailUiState.Success(project()), viewModel.uiState.value)
         assertEquals("Something went wrong (HTTP 500). Please try again.", viewModel.message.value)
-        verify(exactly = 0) { reminders.cancel(any()) }
     }
 
     @Test
@@ -251,7 +235,7 @@ class WorkshopViewModelsTest {
 
     @Test
     fun `invalid form makes no request`() {
-        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9)
 
         viewModel.submit(form(closesAt = opens - 1))
 
@@ -264,7 +248,7 @@ class WorkshopViewModelsTest {
         val request = slot<CreateWorkshopProjectRequest>()
         coEvery { api.createWorkshop(9, capture(request)) } returns Response.success(project(id = 12))
 
-        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9)
         viewModel.submit(form())
 
         assertEquals(
@@ -276,7 +260,6 @@ class WorkshopViewModelsTest {
             request.captured
         )
         assertEquals(NewWorkshopUiState.Created(12), viewModel.uiState.value)
-        verify { reminders.schedule(listOf(project(id = 12))) }
     }
 
     @Test
@@ -284,7 +267,7 @@ class WorkshopViewModelsTest {
         val request = slot<CreateWorkshopProjectRequest>()
         coEvery { api.createWorkshop(any(), capture(request)) } returns Response.success(project())
 
-        NewWorkshopViewModel(api, reminders, authorId = 9).submit(form(capacity = ""))
+        NewWorkshopViewModel(api, authorId = 9).submit(form(capacity = ""))
 
         assertNull(request.captured.capacity)
     }
@@ -293,7 +276,7 @@ class WorkshopViewModelsTest {
     fun `rejected create is an Error that can be retried`() {
         coEvery { api.createWorkshop(any(), any()) } returns error(400)
 
-        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9)
         viewModel.submit(form())
 
         assertTrue(viewModel.uiState.value is NewWorkshopUiState.Error)
@@ -313,7 +296,7 @@ class WorkshopViewModelsTest {
         coEvery { api.uploadWorkshopAttachment(12, any()) } returns
             Response.success(WorkshopAttachment(1, "x", "https://cdn.example.com/x"))
 
-        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9)
         viewModel.submit(form(), files)
 
         assertEquals(NewWorkshopUiState.Created(12, failedFiles = emptyList()), viewModel.uiState.value)
@@ -333,7 +316,7 @@ class WorkshopViewModelsTest {
         coEvery { api.uploadWorkshopAttachment(12, files[1].part) } returns error(413)
         coEvery { api.uploadWorkshopAttachment(12, files[2].part) } throws IOException("offline")
 
-        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9)
         viewModel.submit(form(), files)
 
         assertEquals(NewWorkshopUiState.Created(12, failedFiles = listOf("huge.zip", "map.png")), viewModel.uiState.value)
@@ -343,7 +326,7 @@ class WorkshopViewModelsTest {
     fun `no file is uploaded when the project can't be created`() {
         coEvery { api.createWorkshop(any(), any()) } returns error(400)
 
-        NewWorkshopViewModel(api, reminders, authorId = 9).submit(form(), listOf(pending("program.pdf")))
+        NewWorkshopViewModel(api, authorId = 9).submit(form(), listOf(pending("program.pdf")))
 
         coVerify(exactly = 0) { api.uploadWorkshopAttachment(any(), any()) }
     }
@@ -352,7 +335,7 @@ class WorkshopViewModelsTest {
 
     private fun loadedEdit(project: WorkshopProject = project(status = ProjectStatus.OPEN, formLink = LINK)): EditWorkshopViewModel {
         coEvery { api.getWorkshop(project.id) } returns Response.success(project)
-        return EditWorkshopViewModel(api, reminders).also { it.load(project.id) }
+        return EditWorkshopViewModel(api).also { it.load(project.id) }
     }
 
     @Test
@@ -378,7 +361,7 @@ class WorkshopViewModelsTest {
     }
 
     @Test
-    fun `saving sends the trimmed form with ISO dates and reschedules the reminders`() {
+    fun `saving sends the trimmed form with ISO dates`() {
         val viewModel = loadedEdit()
         val newOpens = parseIsoLocalDateTime("2026-11-02T08:30:00")!!
         val newCloses = parseIsoLocalDateTime("2026-11-03T12:00:00")!!
@@ -397,7 +380,6 @@ class WorkshopViewModelsTest {
             request.captured
         )
         assertEquals(EditWorkshopUiState.Saved, viewModel.uiState.value)
-        verify { reminders.schedule(listOf(updated)) }
     }
 
     @Test
@@ -420,14 +402,13 @@ class WorkshopViewModelsTest {
 
         assertEquals(EditWorkshopUiState.Editing(project(status = ProjectStatus.OPEN, formLink = LINK).toForm()), viewModel.uiState.value)
         assertTrue(viewModel.message.value!!.startsWith("Network error"))
-        verify(exactly = 0) { reminders.schedule(any()) }
     }
 
     @Test
     fun `editing a project that was deleted is a load error`() {
         coEvery { api.getWorkshop(ID) } returns error(404)
 
-        val viewModel = EditWorkshopViewModel(api, reminders)
+        val viewModel = EditWorkshopViewModel(api)
         viewModel.load(ID)
 
         assertEquals(EditWorkshopUiState.LoadError("This project no longer exists."), viewModel.uiState.value)
@@ -437,7 +418,7 @@ class WorkshopViewModelsTest {
     fun `edit load network failure is a load error`() {
         coEvery { api.getWorkshop(ID) } throws IOException("offline")
 
-        val viewModel = EditWorkshopViewModel(api, reminders)
+        val viewModel = EditWorkshopViewModel(api)
         viewModel.load(ID)
 
         assertTrue(viewModel.uiState.value is EditWorkshopUiState.LoadError)

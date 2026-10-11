@@ -55,9 +55,13 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - `FileRatingViewModel` updates it optimistically and rolls back on failure.
   - It is cleared on sign-out.
 - **Workshops ("Projects"):** `/api/v1/workshops` needs a signed-in user. Only FIRST_COME_FIRST_SERVED projects can be created for now; MOTIVATION is coming. The backend scheduler moves UPCOMING → OPEN → CLOSED at `registrationOpensAt`/`registrationClosesAt`, and admins can override it with `PATCH /{id}/status`. Admins edit a project with `PUT /{id}`: changing its dates recomputes the status and resends the reminders, while unchanged dates keep a manually set status. The create form uploads picked files one by one after the create; files that fail are reported, and the project is kept. `formLink` is null for non-admins unless OPEN. The app only opens the link, because sign-ups happen on the external form. Create, attachments, status and delete are admin only, since a 403 logs the user out. Attachments are public R2 URLs, and `AndroidDownloader` sends the JWT only to `BASE_URL`. Dates are zone-less `LocalDateTime`, so `data/model/Dates.kt` reads them in the device zone.
-  - Reminders are local notifications from `data/reminders/` (AlarmManager + `WorkshopReminderReceiver`), 10 minutes before opening and closing.
-  - `syncWorkshopReminders` reschedules all UPCOMING/OPEN projects on app start. List, detail and create ViewModels reschedule what they load.
-  - Reminders are cancelled on sign-out. They don't survive a reboot until the next app start.
+- **Push notifications (FCM):** workshop alerts are server pushes, not on-device alarms.
+  - The backend scheduler publishes to the FCM topic `workshops` 10 minutes before opening, at opening, 10 minutes before closing and at closing (`PushNotificationService`). It needs `FIREBASE_CREDENTIALS` (path to the secret service-account key) in the backend `.env`. Without it, pushes are skipped with a warning.
+  - A manual status change pushes too: OPEN sends the opened alert (`WORKSHOP_LAUNCH`) and CLOSED the closed one (`WORKSHOP_CLOSED`). Back to UPCOMING sends nothing. Notifications only use the `NotifType` values; add a new value to the enum when one is needed.
+  - The app subscribes to the topic when the home screen shows for a signed-in user (`data/push/WorkshopPush.kt`). It unsubscribes on sign-out and when a 401/403 ends the session.
+  - The app asks for the Android 13+ notification permission on the home screen. Tapping a push opens `workshops/{projectId}`.
+  - Push needs `app/google-services.json` from the Firebase console (not secret, committed). Without it the app builds with push off.
+  - The topic, the channel (`workshop_reminders`) and the data key (`projectId`) must match the backend.
 - **Multipart Uploads:** Admin file creation uses `MultipartBody.Part` for binary files alongside `RequestBody` for metadata fields (`title`, `description`, `reasoningId`).
 
 ## Architecture & State Management
