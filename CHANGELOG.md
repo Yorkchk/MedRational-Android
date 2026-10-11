@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Hashtags on the file detail screen. Admins can add, rename, and remove a file's hashtags; other users see them read-only.
+- Hashtag autocomplete for admins: existing tags are suggested, most used first, with how many files use each.
+- Hashtags can be chosen when uploading a file.
+- Bulk hashtag editing: admins long-press files on a category screen to select several, then add or remove tags on all of them.
 - `docs/CI_AND_TESTS.md` and `docs/GITHUB_REPO_SETUP.md` guides, linked from the README.
 - GitHub Actions CI (lint, unit tests, debug build), Dependabot, and a PR template.
 - Backend URL configurable per build type through `local.properties`.

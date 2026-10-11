@@ -47,6 +47,25 @@ interface MedRationalApi {
     @DELETE("api/v1/files/{id}")
     suspend fun deleteFile(@Path("id") id: Long): Response<Unit>
 
+    // Hashtags (attach/detach are admin only; the backend deletes a hashtag once no file uses it)
+    @GET("api/v1/files/{fileId}/hashtags")
+    suspend fun getFileHashtags(@Path("fileId") fileId: Long): Response<List<Hashtag>>
+
+    @POST("api/v1/files/{fileId}/hashtags")
+    suspend fun attachHashtags(
+        @Path("fileId") fileId: Long,
+        @Body request: AttachHashtagsRequest
+    ): Response<List<Hashtag>>
+
+    @DELETE("api/v1/files/{fileId}/hashtags/{hashtagId}")
+    suspend fun detachHashtag(
+        @Path("fileId") fileId: Long,
+        @Path("hashtagId") hashtagId: Long
+    ): Response<Unit>
+
+    // Admin only: a 403 here would log a regular user out, so only call it when TokenManager.isAdmin()
+    @GET("api/v1/admin/analytics/trending-hashtags")
+    suspend fun getHashtagUsage(@Query("limit") limit: Int = 500): Response<List<HashtagUsage>>
 
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthMessageResponse>

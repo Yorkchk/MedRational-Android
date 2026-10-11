@@ -1,10 +1,14 @@
 package com.example.medrational_android.ui.reasonings
 
+import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,8 +34,13 @@ import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.ui.components.HashtagPickerDialog
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.viewmodel.BulkHashtagUiState
+import com.example.medrational_android.viewmodel.BulkHashtagViewModel
+import com.example.medrational_android.viewmodel.BulkTag
 import com.example.medrational_android.viewmodel.FavoriteViewModel
+import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.ReasoningUiState
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 
@@ -67,19 +77,80 @@ fun ReasoningDetailScreen(
 
     var showCreateReasoningDialog by remember { mutableStateOf(false) }
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
+    // Picked but not yet uploaded: the admin chooses its hashtags first
+    var pendingUploadUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Only refreshed from admin controls: its endpoint is admin-only and a 403 logs the user out
+    val catalogViewModel: HashtagCatalogViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+        HashtagCatalogViewModel(ApiClient.api)
+    }
+    val hashtagCatalog by catalogViewModel.catalog.collectAsState()
+    val bulkViewModel: BulkHashtagViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+        BulkHashtagViewModel(ApiClient.api)
+    }
+    val bulkState by bulkViewModel.uiState.collectAsState()
+
+    // Admin bulk selection; a List so it can be saved across rotation
+    var selectedFileIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
+    val selectionMode = selectedFileIds.isNotEmpty()
+    val toggleSelection: (Long) -> Unit = { id ->
+        selectedFileIds = if (id in selectedFileIds) selectedFileIds - id else selectedFileIds + id
+    }
+    var showBulkAddDialog by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = selectionMode) { selectedFileIds = emptyList() }
+
+    val uploadMessage by viewModel.message.collectAsState()
+    val bulkMessage by bulkViewModel.message.collectAsState()
+    LaunchedEffect(uploadMessage) {
+        uploadMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.onMessageShown()
+        }
+    }
+    LaunchedEffect(bulkMessage) {
+        bulkMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            bulkViewModel.onMessageShown()
+        }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null && activeUploadReasoningId != null) {
-            viewModel.uploadFile(context, activeUploadReasoningId!!, uri)
-            Toast.makeText(context, "Uploading file...", Toast.LENGTH_SHORT).show()
+            catalogViewModel.refresh()
+            pendingUploadUri = uri
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (selectionMode) {
+                val busy = bulkState is BulkHashtagUiState.LoadingTags || bulkState is BulkHashtagUiState.Working
+                TopAppBar(
+                    title = { Text("${selectedFileIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { selectedFileIds = emptyList() }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel selection")
+                        }
+                    },
+                    actions = {
+                        if (busy) {
+                            CircularProgressIndicator(modifier = Modifier.padding(end = 16.dp).size(24.dp))
+                        } else {
+                            IconButton(onClick = {
+                                catalogViewModel.refresh()
+                                showBulkAddDialog = true
+                            }) {
+                                Icon(imageVector = Icons.Default.NewLabel, contentDescription = "Add hashtags to selected files")
+                            }
+                            IconButton(onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
+                                Icon(imageVector = Icons.Default.LabelOff, contentDescription = "Remove hashtags from selected files")
+                            }
+                        }
+                    }
+                )
+            } else TopAppBar(
                 title = { Text(text = categoryName, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -136,7 +207,12 @@ fun ReasoningDetailScreen(
                                     isAdmin = isAdmin,
                                     favoritedIds = favoritedIds, // <-- Pass the set of favorited IDs
                                     onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) }, // <-- Pass the toggle lambda
-                                    onFileClick = { file -> onFileClick(reasoning.id, file.id) },
+                                    selectedFileIds = selectedFileIds,
+                                    onFileClick = { file ->
+                                        if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
+                                    },
+                                    // Long-press starts bulk hashtag selection (admins only)
+                                    onFileLongClick = { file -> if (isAdmin) toggleSelection(file.id) },
                                     onDeleteReasoning = { viewModel.deleteReasoning(reasoning.id) },
                                     onAddFile = {
                                         activeUploadReasoningId = reasoning.id
@@ -162,6 +238,58 @@ fun ReasoningDetailScreen(
         }
     }
 
+    pendingUploadUri?.let { uri ->
+        val fileName = remember(uri) { displayName(context, uri) }
+        HashtagPickerDialog(
+            title = "Upload file",
+            confirmLabel = "Upload",
+            catalog = hashtagCatalog,
+            supportingText = "Optional. Separate several tags with spaces or commas",
+            allowEmpty = true,
+            header = {
+                Text(
+                    text = fileName ?: "Selected file",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            onConfirm = { tags ->
+                activeUploadReasoningId?.let { viewModel.uploadFile(context, it, uri, tags) }
+                Toast.makeText(context, "Uploading file...", Toast.LENGTH_SHORT).show()
+                pendingUploadUri = null
+            },
+            onDismissRequest = { pendingUploadUri = null }
+        )
+    }
+
+    if (showBulkAddDialog) {
+        HashtagPickerDialog(
+            title = "Tag ${selectedFileIds.size} files",
+            confirmLabel = "Add",
+            catalog = hashtagCatalog,
+            supportingText = "Added to every selected file",
+            onConfirm = { tags ->
+                bulkViewModel.addTags(selectedFileIds.toSet(), tags)
+                showBulkAddDialog = false
+                selectedFileIds = emptyList()
+            },
+            onDismissRequest = { showBulkAddDialog = false }
+        )
+    }
+
+    (bulkState as? BulkHashtagUiState.RemoveChoices)?.let { choices ->
+        BulkRemoveHashtagsDialog(
+            choices = choices,
+            onConfirm = { tags ->
+                bulkViewModel.removeTags(tags)
+                selectedFileIds = emptyList()
+            },
+            onDismissRequest = bulkViewModel::dismiss
+        )
+    }
+
     if (showCreateReasoningDialog) {
         CreateReasoningDialog(
             onDismiss = { showCreateReasoningDialog = false },
@@ -178,6 +306,8 @@ fun ReasoningItemCard(
     reasoning: Reasoning,
     isAdmin: Boolean,
     onFileClick: (StudyFile) -> Unit,
+    onFileLongClick: (StudyFile) -> Unit,
+    selectedFileIds: List<Long>,
     onDeleteReasoning: () -> Unit,
     favoritedIds: Set<Long>,
     onToggleFavorite: (Long) -> Unit,
@@ -254,6 +384,9 @@ fun ReasoningItemCard(
                         isFavorited = favoritedIds.contains(file.id), // <-- Fixes 'No value passed for parameter isFavorited'
                         onToggleFavorite = { onToggleFavorite(file.id) }, // <-- Fixes 'No value passed for parameter onToggleFavorite'
                         onClick = { onFileClick(file) },
+                        onLongClick = { onFileLongClick(file) },
+                        selectionMode = selectedFileIds.isNotEmpty(),
+                        isSelected = file.id in selectedFileIds,
                         onDeleteFile = { onDeleteFile(file.id) },
                         onDownloadFile = { onDownloadSingleFile(file) }
                     )
@@ -264,6 +397,7 @@ fun ReasoningItemCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StudyFileRow(
     file: StudyFile,
@@ -272,22 +406,28 @@ fun StudyFileRow(
     onToggleFavorite: () -> Unit,
     onClick: () -> Unit,
     onDeleteFile: () -> Unit,
-    onDownloadFile: () -> Unit
+    onDownloadFile: () -> Unit,
+    onLongClick: () -> Unit = {},
+    // While selecting, rows show a checkbox and hide their actions
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false
 ) {
     val isImage = isImageFile(file.fileName, file.fileType)
 
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Row(
             modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isImage) {
+            if (selectionMode) {
+                Checkbox(checked = isSelected, onCheckedChange = { onClick() })
+            } else if (isImage) {
                 AsyncImage(
                     model = file.publicUrl,
                     contentDescription = null,
@@ -319,6 +459,7 @@ fun StudyFileRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            if (selectionMode) return@Row
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -388,3 +529,60 @@ fun CreateReasoningDialog(
         }
     )
 }
+
+// Shows each tag on the selected files with how many of them carry it; the admin ticks which to remove
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BulkRemoveHashtagsDialog(
+    choices: BulkHashtagUiState.RemoveChoices,
+    onConfirm: (List<BulkTag>) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    var checked by rememberSaveable { mutableStateOf(emptyList<String>()) }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Remove hashtags") },
+        text = {
+            if (choices.tags.isEmpty()) {
+                Text("The selected files have no hashtags.")
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Removed from each selected file that has them. A tag no other file uses is deleted.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        choices.tags.forEach { tag ->
+                            val isChecked = tag.name in checked
+                            FilterChip(
+                                selected = isChecked,
+                                onClick = { checked = if (isChecked) checked - tag.name else checked + tag.name },
+                                label = { Text("#${tag.name} · ${tag.hashtagIdByFile.size}/${choices.fileCount}") }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(choices.tags.filter { it.name in checked }) },
+                enabled = checked.isNotEmpty(),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Remove")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) { Text("Cancel") }
+        }
+    )
+}
+
+private fun displayName(context: Context, uri: Uri): String? = runCatching {
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) cursor.getString(0) else null
+    }
+}.getOrNull()
