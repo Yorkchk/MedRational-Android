@@ -34,12 +34,12 @@ fun fileMetaLine(fileName: String?, fileType: String?, sizeBytes: Long?, uploade
     return listOfNotNull(
         type.ifEmpty { null },
         sizeBytes?.takeIf { it > 0 }?.let(::formatFileSize),
-        uploadedAt?.let(::formatUploadDate)
+        uploadedAt?.let(::formatIsoDate)
     ).joinToString(" · ")
 }
 
-// Backend sends ISO LocalDateTime ("2026-03-12T10:15:30"); only the date part is shown
-private fun formatUploadDate(isoDateTime: String): String? = try {
+// Backend sends ISO LocalDateTime ("2026-03-12T10:15:30"); only the date part is shown ("12 Mar 2026")
+fun formatIsoDate(isoDateTime: String): String? = try {
     val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(isoDateTime.take(10))
     date?.let { SimpleDateFormat("d MMM yyyy", Locale.US).format(it) }
 } catch (e: ParseException) {

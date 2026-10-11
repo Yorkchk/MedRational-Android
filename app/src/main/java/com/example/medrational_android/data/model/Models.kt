@@ -44,6 +44,19 @@ data class HashtagUsage(
     val attachedFilesCount: Long
 )
 
+// Mirrors backend RecentDownloadGlimpseDTO; ids are null when the file or its reasoning was deleted
+data class RecentDownload(
+    val fileId: Long?,
+    val fileName: String?,
+    val fileType: String?,
+    val fileSizeBytes: Long?,
+    val downloadedAt: String?,
+    val categoryId: Long?,
+    val categoryName: String?,
+    val reasoningId: Long?,
+    val reasoningTitle: String?
+)
+
 data class AuthMessageResponse(
     val message: String?
 )

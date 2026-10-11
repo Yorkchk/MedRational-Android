@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,7 +31,8 @@ fun CategoryListScreen(
     onCategoryClick: (Long, String) -> Unit,
     onSignOut: () -> Unit,
     onNavigateToSearch: () -> Unit,
-    onNavigateToFavorites: () -> Unit
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToDownloads: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -55,6 +57,9 @@ fun CategoryListScreen(
                             contentDescription = "My Favorites",
                             tint = MaterialTheme.colorScheme.error
                         )
+                    }
+                    IconButton(onClick = onNavigateToDownloads) {
+                        Icon(Icons.Default.History, contentDescription = "Recent downloads")
                     }
                     if (tokenManager.isLoggedIn()) {
                         IconButton(onClick = { showSignOutDialog = true }) {
