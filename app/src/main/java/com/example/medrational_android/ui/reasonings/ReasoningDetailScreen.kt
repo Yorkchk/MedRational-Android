@@ -429,7 +429,7 @@ fun StudyFileRow(
                 Checkbox(checked = isSelected, onCheckedChange = { onClick() })
             } else if (isImage) {
                 AsyncImage(
-                    model = file.publicUrl,
+                    model = ApiClient.filePreviewUrl(file.id),
                     contentDescription = null,
                     modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)),
                     contentScale = ContentScale.Crop
