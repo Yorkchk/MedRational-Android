@@ -1,10 +1,12 @@
 package com.example.medrational_android.ui.categories
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -87,12 +89,25 @@ fun CategoryListScreen(
                     title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            // A dot tells the user there is something new behind the menu
-                            BadgedBox(badge = { if (noveltyCount > 0) Badge() }) {
+                            // A dot tells the user there is something new behind the menu. It sits on the
+                            // icon's corner, inside the button: BadgedBox put it past the button's edge,
+                            // where the title is drawn over it
+                            Box {
                                 Icon(
                                     Icons.Default.Menu,
                                     contentDescription = if (noveltyCount > 0) "Open menu, new files available" else "Open menu"
                                 )
+                                if (noveltyCount > 0) {
+                                    Badge(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 4.dp, y = (-4).dp)
+                                            // Default 6dp dot is easy to miss
+                                            .size(10.dp)
+                                            // Ring in the bar's color so the dot stands out from the ☰ lines
+                                            .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                    )
+                                }
                             }
                         }
                     },
