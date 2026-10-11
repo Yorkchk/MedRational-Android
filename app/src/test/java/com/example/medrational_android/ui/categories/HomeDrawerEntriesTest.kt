@@ -18,6 +18,7 @@ class HomeDrawerEntriesTest {
             listOf(
                 DrawerDestination.HOME,
                 DrawerDestination.SEARCH,
+                DrawerDestination.NOVELTIES,
                 DrawerDestination.FAVORITES,
                 DrawerDestination.DOWNLOADS,
                 DrawerDestination.SUGGESTIONS,
@@ -34,9 +35,10 @@ class HomeDrawerEntriesTest {
     }
 
     @Test
-    fun `signed-out session hides suggestions and sign out`() {
+    fun `signed-out session hides account sections`() {
         val entries = destinations(isAdmin = false, isLoggedIn = false)
 
+        assertFalse(DrawerDestination.NOVELTIES in entries)
         assertFalse(DrawerDestination.SUGGESTIONS in entries)
         assertFalse(DrawerDestination.SIGN_OUT in entries)
         assertEquals(DrawerDestination.HOME, entries.first())
@@ -45,5 +47,12 @@ class HomeDrawerEntriesTest {
     @Test
     fun `admins get the same sections as users`() {
         assertEquals(destinations(isAdmin = false, isLoggedIn = true), destinations(isAdmin = true, isLoggedIn = true))
+    }
+
+    @Test
+    fun `badge count is capped at 99+`() {
+        assertEquals("7", formatBadgeCount(7))
+        assertEquals("99", formatBadgeCount(99))
+        assertEquals("99+", formatBadgeCount(100))
     }
 }
