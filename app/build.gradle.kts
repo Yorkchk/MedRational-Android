@@ -85,6 +85,8 @@ dependencies {
 
     // Coil for asynchronous image loading in Compose
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Animated GIF decoding
+    implementation("io.coil-kt:coil-gif:2.7.0")
 
     // Security (for encrypted storage of Admin JWT tokens)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

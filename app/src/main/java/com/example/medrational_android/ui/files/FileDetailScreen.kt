@@ -273,6 +273,7 @@ private fun BoxScope.FileDetailContent(
     }
 
     var fullScreen by rememberSaveable { mutableStateOf(false) }
+    var imageFailed by remember(preview) { mutableStateOf(false) }
 
     LazyColumn(
         state = listState,
@@ -309,19 +310,33 @@ private fun BoxScope.FileDetailContent(
                     )
                 }
             }
-            is PreviewState.Image -> item(key = "image") {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    PreviewSectionHeader(pageCount = null, onFullScreen = { fullScreen = true })
-                    AsyncImage(
-                        model = preview.url,
-                        contentDescription = state.file.fileName,
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                            .clickable { fullScreen = true }
+            is PreviewState.Image -> if (imageFailed) {
+                // e.g. HEIC before Android 9 or AVIF before Android 12, which the OS can't decode
+                item(key = "image-failed") {
+                    PreviewMessage(
+                        title = "Preview unavailable",
+                        body = "This image couldn't be displayed. Download it to open it in another app.",
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        leading = { Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
+                        action = { Button(onClick = onDownload) { Text("Download") } }
                     )
+                }
+            } else {
+                item(key = "image") {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        PreviewSectionHeader(pageCount = null, onFullScreen = { fullScreen = true })
+                        AsyncImage(
+                            model = preview.url,
+                            contentDescription = state.file.fileName,
+                            contentScale = ContentScale.FillWidth,
+                            onError = { imageFailed = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                                .clickable { fullScreen = true }
+                        )
+                    }
                 }
             }
             PreviewState.Loading -> item(key = "preview-loading") {
@@ -336,7 +351,7 @@ private fun BoxScope.FileDetailContent(
                 val extension = fileExtension(state.file.fileName)
                 PreviewMessage(
                     title = if (extension.isNotEmpty()) "No preview for .$extension files" else "No preview for this file",
-                    body = "Previews are available for PDF, Word, PowerPoint and Excel files. Download the file to open it.",
+                    body = "Previews are available for PDF, Word, PowerPoint, Excel and image files. Download the file to open it.",
                     modifier = Modifier.padding(horizontal = 16.dp),
                     leading = { Icon(Icons.Default.VisibilityOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
                     action = { Button(onClick = onDownload) { Text("Download") } }

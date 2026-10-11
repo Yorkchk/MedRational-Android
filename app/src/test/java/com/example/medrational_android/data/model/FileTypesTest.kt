@@ -23,6 +23,13 @@ class FileTypesTest {
     }
 
     @Test
+    fun `common phone and web image formats are images even as octet-stream`() {
+        for (name in listOf("a.jpeg", "a.png", "a.webp", "a.gif", "a.bmp", "a.HEIC", "a.heif", "a.avif")) {
+            assertTrue(name, isImageFile(name, "application/octet-stream"))
+        }
+    }
+
+    @Test
     fun `name without extension keeps dotted names intact`() {
         assertEquals("Cardio v1.2 notes", fileNameWithoutExtension("Cardio v1.2 notes.pdf"))
         assertEquals("README", fileNameWithoutExtension("README"))

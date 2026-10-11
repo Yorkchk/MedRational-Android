@@ -181,7 +181,7 @@ fun SearchResultCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isImage) {
                     AsyncImage(
-                        model = file.publicUrl,
+                        model = ApiClient.filePreviewUrl(file.id),
                         contentDescription = null,
                         modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Crop
