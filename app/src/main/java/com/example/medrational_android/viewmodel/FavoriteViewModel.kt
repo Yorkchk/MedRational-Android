@@ -6,6 +6,8 @@ import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.FavoriteResponse
+import com.example.medrational_android.data.model.FileRatingSummary
+import com.example.medrational_android.data.rating.FileRatingStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,8 @@ sealed class FavoriteUiState {
 
 class FavoriteViewModel(
     private val tokenManager: TokenManager,
-    private val api: MedRationalApi = ApiClient.api
+    private val api: MedRationalApi = ApiClient.api,
+    private val ratingStore: FileRatingStore = FileRatingStore.shared
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FavoriteUiState>(FavoriteUiState.Loading)
@@ -40,6 +43,7 @@ class FavoriteViewModel(
                 val response = api.getUserFavorites(userId)
                 if (response.isSuccessful && response.body() != null) {
                     val list = response.body()!!.content
+                    ratingStore.seed(list.map { FileRatingSummary(it.file.id, it.file.avgRating, it.file.totalRatings) })
                     _uiState.value = FavoriteUiState.Success(list)
                     // Persist the set of file IDs so all hearts know they are liked
                     _favoritedFileIds.value = list.map { it.file.id }.toSet()

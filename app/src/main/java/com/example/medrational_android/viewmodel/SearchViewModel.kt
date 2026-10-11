@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Category
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.FileSearchResult
+import com.example.medrational_android.data.rating.FileRatingStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,8 @@ sealed class SearchUiState {
 }
 
 class SearchViewModel(
-    private val api: MedRationalApi = ApiClient.api
+    private val api: MedRationalApi = ApiClient.api,
+    private val ratingStore: FileRatingStore = FileRatingStore.shared
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -81,7 +84,9 @@ class SearchViewModel(
         try {
             val response = api.searchFiles(query, categoryId)
             if (response.isSuccessful && response.body() != null) {
-                _uiState.value = SearchUiState.Success(response.body()!!.content)
+                val files = response.body()!!.content
+                ratingStore.seed(files.map { FileRatingSummary(it.id, it.avgRating, it.totalRatings) })
+                _uiState.value = SearchUiState.Success(files)
             } else {
                 _uiState.value = SearchUiState.Error("No results found.")
             }
