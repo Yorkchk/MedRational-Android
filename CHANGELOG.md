@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - HTTP bodies are logged in debug builds only.
 
 ### Fixed
+- The app no longer crashes on launch when its saved sign-in can't be read (for example after restoring the phone from a backup). You're signed out and can log in again.
 - File downloads now send the signed-in user's token, so the backend can record them.
 
 ## [0.1.0] - 2026-10-08
