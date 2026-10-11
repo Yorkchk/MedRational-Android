@@ -65,6 +65,7 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 - **Navigation:** Controlled by a single `NavHost` inside `MainActivity.MedRationalApp()`.
   - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`, `suggestions`, `suggestions/new`, `suggestions/{suggestionId}`.
   - Startup routing: checks `TokenManager.hasToken()`. If valid, routes directly to `categories`; otherwise routes to `welcome`.
+  - Secondary sections (Favorites, Recent downloads, Suggestions, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
 
 ## Core Workflows
 
