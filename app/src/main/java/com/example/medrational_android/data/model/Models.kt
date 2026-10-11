@@ -21,7 +21,10 @@ data class StudyFile(
     val fileName: String,
     val fileType: String?,
     val publicUrl: String,
-    val fileSizeBytes: Long?
+    val fileSizeBytes: Long?,
+    // Backend can render it as a PDF (PDF, DOCX, PPTX, XLSX)
+    val previewable: Boolean = false,
+    val uploadedAt: String? = null
 )
 
 data class AuthMessageResponse(
@@ -99,6 +102,7 @@ data class FileSearchResult(
     val fileType: String?,
     val publicUrl: String,
     val fileSizeBytes: Long?,
+    val previewable: Boolean = false,
     val hashtags: List<String> = emptyList()
 )
 
