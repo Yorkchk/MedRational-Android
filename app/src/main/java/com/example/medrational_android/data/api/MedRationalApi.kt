@@ -106,6 +106,14 @@ interface MedRationalApi {
         @Query("size") size: Int = 1000 // fetch all favorites so every heart reflects its state
     ): Response<PageResponse<FavoriteResponse>>
 
+    // Newest first, each file once; the backend records single-file downloads itself.
+    // A null limit uses the backend default (10)
+    @GET("api/v1/users/{userId}/recent-downloads")
+    suspend fun getRecentDownloads(
+        @Path("userId") userId: Long,
+        @Query("limit") limit: Int? = null
+    ): Response<List<RecentDownload>>
+
     @GET("api/v1/users/{userId}/favorites/{fileId}/status")
     suspend fun isFileFavorited(
         @Path("userId") userId: Long,

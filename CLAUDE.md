@@ -46,7 +46,7 @@ Package root: `app/src/main/java/com/example/medrational_android`
 - **Local Host Mapping:** `ApiClient.BASE_URL` comes from `BuildConfig.BASE_URL`, set per build type in `app/build.gradle.kts` from `local.properties` (`api.baseUrl`, `api.releaseBaseUrl`). It defaults to `http://10.0.2.2:8080/` (reaches host machine from Android emulator). For physical devices, set `api.baseUrl` to the host machine's LAN IP (e.g., `http://192.168.x.x:8080/`). Ensure the Spring Boot backend in `../MedRational` is running.
 - **Cleartext Traffic:** Enabled in `AndroidManifest.xml` (`android:usesCleartextTraffic="true"`) for local HTTP development.
 - **DTO Mirroring:** Models in `data/model/Models.kt` mirror the Spring backend DTOs field-for-field using Gson serialization. Paginated endpoints return `PageResponse<T>` (extract records via `.content`). Always verify target endpoints in `../MedRational/src` before altering models.
-- **File Downloads:** Downloads bypass Retrofit. UI components assemble download URLs (`${ApiClient.BASE_URL}api/v1/downloads/file/{id}` or `.../downloads/category/{id}/zip`) and pass them to `AndroidDownloader`, which delegates to the system's `DownloadManager` with bearer token authentication headers.
+- **File Downloads:** Downloads bypass Retrofit. UI components assemble download URLs (`${ApiClient.BASE_URL}api/v1/downloads/file/{id}` or `.../downloads/category/{id}/zip`) and pass them to `AndroidDownloader`, which delegates to the system's `DownloadManager` with bearer token authentication headers. The backend uses that token to record single-file downloads for the Recent downloads screen (`GET /api/v1/users/{userId}/recent-downloads`), so the app never records them itself.
 - **Multipart Uploads:** Admin file creation uses `MultipartBody.Part` for binary files alongside `RequestBody` for metadata fields (`title`, `description`, `reasoningId`).
 
 ## Architecture & State Management
@@ -62,7 +62,7 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
   - State follows sealed hierarchies: `interface/sealed class *UiState { object Loading; data class Success(...); data class Error(val message: String); }`.
   - When instantiating newer ViewModels (`AuthViewModel`, `FavoriteViewModel`, `SearchViewModel`), pass dependencies via constructor (`TokenManager`, `MedRationalApi`) using `viewModel { ... }` factories. Older ViewModels (`CategoryViewModel`, `ReasoningViewModel`) access `ApiClient.api` directly and are activity-scoped in `MainActivity`.
 - **Navigation:** Controlled by a single `NavHost` inside `MainActivity.MedRationalApp()`.
-  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `search`, `reasonings/{categoryId}/{categoryName}`.
+  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`.
   - Startup routing: checks `TokenManager.hasToken()`. If valid, routes directly to `categories`; otherwise routes to `welcome`.
 
 ## Core Workflows

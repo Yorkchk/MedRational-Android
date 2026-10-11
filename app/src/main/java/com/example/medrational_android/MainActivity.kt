@@ -17,6 +17,7 @@ import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
+import com.example.medrational_android.ui.downloads.RecentDownloadsScreen
 import com.example.medrational_android.ui.favorites.FavoritesScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
@@ -26,6 +27,7 @@ import com.example.medrational_android.ui.welcome.WelcomeScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
+import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 
 class MainActivity : ComponentActivity() {
@@ -121,7 +123,20 @@ fun MedRationalApp() {
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },
-                onNavigateToFavorites = { navController.navigate("favorites") } // <-- Add this
+                onNavigateToFavorites = { navController.navigate("favorites") }, // <-- Add this
+                onNavigateToDownloads = { navController.navigate("downloads") }
+            )
+        }
+
+        composable("downloads") {
+            val recentDownloadsViewModel: RecentDownloadsViewModel = viewModel {
+                RecentDownloadsViewModel(ApiClient.api, tokenManager.getUserId())
+            }
+
+            RecentDownloadsScreen(
+                viewModel = recentDownloadsViewModel,
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStack() }
             )
         }
 

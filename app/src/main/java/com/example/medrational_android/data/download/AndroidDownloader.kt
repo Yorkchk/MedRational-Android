@@ -11,9 +11,12 @@ import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.example.medrational_android.data.auth.TokenManager
+
 class AndroidDownloader(private val context: Context) {
 
     private val downloadManager = context.getSystemService(DownloadManager::class.java)
+    private val tokenManager = TokenManager(context)
 
     fun downloadFile(url: String, fileName: String): Long {
         val cleanFileName = fileName.replace("[^a-zA-Z0-9._-]".toRegex(), "_")
@@ -27,6 +30,8 @@ class AndroidDownloader(private val context: Context) {
             .setTitle(cleanFileName)
             .setDescription("Downloading study resource...")
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, cleanFileName)
+        // Lets the backend add single-file downloads to the user's recent downloads
+        tokenManager.getToken()?.let { request.addRequestHeader("Authorization", "Bearer $it") }
 
         val downloadId = downloadManager.enqueue(request)
 
