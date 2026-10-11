@@ -23,6 +23,9 @@ object ApiClient {
         tokenManager = TokenManager(context.applicationContext)
     }
 
+    // Images are loaded through the backend: their publicUrl points at the private R2 bucket
+    fun filePreviewUrl(fileId: Long): String = "${BASE_URL}api/v1/files/$fileId/preview"
+
     // Inside ApiClient.kt
     private val authInterceptor = Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()

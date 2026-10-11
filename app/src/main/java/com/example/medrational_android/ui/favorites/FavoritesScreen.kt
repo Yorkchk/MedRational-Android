@@ -157,9 +157,9 @@ fun FavoriteItemCard(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isImage && !file.publicUrl.isNullOrBlank()) {
+            if (isImage) {
                 AsyncImage(
-                    model = file.publicUrl,
+                    model = ApiClient.filePreviewUrl(file.id),
                     contentDescription = null,
                     modifier = Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop

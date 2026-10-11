@@ -1,6 +1,7 @@
 package com.example.medrational_android
 
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +15,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import coil.Coil
+import coil.ImageLoader
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
@@ -46,6 +51,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ApiClient.initialize(this)
+        // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+
+        Coil.setImageLoader(
+            ImageLoader.Builder(applicationContext)
+                .components {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(ImageDecoderDecoder.Factory()) else add(GifDecoder.Factory())
+                }
+                .build()
+        )
         setContent {
             MedRationalAndroidTheme {
                 MedRationalApp()
