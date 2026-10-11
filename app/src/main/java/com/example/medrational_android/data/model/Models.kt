@@ -1,5 +1,7 @@
 package com.example.medrational_android.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class Category(
     val id: Long,
     val name: String,
@@ -55,6 +57,29 @@ data class RecentDownload(
     val categoryName: String?,
     val reasoningId: Long?,
     val reasoningTitle: String?
+)
+
+// Mirrors backend NoveltyFileItemDTO; ids are null when the file's reasoning was deleted
+data class NoveltyItem(
+    val fileId: Long,
+    val fileName: String?,
+    val fileType: String?,
+    val fileSizeBytes: Long?,
+    val uploadedAt: String?,
+    val categoryId: Long?,
+    val categoryName: String?,
+    val reasoningId: Long?,
+    val reasoningTitle: String?,
+    val hashtags: List<String> = emptyList(),
+    // Uploaded since the user last opened the novelties feed. Older backends sent it as "new"
+    @SerializedName(value = "isNew", alternate = ["new"])
+    val isNew: Boolean = false
+)
+
+// Mirrors backend NoveltiesFeedResponseDTO; newFilesCount counts every new file, not just this page
+data class NoveltiesFeed(
+    val newFilesCount: Long,
+    val feed: PageResponse<NoveltyItem>
 )
 
 // --- Suggestions: mirror the backend Suggestion*DTOs ---

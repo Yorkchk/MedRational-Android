@@ -5,6 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,6 +22,7 @@ import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
 import com.example.medrational_android.ui.downloads.RecentDownloadsScreen
 import com.example.medrational_android.ui.favorites.FavoritesScreen
+import com.example.medrational_android.ui.novelties.NoveltiesScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
@@ -32,6 +36,8 @@ import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
+import com.example.medrational_android.viewmodel.NoveltiesViewModel
+import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
 import com.example.medrational_android.viewmodel.SuggestionListViewModel
@@ -121,6 +127,14 @@ fun MedRationalApp() {
         }
 
         composable("categories") {
+            val noveltyBadgeViewModel: NoveltyBadgeViewModel = viewModel { NoveltyBadgeViewModel(ApiClient.api) }
+            val noveltyCount by noveltyBadgeViewModel.unreadCount.collectAsState()
+            // Runs each time home is shown, so the badge clears after visiting What's new.
+            // Signed-out users have no baseline, and a 401/403 would log them out
+            LaunchedEffect(Unit) {
+                if (tokenManager.isLoggedIn()) noveltyBadgeViewModel.refresh()
+            }
+
             CategoryListScreen(
                 viewModel = categoryViewModel,
                 onCategoryClick = { id, name -> navController.navigate("reasonings/$id/${Uri.encode(name)}") },
@@ -131,7 +145,19 @@ fun MedRationalApp() {
                 onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToFavorites = { navController.navigate("favorites") }, // <-- Add this
                 onNavigateToDownloads = { navController.navigate("downloads") },
-                onNavigateToSuggestions = { navController.navigate("suggestions") }
+                onNavigateToSuggestions = { navController.navigate("suggestions") },
+                onNavigateToNovelties = { navController.navigate("novelties") },
+                noveltyCount = noveltyCount
+            )
+        }
+
+        composable("novelties") {
+            val noveltiesViewModel: NoveltiesViewModel = viewModel { NoveltiesViewModel(ApiClient.api) }
+
+            NoveltiesScreen(
+                viewModel = noveltiesViewModel,
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStack() }
             )
         }
 

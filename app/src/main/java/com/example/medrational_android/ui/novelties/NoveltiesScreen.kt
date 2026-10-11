@@ -1,0 +1,273 @@
+package com.example.medrational_android.ui.novelties
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.example.medrational_android.data.model.NoveltyItem
+import com.example.medrational_android.data.model.fileMetaLine
+import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.viewmodel.NoveltiesUiState
+import com.example.medrational_android.viewmodel.NoveltiesViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoveltiesScreen(
+    viewModel: NoveltiesViewModel,
+    onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
+    onBackClick: () -> Unit
+) {
+    // The ViewModel loads once, not this screen: reloading after the feed was marked seen would
+    // drop the highlight when coming back from a file
+    val uiState by viewModel.uiState.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("What's new", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (val state = uiState) {
+                is NoveltiesUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is NoveltiesUiState.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = viewModel::retry) { Text("Retry") }
+                    }
+                }
+                is NoveltiesUiState.Success -> {
+                    if (state.items.isEmpty()) {
+                        EmptyNovelties(modifier = Modifier.align(Alignment.Center))
+                    } else {
+                        NoveltiesList(
+                            state = state,
+                            onFileClick = onFileClick,
+                            onLoadMore = viewModel::loadMore
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoveltiesList(
+    state: NoveltiesUiState.Success,
+    onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val nearEnd by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= listState.layoutInfo.totalItemsCount - 3
+        }
+    }
+    // A failed page waits for its Retry button instead of being re-requested in a loop
+    LaunchedEffect(nearEnd, state.canLoadMore, state.loadMoreFailed) {
+        if (nearEnd && state.canLoadMore && !state.loadMoreFailed) onLoadMore()
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item(key = "header") {
+            Text(
+                text = when (state.newCount) {
+                    0L -> "You're all caught up. These are the latest uploads."
+                    1L -> "1 new file since your last visit"
+                    else -> "${state.newCount} new files since your last visit"
+                },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (state.newCount > 0) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
+        // The ViewModel only keeps files with a reasoning
+        items(state.items, key = { it.fileId }) { item ->
+            NoveltyCard(
+                item = item,
+                onClick = { onFileClick(item.reasoningId!!, item.fileId) }
+            )
+        }
+        if (state.loadingMore || state.loadMoreFailed) {
+            item(key = "footer") {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    if (state.loadingMore) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    } else {
+                        TextButton(onClick = onLoadMore) { Text("Couldn't load more. Retry") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoveltyCard(
+    item: NoveltyItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.isNew) colors.primaryContainer else colors.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = fileTypeIcon(item.fileName, item.fileType),
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(42.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.fileName ?: "Untitled file",
+                        fontWeight = if (item.isNew) FontWeight.Bold else FontWeight.Normal,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (item.isNew) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Badge(containerColor = colors.primary, contentColor = colors.onPrimary) {
+                            Text("NEW")
+                        }
+                    }
+                }
+                val location = listOfNotNull(item.categoryName, item.reasoningTitle).joinToString(" • ")
+                if (location.isNotEmpty()) {
+                    Text(
+                        text = location,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (item.isNew) FontWeight.SemiBold else FontWeight.Normal,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                item.uploadedAt?.let(::formatIsoDateTime)?.let { date ->
+                    Text(
+                        text = "Uploaded $date",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+                // Type and size only; the upload date is shown above with its time
+                val meta = fileMetaLine(item.fileName, item.fileType, item.fileSizeBytes, uploadedAt = null)
+                if (meta.isNotEmpty()) {
+                    Text(
+                        text = meta,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyNovelties(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Default.NewReleases,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("You're all caught up.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Newly uploaded files will appear here.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
