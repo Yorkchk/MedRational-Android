@@ -9,7 +9,6 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.data.model.parseIsoLocalDateTime
 import com.example.medrational_android.data.model.toIsoLocalDateTime
-import com.example.medrational_android.data.reminders.WorkshopReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,10 +36,9 @@ sealed interface WorkshopListUiState {
     data class Error(val message: String) : WorkshopListUiState
 }
 
-/** Tabs filter by status; a null tab shows every project. Each load refreshes the device's reminders. */
+/** Tabs filter by status; a null tab shows every project. */
 class WorkshopListViewModel(
-    private val api: MedRationalApi,
-    private val reminders: WorkshopReminderScheduler
+    private val api: MedRationalApi
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ProjectStatus?>(null)
@@ -63,7 +61,6 @@ class WorkshopListViewModel(
                 val response = api.getWorkshops(status)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    reminders.schedule(body.content)
                     WorkshopListUiState.Success(body.content)
                 } else {
                     WorkshopListUiState.Error(workshopErrorMessage(response.code()))
@@ -98,8 +95,7 @@ sealed interface WorkshopDetailUiState {
 }
 
 class WorkshopDetailViewModel(
-    private val api: MedRationalApi,
-    private val reminders: WorkshopReminderScheduler
+    private val api: MedRationalApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WorkshopDetailUiState>(WorkshopDetailUiState.Loading)
@@ -122,10 +118,8 @@ class WorkshopDetailViewModel(
                 val response = api.getWorkshop(id)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    reminders.schedule(listOf(body))
                     WorkshopDetailUiState.Success(body)
                 } else {
-                    if (response.code() == 404) reminders.cancel(id)
                     WorkshopDetailUiState.Error(workshopErrorMessage(response.code()))
                 }
             } catch (e: IOException) {
@@ -159,7 +153,6 @@ class WorkshopDetailViewModel(
                 val response = api.updateWorkshopStatus(current.project.id, status)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    reminders.schedule(listOf(body))
                     _uiState.value = WorkshopDetailUiState.Success(body)
                 } else {
                     fail(workshopErrorMessage(response.code()))
@@ -175,7 +168,6 @@ class WorkshopDetailViewModel(
             runAction {
                 val response = api.deleteWorkshop(current.project.id)
                 if (response.isSuccessful) {
-                    reminders.cancel(current.project.id)
                     _uiState.value = WorkshopDetailUiState.Deleted
                 } else {
                     fail(workshopErrorMessage(response.code()))
@@ -332,7 +324,6 @@ sealed interface NewWorkshopUiState {
 
 class NewWorkshopViewModel(
     private val api: MedRationalApi,
-    private val reminders: WorkshopReminderScheduler,
     // The signed-in admin, recorded as the author
     private val authorId: Long
 ) : ViewModel() {
@@ -354,7 +345,6 @@ class NewWorkshopViewModel(
                 val response = api.createWorkshop(authorId, request)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    reminders.schedule(listOf(body))
                     NewWorkshopUiState.Created(body.id, failedFiles = attach(body.id, attachments))
                 } else {
                     NewWorkshopUiState.Error(workshopErrorMessage(response.code()))
@@ -396,8 +386,7 @@ sealed interface EditWorkshopUiState {
 }
 
 class EditWorkshopViewModel(
-    private val api: MedRationalApi,
-    private val reminders: WorkshopReminderScheduler
+    private val api: MedRationalApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<EditWorkshopUiState>(EditWorkshopUiState.Loading)
@@ -447,8 +436,6 @@ class EditWorkshopViewModel(
                 val response = api.updateWorkshop(original.id, request)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    // New dates mean new reminder times
-                    reminders.schedule(listOf(body))
                     null
                 } else {
                     workshopErrorMessage(response.code())

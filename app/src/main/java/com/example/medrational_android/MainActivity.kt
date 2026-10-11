@@ -1,16 +1,24 @@
 package com.example.medrational_android
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -22,8 +30,8 @@ import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.rating.FileRatingStore
-import com.example.medrational_android.data.reminders.AlarmWorkshopReminderScheduler
-import com.example.medrational_android.data.reminders.syncWorkshopReminders
+import com.example.medrational_android.data.push.WorkshopPush
+import com.example.medrational_android.data.push.projectIdFromPush
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -59,9 +67,16 @@ import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
 import com.example.medrational_android.viewmodel.WorkshopListViewModel
 
 class MainActivity : ComponentActivity() {
+
+    // Project of a tapped workshop push, opened once the app is showing; consumed by MedRationalApp
+    private var pushProjectId by mutableStateOf<Long?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ApiClient.initialize(this)
+        WorkshopPush.ensureChannel(this)
+        // Not on a recreation: the push was already handled
+        if (savedInstanceState == null) pushProjectId = intent.pushProjectId()
         // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+
         Coil.setImageLoader(
             ImageLoader.Builder(applicationContext)
@@ -72,30 +87,48 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             MedRationalAndroidTheme {
-                MedRationalApp()
+                MedRationalApp(
+                    pushProjectId = pushProjectId,
+                    onPushProjectOpened = { pushProjectId = null }
+                )
             }
         }
     }
+
+    // A push tapped while the app is already open
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.pushProjectId()?.let { pushProjectId = it }
+    }
+
+    // Pushes put their data in the launch intent's extras, as strings
+    private fun Intent.pushProjectId(): Long? =
+        projectIdFromPush(mapOf(WorkshopPush.EXTRA_PROJECT_ID to getStringExtra(WorkshopPush.EXTRA_PROJECT_ID)))
 }
 
 @Composable
-fun MedRationalApp() {
+fun MedRationalApp(
+    pushProjectId: Long? = null,
+    onPushProjectOpened: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
-    val workshopReminders = remember { AlarmWorkshopReminderScheduler(context) }
-
-    // Reminders for every upcoming and open workshop, even if the user never opens Projects.
-    // Once per app start; the workshops API needs a signed-in user
-    LaunchedEffect(Unit) {
-        if (tokenManager.isLoggedIn()) syncWorkshopReminders(ApiClient.api, workshopReminders)
-    }
+    // Android 13+ asks before an app may show notifications, workshop pushes included
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     val categoryViewModel: CategoryViewModel = viewModel()
     val reasoningViewModel: ReasoningViewModel = viewModel()
 
     // Determine initial destination: if already authenticated, jump to categories
     val startScreen = if (tokenManager.isLoggedIn()) "categories" else "welcome"
+
+    // A tapped workshop push opens its project; the workshops API needs a signed-in user
+    LaunchedEffect(pushProjectId) {
+        val projectId = pushProjectId ?: return@LaunchedEffect
+        if (tokenManager.isLoggedIn()) navController.navigate("workshops/$projectId")
+        onPushProjectOpened()
+    }
 
     NavHost(navController = navController, startDestination = startScreen) {
 
@@ -165,6 +198,17 @@ fun MedRationalApp() {
             LaunchedEffect(Unit) {
                 if (tokenManager.isLoggedIn()) noveltyBadgeViewModel.refresh()
             }
+            // Signed-in phones get workshop pushes. Repeating it is harmless, and it covers both a
+            // fresh sign-in and an app restart
+            LaunchedEffect(Unit) {
+                if (!tokenManager.isLoggedIn()) return@LaunchedEffect
+                WorkshopPush.subscribe(context)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
 
             CategoryListScreen(
                 viewModel = categoryViewModel,
@@ -173,7 +217,7 @@ fun MedRationalApp() {
                     tokenManager.clearToken()
                     // The store holds this user's own scores
                     FileRatingStore.shared.clear()
-                    workshopReminders.cancelAll()
+                    WorkshopPush.unsubscribe(context)
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },
@@ -244,7 +288,7 @@ fun MedRationalApp() {
         composable("workshops") {
             val isAdmin = remember { tokenManager.isAdmin() }
             val workshopListViewModel: WorkshopListViewModel = viewModel {
-                WorkshopListViewModel(ApiClient.api, workshopReminders)
+                WorkshopListViewModel(ApiClient.api)
             }
 
             WorkshopListScreen(
@@ -259,7 +303,7 @@ fun MedRationalApp() {
         // Admin only: reached from the list's FAB
         composable("workshops/new") {
             val newWorkshopViewModel: NewWorkshopViewModel = viewModel {
-                NewWorkshopViewModel(ApiClient.api, workshopReminders, tokenManager.getUserId())
+                NewWorkshopViewModel(ApiClient.api, tokenManager.getUserId())
             }
 
             NewWorkshopScreen(
@@ -279,7 +323,7 @@ fun MedRationalApp() {
             val isAdmin = remember { tokenManager.isAdmin() }
             val workshopId = backStackEntry.arguments?.getLong("workshopId") ?: 0L
             val workshopDetailViewModel: WorkshopDetailViewModel = viewModel {
-                WorkshopDetailViewModel(ApiClient.api, workshopReminders)
+                WorkshopDetailViewModel(ApiClient.api)
             }
 
             WorkshopDetailScreen(
@@ -297,7 +341,7 @@ fun MedRationalApp() {
             arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
         ) { backStackEntry ->
             val editWorkshopViewModel: EditWorkshopViewModel = viewModel {
-                EditWorkshopViewModel(ApiClient.api, workshopReminders)
+                EditWorkshopViewModel(ApiClient.api)
             }
 
             EditWorkshopScreen(

@@ -1,10 +1,5 @@
 package com.example.medrational_android.ui.workshops
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,12 +41,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.viewmodel.WorkshopListUiState
@@ -71,17 +64,6 @@ fun WorkshopListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tab by viewModel.tab.collectAsState()
-    val context = LocalContext.current
-
-    // Reminders are notifications, which need the user's consent on Android 13+
-    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }
 
     // Reloads whenever the screen is shown again, e.g. back from a project
     LaunchedEffect(Unit) {
@@ -216,7 +198,7 @@ private fun EmptyProjects(status: ProjectStatus?, modifier: Modifier = Modifier)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "You'll get a notification 10 minutes before a project's registration opens and closes.",
+            text = "You'll get a notification when a project's registration opens and closes, and 10 minutes before each.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
