@@ -18,6 +18,7 @@ import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
 import com.example.medrational_android.ui.categories.CategoryListScreen
 import com.example.medrational_android.ui.favorites.FavoritesScreen
+import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
@@ -134,6 +135,7 @@ fun MedRationalApp() {
                 onNavigateToReasoning = { catId, catName ->
                     navController.navigate("reasonings/$catId/${Uri.encode(catName)}")
                 },
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -144,6 +146,7 @@ fun MedRationalApp() {
                 onNavigateToReasoning = { categoryId, categoryName ->
                     navController.navigate("reasonings/$categoryId/${Uri.encode(categoryName)}")
                 },
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -163,6 +166,22 @@ fun MedRationalApp() {
                 categoryId = categoryId,
                 categoryName = categoryName,
                 viewModel = reasoningViewModel,
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 6. File page: title, reasoning context and document preview
+        composable(
+            route = "file/{reasoningId}/{fileId}",
+            arguments = listOf(
+                navArgument("reasoningId") { type = NavType.LongType },
+                navArgument("fileId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            FileDetailScreen(
+                reasoningId = backStackEntry.arguments?.getLong("reasoningId") ?: 0L,
+                fileId = backStackEntry.arguments?.getLong("fileId") ?: 0L,
                 onBackClick = { navController.popBackStack() }
             )
         }
