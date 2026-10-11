@@ -3,7 +3,9 @@ package com.example.medrational_android.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.medrational_android.data.api.MedRationalApi
+import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RecentDownload
+import com.example.medrational_android.data.rating.FileRatingStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,8 @@ sealed interface RecentDownloadsUiState {
 
 class RecentDownloadsViewModel(
     private val api: MedRationalApi,
-    private val userId: Long
+    private val userId: Long,
+    private val ratingStore: FileRatingStore = FileRatingStore.shared
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecentDownloadsUiState>(RecentDownloadsUiState.Loading)
@@ -36,7 +39,9 @@ class RecentDownloadsViewModel(
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
                     // The backend already sorts newest first; entries whose file or reasoning is gone can't be opened
-                    RecentDownloadsUiState.Success(body.filter { it.fileId != null && it.reasoningId != null })
+                    val openable = body.filter { it.fileId != null && it.reasoningId != null }
+                    ratingStore.seed(openable.map { FileRatingSummary(it.fileId!!, it.avgRating, it.totalRatings) })
+                    RecentDownloadsUiState.Success(openable)
                 } else {
                     RecentDownloadsUiState.Error("Couldn't load your downloads (HTTP ${response.code()}).")
                 }

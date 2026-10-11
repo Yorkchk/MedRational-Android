@@ -104,6 +104,8 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.FileDetailUiState
 import com.example.medrational_android.viewmodel.FileDetailViewModel
 import com.example.medrational_android.viewmodel.FileHashtagsViewModel
+import com.example.medrational_android.viewmodel.FileRatingUiState
+import com.example.medrational_android.viewmodel.FileRatingViewModel
 import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.HashtagsUiState
 import com.example.medrational_android.viewmodel.PreviewState
@@ -129,6 +131,7 @@ fun FileDetailScreen(
     }
     val favoriteViewModel: FavoriteViewModel = viewModel { FavoriteViewModel(tokenManager) }
     val hashtagsViewModel: FileHashtagsViewModel = viewModel { FileHashtagsViewModel(ApiClient.api) }
+    val ratingViewModel: FileRatingViewModel = viewModel { FileRatingViewModel(ApiClient.api) }
     val isAdmin = remember { tokenManager.isAdmin() }
     // Only refreshed from admin controls: its endpoint is admin-only and a 403 logs the user out
     val catalogViewModel: HashtagCatalogViewModel = viewModel { HashtagCatalogViewModel(ApiClient.api) }
@@ -137,11 +140,21 @@ fun FileDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
     val hashtagsState by hashtagsViewModel.uiState.collectAsState()
+    val ratingState by ratingViewModel.uiState.collectAsState()
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
         favoriteViewModel.loadFavorites()
         hashtagsViewModel.load(fileId)
+        ratingViewModel.load(fileId)
+    }
+
+    val ratingMessage = (ratingState as? FileRatingUiState.Success)?.message
+    LaunchedEffect(ratingMessage) {
+        if (ratingMessage != null) {
+            Toast.makeText(context, ratingMessage, Toast.LENGTH_LONG).show()
+            ratingViewModel.onMessageShown()
+        }
     }
 
     val loadedHashtags = hashtagsState as? HashtagsUiState.Success
@@ -223,6 +236,15 @@ fun FileDetailScreen(
                     onRetryPreview = viewModel::retryPreview,
                     onPreviewCorrupted = viewModel::onPreviewCorrupted,
                     onDownload = { onDownload(state.file) },
+                    rating = {
+                        RatingSection(
+                            state = ratingState,
+                            onRate = ratingViewModel::rate,
+                            onRemoveRating = ratingViewModel::removeRating,
+                            onRetry = { ratingViewModel.load(fileId) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    },
                     // Skipped entirely when hidden so the list doesn't get an empty, spaced-out row
                     hashtags = if (!showHashtags) null else {
                         {
@@ -251,6 +273,7 @@ private fun BoxScope.FileDetailContent(
     onRetryPreview: () -> Unit,
     onPreviewCorrupted: () -> Unit,
     onDownload: () -> Unit,
+    rating: @Composable () -> Unit,
     hashtags: (@Composable () -> Unit)?
 ) {
     val preview = state.preview
@@ -284,6 +307,7 @@ private fun BoxScope.FileDetailContent(
         item(key = "header") {
             FileHeader(file = state.file, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         }
+        item(key = "rating") { rating() }
         if (hashtags != null) {
             item(key = "hashtags") { hashtags() }
         }
