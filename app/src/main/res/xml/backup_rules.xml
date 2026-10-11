@@ -1,13 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older that API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Auto Backup rules for Android 11 and lower; see data_extraction_rules.xml for Android 12+.
+   https://developer.android.com/guide/topics/data/autobackup
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- The session is encrypted with an Android Keystore key, which is never backed up:
+         restored without it, the file can't be read. Users sign in again instead -->
+    <exclude domain="sharedpref" path="medrational_secure_prefs.xml" />
 </full-backup-content>
