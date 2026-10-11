@@ -38,6 +38,13 @@ fun fileMetaLine(fileName: String?, fileType: String?, sizeBytes: Long?, uploade
     ).joinToString(" · ")
 }
 
+// "12 Mar 2026, 10:15" from an ISO LocalDateTime; falls back to the date alone when there is no time
+fun formatIsoDateTime(isoDateTime: String): String? {
+    val date = formatIsoDate(isoDateTime) ?: return null
+    val time = isoDateTime.substringAfter('T', "").take(5)
+    return if (time.length == 5 && time[2] == ':') "$date, $time" else date
+}
+
 // Backend sends ISO LocalDateTime ("2026-03-12T10:15:30"); only the date part is shown ("12 Mar 2026")
 fun formatIsoDate(isoDateTime: String): String? = try {
     val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(isoDateTime.take(10))

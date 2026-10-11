@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +34,8 @@ fun CategoryListScreen(
     onSignOut: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToFavorites: () -> Unit,
-    onNavigateToDownloads: () -> Unit
+    onNavigateToDownloads: () -> Unit,
+    onNavigateToSuggestions: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -45,6 +48,7 @@ fun CategoryListScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -61,17 +65,39 @@ fun CategoryListScreen(
                     IconButton(onClick = onNavigateToDownloads) {
                         Icon(Icons.Default.History, contentDescription = "Recent downloads")
                     }
-                    if (tokenManager.isLoggedIn()) {
-                        IconButton(onClick = { showSignOutDialog = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Sign Out",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
                     IconButton(onClick = onNavigateToSearch) {
                         Icon(Icons.Default.Search, contentDescription = "Search Files")
+                    }
+                    if (tokenManager.isLoggedIn()) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(if (isAdmin) "Suggestions inbox" else "Suggestions") },
+                                    leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
+                                    onClick = {
+                                        showMenu = false
+                                        onNavigateToSuggestions()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Sign out", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Logout,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        showSignOutDialog = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )

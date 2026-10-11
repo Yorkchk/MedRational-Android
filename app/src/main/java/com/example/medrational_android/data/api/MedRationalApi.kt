@@ -2,6 +2,7 @@ package com.example.medrational_android.data.api
 
 import com.example.medrational_android.data.model.*
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
@@ -105,6 +106,44 @@ interface MedRationalApi {
         @Path("userId") userId: Long,
         @Query("size") size: Int = 1000 // fetch all favorites so every heart reflects its state
     ): Response<PageResponse<FavoriteResponse>>
+
+    // Suggestions: private to the sender and admins. Attachments are optional (max 10 MB);
+    // a null @Part is left out of the request. 409 once a suggestion is closed
+    @Multipart
+    @POST("api/v1/suggestions")
+    suspend fun createSuggestion(
+        @Part("title") title: RequestBody,
+        @Part("description") description: RequestBody,
+        @Part file: MultipartBody.Part?
+    ): Response<SuggestionDetail>
+
+    @GET("api/v1/suggestions/mine")
+    suspend fun getMySuggestions(
+        @Query("status") status: SuggestionStatus,
+        @Query("size") size: Int = 100
+    ): Response<PageResponse<SuggestionSummary>>
+
+    // Admin only: a 403 here would log a regular user out, so only call it when TokenManager.isAdmin()
+    @GET("api/v1/suggestions")
+    suspend fun getSuggestionInbox(
+        @Query("status") status: SuggestionStatus,
+        @Query("size") size: Int = 100
+    ): Response<PageResponse<SuggestionSummary>>
+
+    @GET("api/v1/suggestions/{id}")
+    suspend fun getSuggestion(@Path("id") id: Long): Response<SuggestionDetail>
+
+    @Multipart
+    @POST("api/v1/suggestions/{id}/messages")
+    suspend fun postSuggestionMessage(
+        @Path("id") id: Long,
+        @Part("body") body: RequestBody,
+        @Part file: MultipartBody.Part?
+    ): Response<SuggestionMessage>
+
+    // Admin only
+    @POST("api/v1/suggestions/{id}/close")
+    suspend fun closeSuggestion(@Path("id") id: Long): Response<SuggestionDetail>
 
     // Newest first, each file once; the backend records single-file downloads itself.
     // A null limit uses the backend default (10)
