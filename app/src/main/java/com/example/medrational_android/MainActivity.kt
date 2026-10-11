@@ -22,13 +22,19 @@ import com.example.medrational_android.ui.favorites.FavoritesScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
+import com.example.medrational_android.ui.suggestions.NewSuggestionScreen
+import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
+import com.example.medrational_android.ui.suggestions.SuggestionListScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
+import com.example.medrational_android.viewmodel.NewSuggestionViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
+import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
+import com.example.medrational_android.viewmodel.SuggestionListViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,7 +130,53 @@ fun MedRationalApp() {
                 },
                 onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToFavorites = { navController.navigate("favorites") }, // <-- Add this
-                onNavigateToDownloads = { navController.navigate("downloads") }
+                onNavigateToDownloads = { navController.navigate("downloads") },
+                onNavigateToSuggestions = { navController.navigate("suggestions") }
+            )
+        }
+
+        // Admins get the inbox of every user's suggestions; users get their own
+        composable("suggestions") {
+            val isAdmin = remember { tokenManager.isAdmin() }
+            val suggestionListViewModel: SuggestionListViewModel = viewModel {
+                SuggestionListViewModel(ApiClient.api, isAdmin)
+            }
+
+            SuggestionListScreen(
+                viewModel = suggestionListViewModel,
+                isAdmin = isAdmin,
+                onSuggestionClick = { id -> navController.navigate("suggestions/$id") },
+                onNewSuggestionClick = { navController.navigate("suggestions/new") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("suggestions/new") {
+            val newSuggestionViewModel: NewSuggestionViewModel = viewModel { NewSuggestionViewModel(ApiClient.api) }
+
+            NewSuggestionScreen(
+                viewModel = newSuggestionViewModel,
+                // Replace the form with the new conversation so Back returns to the list
+                onSent = { id ->
+                    navController.navigate("suggestions/$id") { popUpTo("suggestions/new") { inclusive = true } }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "suggestions/{suggestionId}",
+            arguments = listOf(navArgument("suggestionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val suggestionDetailViewModel: SuggestionDetailViewModel = viewModel {
+                SuggestionDetailViewModel(ApiClient.api)
+            }
+
+            SuggestionDetailScreen(
+                suggestionId = backStackEntry.arguments?.getLong("suggestionId") ?: 0L,
+                viewModel = suggestionDetailViewModel,
+                isAdmin = remember { tokenManager.isAdmin() },
+                onBackClick = { navController.popBackStack() }
             )
         }
 

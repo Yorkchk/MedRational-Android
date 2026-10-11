@@ -10,19 +10,15 @@ import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.CreateReasoningRequest
 import com.example.medrational_android.data.model.Reasoning
+import com.example.medrational_android.data.upload.describePickedFile
+import com.example.medrational_android.data.upload.toPart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.IOException
-import java.io.File
-import java.io.FileOutputStream
-import android.provider.OpenableColumns
-import android.webkit.MimeTypeMap
 
 sealed interface ReasoningUiState {
     object Loading : ReasoningUiState
@@ -100,48 +96,17 @@ class ReasoningViewModel(private val api: MedRationalApi = ApiClient.api) : View
 
     fun uploadFile(context: Context, reasoningId: Long, uri: Uri, tags: List<String> = emptyList()) {
         viewModelScope.launch {
-            try {
-                val contentResolver = context.contentResolver
-                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
-
-                // 1. Extract the actual original file name from the Uri
-                var originalFileName: String? = null
-                contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (cursor.moveToFirst() && nameIndex != -1) {
-                        originalFileName = cursor.getString(nameIndex)
-                    }
-                }
-
-                // Fallback: If originalFileName is missing or lacks an extension, determine extension from MIME type
-                if (originalFileName == null) {
-                    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "bin"
-                    originalFileName = "upload_${System.currentTimeMillis()}.$extension"
-                }
-
-                // 2. Copy the contents to a temporary cache file
-                val tempFile = File(context.cacheDir, originalFileName!!)
-                contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(tempFile).use { output ->
-                        input.copyTo(output)
-                    }
-                } ?: return@launch
-
-                // 3. Build multipart form with the real filename
-                val requestFile = tempFile.readBytes().toRequestBody(mimeType.toMediaTypeOrNull())
-                val multipartBody = MultipartBody.Part.createFormData("file", originalFileName!!, requestFile)
-
-                try {
-                    uploadAndTag(reasoningId, multipartBody, tags)
-                } finally {
-                    tempFile.delete()
-                }
+            val part = try {
+                describePickedFile(context, uri).toPart(context, "file")
             } catch (e: IOException) {
                 _message.value = "Couldn't read the selected file."
+                return@launch
             } catch (e: SecurityException) {
                 // The picker's permission on the Uri can be revoked before we read it
                 _message.value = "Couldn't read the selected file."
+                return@launch
             }
+            uploadAndTag(reasoningId, part, tags)
         }
     }
 
