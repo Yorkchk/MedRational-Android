@@ -153,6 +153,22 @@ interface MedRationalApi {
         @Query("limit") limit: Int? = null
     ): Response<List<RecentDownload>>
 
+    // Novelties: every file, newest first, flagged isNew when uploaded since the caller last
+    // opened the feed. The caller comes from the JWT, so only call these when signed in
+    @GET("api/v1/novelties")
+    suspend fun getNovelties(
+        @Query("page") page: Int,
+        @Query("size") size: Int = 20
+    ): Response<NoveltiesFeed>
+
+    // {"unreadCount": n}
+    @GET("api/v1/novelties/badge-count")
+    suspend fun getNoveltyBadgeCount(): Response<Map<String, Long>>
+
+    // Moves the caller's baseline to now: nothing is new until the next upload
+    @POST("api/v1/novelties/mark-seen")
+    suspend fun markNoveltiesSeen(): Response<Unit>
+
     @GET("api/v1/users/{userId}/favorites/{fileId}/status")
     suspend fun isFileFavorited(
         @Path("userId") userId: Long,

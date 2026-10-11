@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Bulk hashtag editing: admins long-press files on a category screen to select several, then add or remove tags on all of them.
 - Recent downloads screen, opened from the clock icon on the home screen: your most recently downloaded files, each listed once, newest first. Tap one to open its file page.
 - Suggestions: users send the admins a suggestion with a title, a description and an optional file (up to 10 MB), then follow the conversation with the admins, who can reply with messages and files of their own. Admins get a Suggestions inbox showing who sent each one, with unread markers, and can close a suggestion, which archives it and makes it read-only for both sides. Reached from the home screen's side menu.
+- What's new: a side-menu section listing the latest uploads, newest first, with each file's category, reasoning, upload time, type and size. Files uploaded since your last visit are shown in bold with a NEW badge, and a badge on the menu shows how many are waiting. Tap a file to open it.
 - `docs/CI_AND_TESTS.md` and `docs/GITHUB_REPO_SETUP.md` guides, linked from the README.
 - GitHub Actions CI (lint, unit tests, debug build), Dependabot, and a PR template.
 - Backend URL configurable per build type through `local.properties`.

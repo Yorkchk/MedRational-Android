@@ -33,7 +33,10 @@ fun CategoryListScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToDownloads: () -> Unit,
-    onNavigateToSuggestions: () -> Unit
+    onNavigateToSuggestions: () -> Unit,
+    onNavigateToNovelties: () -> Unit,
+    // Files uploaded since the last visit to What's new
+    noveltyCount: Long = 0
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -61,12 +64,14 @@ fun CategoryListScreen(
                 email = tokenManager.getEmail(),
                 isAdmin = isAdmin,
                 entries = homeDrawerEntries(isAdmin = isAdmin, isLoggedIn = tokenManager.isLoggedIn()),
+                noveltyCount = noveltyCount,
                 onEntryClick = { destination ->
                     // Close first so the menu isn't left open when coming back to home
                     scope.launch { drawerState.close() }
                     when (destination) {
                         DrawerDestination.HOME -> Unit
                         DrawerDestination.SEARCH -> onNavigateToSearch()
+                        DrawerDestination.NOVELTIES -> onNavigateToNovelties()
                         DrawerDestination.FAVORITES -> onNavigateToFavorites()
                         DrawerDestination.DOWNLOADS -> onNavigateToDownloads()
                         DrawerDestination.SUGGESTIONS -> onNavigateToSuggestions()
@@ -82,7 +87,13 @@ fun CategoryListScreen(
                     title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Open menu")
+                            // A dot tells the user there is something new behind the menu
+                            BadgedBox(badge = { if (noveltyCount > 0) Badge() }) {
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = if (noveltyCount > 0) "Open menu, new files available" else "Open menu"
+                                )
+                            }
                         }
                     },
                     actions = {

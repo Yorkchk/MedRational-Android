@@ -12,7 +12,9 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Badge
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-enum class DrawerDestination { HOME, SEARCH, FAVORITES, DOWNLOADS, SUGGESTIONS, SIGN_OUT }
+enum class DrawerDestination { HOME, SEARCH, NOVELTIES, FAVORITES, DOWNLOADS, SUGGESTIONS, SIGN_OUT }
 
 data class DrawerEntry(val destination: DrawerDestination, val label: String)
 
@@ -36,6 +38,10 @@ data class DrawerEntry(val destination: DrawerDestination, val label: String)
 fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> = buildList {
     add(DrawerEntry(DrawerDestination.HOME, "Home"))
     add(DrawerEntry(DrawerDestination.SEARCH, "Search"))
+    // What's new is relative to the account's last visit, so it needs a signed-in user
+    if (isLoggedIn) {
+        add(DrawerEntry(DrawerDestination.NOVELTIES, "What's new"))
+    }
     add(DrawerEntry(DrawerDestination.FAVORITES, "Favorites"))
     add(DrawerEntry(DrawerDestination.DOWNLOADS, "Recent downloads"))
     // Suggestions are tied to an account, so they need a signed-in user
@@ -48,6 +54,7 @@ fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> 
 private fun DrawerDestination.icon(): ImageVector = when (this) {
     DrawerDestination.HOME -> Icons.Default.Home
     DrawerDestination.SEARCH -> Icons.Default.Search
+    DrawerDestination.NOVELTIES -> Icons.Default.NewReleases
     DrawerDestination.FAVORITES -> Icons.Default.Favorite
     DrawerDestination.DOWNLOADS -> Icons.Default.History
     DrawerDestination.SUGGESTIONS -> Icons.Default.Lightbulb
@@ -61,7 +68,9 @@ fun HomeDrawerContent(
     isAdmin: Boolean,
     entries: List<DrawerEntry>,
     onEntryClick: (DrawerDestination) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Files uploaded since the last visit to What's new; shown on that entry when > 0
+    noveltyCount: Long = 0
 ) {
     ModalDrawerSheet(modifier = modifier) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -76,6 +85,11 @@ fun HomeDrawerContent(
                 NavigationDrawerItem(
                     label = { Text(entry.label) },
                     icon = { Icon(entry.destination.icon(), contentDescription = null) },
+                    badge = if (entry.destination == DrawerDestination.NOVELTIES && noveltyCount > 0) {
+                        { Badge { Text(formatBadgeCount(noveltyCount)) } }
+                    } else {
+                        null
+                    },
                     // The drawer only lives on the home screen
                     selected = entry.destination == DrawerDestination.HOME,
                     onClick = { onEntryClick(entry.destination) },
@@ -94,6 +108,9 @@ fun HomeDrawerContent(
         }
     }
 }
+
+// "99+" past two digits, like most apps' notification badges
+fun formatBadgeCount(count: Long): String = if (count > 99) "99+" else count.toString()
 
 @Composable
 private fun DrawerHeader(userName: String?, email: String?, isAdmin: Boolean) {
