@@ -202,6 +202,14 @@ interface MedRationalApi {
         @Body request: CreateWorkshopProjectRequest
     ): Response<WorkshopProject>
 
+    // Changing the dates makes the backend recompute the status and resend the reminders;
+    // unchanged dates keep a manually forced status
+    @PUT("api/v1/workshops/{id}")
+    suspend fun updateWorkshop(
+        @Path("id") id: Long,
+        @Body request: CreateWorkshopProjectRequest
+    ): Response<WorkshopProject>
+
     @Multipart
     @POST("api/v1/workshops/{id}/attachments")
     suspend fun uploadWorkshopAttachment(

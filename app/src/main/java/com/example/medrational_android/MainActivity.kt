@@ -39,6 +39,7 @@ import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
 import com.example.medrational_android.ui.suggestions.SuggestionListScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
+import com.example.medrational_android.ui.workshops.EditWorkshopScreen
 import com.example.medrational_android.ui.workshops.NewWorkshopScreen
 import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
 import com.example.medrational_android.ui.workshops.WorkshopListScreen
@@ -52,6 +53,7 @@ import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
 import com.example.medrational_android.viewmodel.SuggestionListViewModel
+import com.example.medrational_android.viewmodel.EditWorkshopViewModel
 import com.example.medrational_android.viewmodel.NewWorkshopViewModel
 import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
 import com.example.medrational_android.viewmodel.WorkshopListViewModel
@@ -275,14 +277,33 @@ fun MedRationalApp() {
             arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
         ) { backStackEntry ->
             val isAdmin = remember { tokenManager.isAdmin() }
+            val workshopId = backStackEntry.arguments?.getLong("workshopId") ?: 0L
             val workshopDetailViewModel: WorkshopDetailViewModel = viewModel {
                 WorkshopDetailViewModel(ApiClient.api, workshopReminders)
             }
 
             WorkshopDetailScreen(
-                projectId = backStackEntry.arguments?.getLong("workshopId") ?: 0L,
+                projectId = workshopId,
                 viewModel = workshopDetailViewModel,
                 isAdmin = isAdmin,
+                onEditClick = { navController.navigate("workshops/$workshopId/edit") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Admin only: reached from the project page's menu. Back on the project page, it reloads
+        composable(
+            route = "workshops/{workshopId}/edit",
+            arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val editWorkshopViewModel: EditWorkshopViewModel = viewModel {
+                EditWorkshopViewModel(ApiClient.api, workshopReminders)
+            }
+
+            EditWorkshopScreen(
+                projectId = backStackEntry.arguments?.getLong("workshopId") ?: 0L,
+                viewModel = editWorkshopViewModel,
+                onSaved = { navController.popBackStack() },
                 onBackClick = { navController.popBackStack() }
             )
         }

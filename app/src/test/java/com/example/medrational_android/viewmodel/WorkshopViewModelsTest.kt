@@ -301,7 +301,150 @@ class WorkshopViewModelsTest {
         assertEquals(NewWorkshopUiState.Idle, viewModel.uiState.value)
     }
 
+    // --- attachments on create ---------------------------------------------------------------------
+
+    private fun pending(name: String) =
+        PendingAttachment(name, MultipartBody.Part.createFormData("file", name, name.toRequestBody()))
+
+    @Test
+    fun `creating attaches every picked file to the new project`() {
+        val files = listOf(pending("program.pdf"), pending("map.png"))
+        coEvery { api.createWorkshop(any(), any()) } returns Response.success(project(id = 12))
+        coEvery { api.uploadWorkshopAttachment(12, any()) } returns
+            Response.success(WorkshopAttachment(1, "x", "https://cdn.example.com/x"))
+
+        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        viewModel.submit(form(), files)
+
+        assertEquals(NewWorkshopUiState.Created(12, failedFiles = emptyList()), viewModel.uiState.value)
+        coVerify(ordering = io.mockk.Ordering.SEQUENCE) {
+            api.createWorkshop(9, any())
+            api.uploadWorkshopAttachment(12, files[0].part)
+            api.uploadWorkshopAttachment(12, files[1].part)
+        }
+    }
+
+    @Test
+    fun `files that fail to attach are reported but the project is still created`() {
+        val files = listOf(pending("program.pdf"), pending("huge.zip"), pending("map.png"))
+        coEvery { api.createWorkshop(any(), any()) } returns Response.success(project(id = 12))
+        coEvery { api.uploadWorkshopAttachment(12, files[0].part) } returns
+            Response.success(WorkshopAttachment(1, "program.pdf", "https://cdn.example.com/program.pdf"))
+        coEvery { api.uploadWorkshopAttachment(12, files[1].part) } returns error(413)
+        coEvery { api.uploadWorkshopAttachment(12, files[2].part) } throws IOException("offline")
+
+        val viewModel = NewWorkshopViewModel(api, reminders, authorId = 9)
+        viewModel.submit(form(), files)
+
+        assertEquals(NewWorkshopUiState.Created(12, failedFiles = listOf("huge.zip", "map.png")), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `no file is uploaded when the project can't be created`() {
+        coEvery { api.createWorkshop(any(), any()) } returns error(400)
+
+        NewWorkshopViewModel(api, reminders, authorId = 9).submit(form(), listOf(pending("program.pdf")))
+
+        coVerify(exactly = 0) { api.uploadWorkshopAttachment(any(), any()) }
+    }
+
+    // --- edit --------------------------------------------------------------------------------------
+
+    private fun loadedEdit(project: WorkshopProject = project(status = ProjectStatus.OPEN, formLink = LINK)): EditWorkshopViewModel {
+        coEvery { api.getWorkshop(project.id) } returns Response.success(project)
+        return EditWorkshopViewModel(api, reminders).also { it.load(project.id) }
+    }
+
+    @Test
+    fun `edit form is prefilled with the project`() {
+        val viewModel = loadedEdit()
+
+        assertEquals(
+            EditWorkshopUiState.Editing(
+                WorkshopForm(
+                    title = "Suturing $ID", description = "Hands-on", formLink = LINK, capacity = "30",
+                    opensAtMillis = opens, closesAtMillis = closes
+                )
+            ),
+            viewModel.uiState.value
+        )
+    }
+
+    @Test
+    fun `unlimited capacity is prefilled as empty`() {
+        val viewModel = loadedEdit(project().copy(capacity = null))
+
+        assertEquals("", (viewModel.uiState.value as EditWorkshopUiState.Editing).initial.capacity)
+    }
+
+    @Test
+    fun `saving sends the trimmed form with ISO dates and reschedules the reminders`() {
+        val viewModel = loadedEdit()
+        val newOpens = parseIsoLocalDateTime("2026-11-02T08:30:00")!!
+        val newCloses = parseIsoLocalDateTime("2026-11-03T12:00:00")!!
+        val updated = project(status = ProjectStatus.UPCOMING, formLink = LINK)
+        val request = slot<CreateWorkshopProjectRequest>()
+        coEvery { api.updateWorkshop(ID, capture(request)) } returns Response.success(updated)
+
+        viewModel.save(WorkshopForm(" New title ", " New text ", " $LINK ", "", newOpens, newCloses))
+
+        assertEquals(
+            CreateWorkshopProjectRequest(
+                title = "New title", description = "New text", projectType = ProjectType.FIRST_COME_FIRST_SERVED,
+                formLink = LINK, capacity = null,
+                registrationOpensAt = "2026-11-02T08:30:00", registrationClosesAt = "2026-11-03T12:00:00"
+            ),
+            request.captured
+        )
+        assertEquals(EditWorkshopUiState.Saved, viewModel.uiState.value)
+        verify { reminders.schedule(listOf(updated)) }
+    }
+
+    @Test
+    fun `invalid edit makes no request and explains`() {
+        val viewModel = loadedEdit()
+
+        viewModel.save(WorkshopForm("Title", "Text", LINK, "", opensAtMillis = closes, closesAtMillis = opens))
+
+        assertEquals("Registration must close after it opens.", viewModel.message.value)
+        assertTrue(viewModel.uiState.value is EditWorkshopUiState.Editing)
+        coVerify(exactly = 0) { api.updateWorkshop(any(), any()) }
+    }
+
+    @Test
+    fun `failed save keeps the form open and explains`() {
+        val viewModel = loadedEdit()
+        coEvery { api.updateWorkshop(ID, any()) } throws IOException("offline")
+
+        viewModel.save(WorkshopForm("Title", "Text", LINK, "", opens, closes))
+
+        assertEquals(EditWorkshopUiState.Editing(project(status = ProjectStatus.OPEN, formLink = LINK).toForm()), viewModel.uiState.value)
+        assertTrue(viewModel.message.value!!.startsWith("Network error"))
+        verify(exactly = 0) { reminders.schedule(any()) }
+    }
+
+    @Test
+    fun `editing a project that was deleted is a load error`() {
+        coEvery { api.getWorkshop(ID) } returns error(404)
+
+        val viewModel = EditWorkshopViewModel(api, reminders)
+        viewModel.load(ID)
+
+        assertEquals(EditWorkshopUiState.LoadError("This project no longer exists."), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `edit load network failure is a load error`() {
+        coEvery { api.getWorkshop(ID) } throws IOException("offline")
+
+        val viewModel = EditWorkshopViewModel(api, reminders)
+        viewModel.load(ID)
+
+        assertTrue(viewModel.uiState.value is EditWorkshopUiState.LoadError)
+    }
+
     private companion object {
+        const val LINK = "https://forms.example.com/suturing"
         const val ID = 5L
     }
 }
