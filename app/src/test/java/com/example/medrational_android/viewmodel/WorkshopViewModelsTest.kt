@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -24,6 +25,7 @@ import org.junit.Test
 import retrofit2.Response
 import java.io.IOException
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class WorkshopViewModelsTest {
 
     @get:Rule
@@ -443,6 +445,101 @@ class WorkshopViewModelsTest {
         viewModel.load(ID)
 
         assertTrue(viewModel.uiState.value is EditWorkshopUiState.LoadError)
+    }
+
+    // --- automatic status changes ------------------------------------------------------------------
+
+    private val opensAt = parseIsoLocalDateTime("2026-10-20T09:00:00")!!
+    private val closesAt = parseIsoLocalDateTime("2026-10-21T18:00:00")!!
+    private val scheduler get() = mainDispatcherRule.dispatcher.scheduler
+
+    // The device clock follows the test's virtual time, starting [before] the opening
+    private fun clockStarting(before: Long): () -> Long {
+        val start = opensAt - before
+        return { start + scheduler.currentTime }
+    }
+
+    @Test
+    fun `the next change is the opening for upcoming and the closing for open projects`() {
+        val now = opensAt - 60_000
+
+        assertEquals(opensAt, nextStatusChangeMillis(project(status = ProjectStatus.UPCOMING), now))
+        assertEquals(closesAt, nextStatusChangeMillis(project(status = ProjectStatus.OPEN), now))
+        assertNull(nextStatusChangeMillis(project(status = ProjectStatus.CLOSED), now))
+    }
+
+    @Test
+    fun `a change that passed long ago is not expected anymore`() {
+        // E.g. an admin set the project back to upcoming after it opened
+        assertEquals(opensAt, nextStatusChangeMillis(project(status = ProjectStatus.UPCOMING), opensAt + 30_000))
+        assertNull(nextStatusChangeMillis(project(status = ProjectStatus.UPCOMING), opensAt + 120_000))
+    }
+
+    @Test
+    fun `an open detail page switches to open with the link at the opening time`() {
+        val opened = project(status = ProjectStatus.OPEN, formLink = LINK)
+        coEvery { api.getWorkshop(ID) } returns Response.success(project()) andThen Response.success(opened)
+        val viewModel = WorkshopDetailViewModel(api, clockStarting(before = 60_000))
+        viewModel.load(ID)
+
+        scheduler.advanceTimeBy(60_000)
+        scheduler.runCurrent()
+        // Not yet: the backend switches on the minute, the page asks a few seconds later
+        coVerify(exactly = 1) { api.getWorkshop(ID) }
+
+        scheduler.advanceTimeBy(6_000)
+        scheduler.runCurrent()
+
+        val state = viewModel.uiState.value as WorkshopDetailUiState.Success
+        assertEquals(ProjectStatus.OPEN, state.project.status)
+        assertEquals(LINK, state.registrationLink)
+    }
+
+    @Test
+    fun `the detail page asks again when the backend switches late`() {
+        coEvery { api.getWorkshop(ID) } returnsMany listOf(
+            Response.success(project()),
+            Response.success(project()),
+            Response.success(project(status = ProjectStatus.OPEN))
+        )
+        val viewModel = WorkshopDetailViewModel(api, clockStarting(before = 0))
+        viewModel.load(ID)
+
+        scheduler.advanceTimeBy(6_000)
+        scheduler.runCurrent()
+        assertEquals(ProjectStatus.UPCOMING, (viewModel.uiState.value as WorkshopDetailUiState.Success).project.status)
+
+        scheduler.advanceTimeBy(16_000)
+        scheduler.runCurrent()
+        assertEquals(ProjectStatus.OPEN, (viewModel.uiState.value as WorkshopDetailUiState.Success).project.status)
+    }
+
+    @Test
+    fun `a closed project is not refetched`() {
+        coEvery { api.getWorkshop(ID) } returns Response.success(project(status = ProjectStatus.CLOSED))
+        val viewModel = WorkshopDetailViewModel(api, clockStarting(before = 0))
+        viewModel.load(ID)
+
+        scheduler.advanceTimeBy(10 * 60_000L)
+        scheduler.runCurrent()
+
+        coVerify(exactly = 1) { api.getWorkshop(ID) }
+    }
+
+    @Test
+    fun `the list refreshes when a listed project opens`() {
+        coEvery { api.getWorkshops(null, any(), any()) } returns page(project(1), project(2, ProjectStatus.CLOSED)) andThen
+            page(project(1, ProjectStatus.OPEN), project(2, ProjectStatus.CLOSED))
+        val viewModel = WorkshopListViewModel(api, clockStarting(before = 60_000))
+        viewModel.load()
+
+        scheduler.advanceTimeBy(66_000)
+        scheduler.runCurrent()
+
+        assertEquals(
+            WorkshopListUiState.Success(listOf(project(1, ProjectStatus.OPEN), project(2, ProjectStatus.CLOSED))),
+            viewModel.uiState.value
+        )
     }
 
     private companion object {
