@@ -25,8 +25,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,15 +60,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopAttachment
-import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
+import com.example.medrational_android.viewmodel.PreviewState
+import com.example.medrational_android.viewmodel.WorkshopAttachmentPreviewsViewModel
 import com.example.medrational_android.viewmodel.WorkshopDetailUiState
 import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * A workshop project. Students see its dates and, while registration is open, a button to the
@@ -86,6 +88,10 @@ fun WorkshopDetailScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val previewsViewModel: WorkshopAttachmentPreviewsViewModel = viewModel {
+        WorkshopAttachmentPreviewsViewModel(ApiClient.api, File(context.cacheDir, "previews"))
+    }
+    val previews by previewsViewModel.previews.collectAsState()
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     val downloader = remember { AndroidDownloader(context) }
@@ -114,6 +120,10 @@ fun WorkshopDetailScreen(
     }
 
     val success = uiState as? WorkshopDetailUiState.Success
+    val attachments = success?.project?.attachments
+    LaunchedEffect(attachments) {
+        attachments?.let(previewsViewModel::load)
+    }
 
     Scaffold(
         topBar = {
@@ -210,10 +220,13 @@ fun WorkshopDetailScreen(
                             Toast.makeText(context, "Couldn't open the registration link.", Toast.LENGTH_LONG).show()
                         }
                     },
-                    onAttachmentClick = { attachment ->
-                        downloader.downloadFile(attachment.fileUrl, attachment.fileName)
+                    previews = previews,
+                    onDownloadAttachmentClick = { attachment ->
+                        downloader.downloadFile(ApiClient.workshopAttachmentDownloadUrl(attachment.id), attachment.fileName)
                         Toast.makeText(context, "Downloading ${attachment.fileName}...", Toast.LENGTH_SHORT).show()
                     },
+                    onRetryPreviewClick = previewsViewModel::retry,
+                    onPreviewCorrupted = previewsViewModel::onPreviewCorrupted,
                     onDeleteAttachmentClick = { attachmentToDelete = it }
                 )
             }
@@ -265,8 +278,11 @@ fun WorkshopDetailScreen(
 private fun ProjectDetails(
     state: WorkshopDetailUiState.Success,
     isAdmin: Boolean,
+    previews: Map<Long, PreviewState>,
     onRegisterClick: (String) -> Unit,
-    onAttachmentClick: (WorkshopAttachment) -> Unit,
+    onDownloadAttachmentClick: (WorkshopAttachment) -> Unit,
+    onRetryPreviewClick: (Long) -> Unit,
+    onPreviewCorrupted: (Long) -> Unit,
     onDeleteAttachmentClick: (WorkshopAttachment) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -322,25 +338,15 @@ private fun ProjectDetails(
             if (project.attachments.isNotEmpty()) {
                 Text("Documents", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 project.attachments.forEach { attachment ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        AssistChip(
-                            onClick = { onAttachmentClick(attachment) },
-                            label = { Text(attachment.fileName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = fileTypeIcon(attachment.fileName, null),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(AssistChipDefaults.IconSize)
-                                )
-                            },
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (isAdmin) {
-                            IconButton(onClick = { onDeleteAttachmentClick(attachment) }, enabled = !state.busy) {
-                                Icon(Icons.Default.Delete, contentDescription = "Remove ${attachment.fileName}")
-                            }
-                        }
-                    }
+                    WorkshopAttachmentCard(
+                        attachment = attachment,
+                        preview = previews[attachment.id],
+                        onDownloadClick = { onDownloadAttachmentClick(attachment) },
+                        onRetryPreviewClick = { onRetryPreviewClick(attachment.id) },
+                        onPreviewCorrupted = { onPreviewCorrupted(attachment.id) },
+                        onDeleteClick = if (isAdmin) { { onDeleteAttachmentClick(attachment) } } else null,
+                        deleteEnabled = !state.busy
+                    )
                 }
             }
         }

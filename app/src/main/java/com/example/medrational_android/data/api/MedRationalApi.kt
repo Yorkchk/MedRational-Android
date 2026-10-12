@@ -220,6 +220,11 @@ interface MedRationalApi {
     @DELETE("api/v1/workshops/attachments/{attachmentId}")
     suspend fun deleteWorkshopAttachment(@Path("attachmentId") attachmentId: Long): Response<Unit>
 
+    // PDF rendition of the attachment (images as-is); 415 when the format can't be previewed
+    @Streaming
+    @GET("api/v1/workshops/attachments/{attachmentId}/preview")
+    suspend fun getWorkshopAttachmentPreview(@Path("attachmentId") attachmentId: Long): Response<ResponseBody>
+
     // Manual override, e.g. closing early once the form is full
     @PATCH("api/v1/workshops/{id}/status")
     suspend fun updateWorkshopStatus(
