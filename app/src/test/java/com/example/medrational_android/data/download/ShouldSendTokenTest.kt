@@ -1,5 +1,7 @@
 package com.example.medrational_android.data.download
 
+import com.example.medrational_android.data.api.workshopAttachmentUrl
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,6 +14,16 @@ class ShouldSendTokenTest {
     fun `api downloads carry the token so the backend can record them`() {
         assertTrue(shouldSendToken("${baseUrl}api/v1/downloads/file/5", baseUrl))
         assertTrue(shouldSendToken("${baseUrl}api/v1/suggestions/3/attachment", baseUrl))
+    }
+
+    // Workshop attachments used to be downloaded from their R2 fileUrl, which answers 400: the bucket
+    // is private. They now go through the API, which needs the user's token
+    @Test
+    fun `workshop attachments download through the api with the token`() {
+        val url = workshopAttachmentUrl(baseUrl, 9, "download")
+
+        assertEquals("${baseUrl}api/v1/workshops/attachments/9/download", url)
+        assertTrue(shouldSendToken(url, baseUrl))
     }
 
     @Test

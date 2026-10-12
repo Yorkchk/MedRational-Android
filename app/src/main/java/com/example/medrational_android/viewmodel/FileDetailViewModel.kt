@@ -7,6 +7,7 @@ import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.data.preview.saveToCache
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,8 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.ResponseBody
 import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
@@ -111,7 +110,7 @@ class FileDetailViewModel(
                 val response = api.getFilePreview(fileId)
                 val body = response.body()
                 when {
-                    response.isSuccessful && body != null -> PreviewState.Pdf(saveToCache(body, cached))
+                    response.isSuccessful && body != null -> PreviewState.Pdf(saveToCache(body, cached, ioDispatcher))
                     response.code() == 415 -> PreviewState.NotSupported
                     response.code() == 503 -> PreviewState.Unavailable("The preview can't be generated right now.")
                     else -> PreviewState.Unavailable("Preview failed to load (HTTP ${response.code()}).")
@@ -123,21 +122,6 @@ class FileDetailViewModel(
             }
             setPreview(preview)
         }
-    }
-
-    // Writes to a temp file first so an interrupted download never leaves a broken cached PDF
-    private suspend fun saveToCache(body: ResponseBody, target: File): File = withContext(ioDispatcher) {
-        previewDir.mkdirs()
-        val temp = File(previewDir, "${target.name}.part")
-        try {
-            body.use { source ->
-                temp.outputStream().use { sink -> source.byteStream().copyTo(sink) }
-            }
-            if (!temp.renameTo(target)) throw IOException("Couldn't save the preview.")
-        } finally {
-            temp.delete()
-        }
-        target
     }
 
     private fun setPreview(preview: PreviewState) {

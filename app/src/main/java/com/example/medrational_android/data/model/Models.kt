@@ -298,11 +298,13 @@ data class WorkshopProject(
     val attachments: List<WorkshopAttachment> = emptyList()
 )
 
-// fileUrl is a public R2 URL
+// fileUrl points at the private R2 bucket and can't be opened: use ApiClient.workshopAttachment*Url
 data class WorkshopAttachment(
     val id: Long,
     val fileName: String,
-    val fileUrl: String
+    val fileUrl: String,
+    // The backend can preview it (PDF, Word, PowerPoint, Excel or image)
+    val previewable: Boolean = false
 )
 
 // Mirrors backend CreateWorkshopProjectDTO; dates as "yyyy-MM-dd'T'HH:mm:ss"

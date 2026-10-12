@@ -13,6 +13,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
 
+internal fun workshopAttachmentUrl(baseUrl: String, attachmentId: Long, action: String): String =
+    "${baseUrl}api/v1/workshops/attachments/$attachmentId/$action"
+
 object ApiClient {
     // Set per build type from local.properties (api.baseUrl / api.releaseBaseUrl), see app/build.gradle.kts.
     // Not `const`: a const would be inlined into every caller, and incremental builds would keep the old URL
@@ -28,6 +31,13 @@ object ApiClient {
 
     // Images are loaded through the backend: their publicUrl points at the private R2 bucket
     fun filePreviewUrl(fileId: Long): String = "${BASE_URL}api/v1/files/$fileId/preview"
+
+    // Workshop attachments too: their fileUrl is the private R2 endpoint, which answers 400
+    fun workshopAttachmentPreviewUrl(attachmentId: Long): String =
+        workshopAttachmentUrl(BASE_URL, attachmentId, "preview")
+
+    fun workshopAttachmentDownloadUrl(attachmentId: Long): String =
+        workshopAttachmentUrl(BASE_URL, attachmentId, "download")
 
     // Inside ApiClient.kt
     private val authInterceptor = Interceptor { chain ->
