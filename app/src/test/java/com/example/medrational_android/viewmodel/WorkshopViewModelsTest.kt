@@ -245,7 +245,7 @@ class WorkshopViewModelsTest {
         viewModel.submit(form(opensAt = now - 12 * 60 * 60 * 1000, closesAt = now - 11 * 60 * 60 * 1000))
 
         assertEquals(
-            NewWorkshopUiState.Error("Registration must open in the future. Check the date and AM/PM."),
+            NewWorkshopUiState.Error("Registration must open in the future. Check the date and time."),
             viewModel.uiState.value
         )
         coVerify(exactly = 0) { api.createWorkshop(any(), any()) }

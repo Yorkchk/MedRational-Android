@@ -311,11 +311,10 @@ private fun ProjectDetails(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val is24Hour = is24HourClock()
                     val projectType = project.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED
                     DetailLine(label = "Project type", value = projectType.label())
-                    DetailLine(label = "Registration opens", value = project.opensLabel(is24Hour))
-                    DetailLine(label = "Registration closes", value = project.closesLabel(is24Hour))
+                    DetailLine(label = "Registration opens", value = project.opensLabel())
+                    DetailLine(label = "Registration closes", value = project.closesLabel())
                     DetailLine(label = "Capacity", value = project.capacityLabel() ?: "No limit")
                     Text(
                         text = projectType.description(),
@@ -370,7 +369,7 @@ private fun RegistrationSection(
         }
         project.status == ProjectStatus.UPCOMING -> Notice(
             icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
-            text = "Registration opens ${project.opensLabel(is24HourClock())}. The link appears here then."
+            text = "Registration opens ${project.opensLabel()}. The link appears here then."
         )
         project.status == ProjectStatus.OPEN -> Notice(
             icon = { Icon(Icons.Default.Lock, contentDescription = null) },

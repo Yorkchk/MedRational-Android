@@ -1,13 +1,11 @@
 package com.example.medrational_android.ui.workshops
 
-import android.text.format.DateFormat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
@@ -32,13 +30,10 @@ fun ProjectType.description(): String = when (this) {
         "Apply through the registration link with a motivation letter. The committee decides who is accepted."
 }
 
-fun WorkshopProject.opensLabel(is24Hour: Boolean = true): String = formatIsoLocalDateTime(registrationOpensAt, is24Hour)
+// Workshop times are always 24-hour, e.g. "20 Oct 2026, 19:30", whatever the phone's setting
+fun WorkshopProject.opensLabel(): String = formatIsoLocalDateTime(registrationOpensAt)
 
-fun WorkshopProject.closesLabel(is24Hour: Boolean = true): String = formatIsoLocalDateTime(registrationClosesAt, is24Hour)
-
-/** The phone's 12/24-hour setting, which every workshop time follows. */
-@Composable
-fun is24HourClock(): Boolean = DateFormat.is24HourFormat(LocalContext.current)
+fun WorkshopProject.closesLabel(): String = formatIsoLocalDateTime(registrationClosesAt)
 
 fun WorkshopProject.capacityLabel(): String? = capacity?.let { if (it == 1) "1 spot" else "$it spots" }
 

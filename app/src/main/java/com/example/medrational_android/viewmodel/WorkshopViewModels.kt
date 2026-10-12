@@ -360,7 +360,7 @@ data class WorkshopForm(
 
 /**
  * The first problem with [form], or null when it can be sent. With [nowMillis] (new projects), the
- * opening time must be after it: a time in the past is almost always a wrong date or AM/PM.
+ * opening time must be after it: a time in the past is almost always a wrong date or time.
  */
 fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): String? {
     val link = form.formLink.trim()
@@ -376,7 +376,7 @@ fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): String? {
         form.closesAtMillis == null -> "Pick when registration closes."
         form.closesAtMillis <= form.opensAtMillis -> "Registration must close after it opens."
         nowMillis != null && form.opensAtMillis <= nowMillis ->
-            "Registration must open in the future. Check the date and AM/PM."
+            "Registration must open in the future. Check the date and time."
         else -> null
     }
 }
