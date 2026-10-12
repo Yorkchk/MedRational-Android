@@ -19,6 +19,7 @@ class HomeDrawerEntriesTest {
                 DrawerDestination.HOME,
                 DrawerDestination.SEARCH,
                 DrawerDestination.NOVELTIES,
+                DrawerDestination.WORKSHOPS,
                 DrawerDestination.FAVORITES,
                 DrawerDestination.DOWNLOADS,
                 DrawerDestination.SUGGESTIONS,
@@ -26,6 +27,11 @@ class HomeDrawerEntriesTest {
             ),
             destinations(isAdmin = false, isLoggedIn = true)
         )
+    }
+
+    @Test
+    fun `workshops are listed as Projects`() {
+        assertEquals("Projects", label(DrawerDestination.WORKSHOPS, isAdmin = false))
     }
 
     @Test
@@ -39,6 +45,8 @@ class HomeDrawerEntriesTest {
         val entries = destinations(isAdmin = false, isLoggedIn = false)
 
         assertFalse(DrawerDestination.NOVELTIES in entries)
+        // The workshops API rejects anonymous calls
+        assertFalse(DrawerDestination.WORKSHOPS in entries)
         assertFalse(DrawerDestination.SUGGESTIONS in entries)
         assertFalse(DrawerDestination.SIGN_OUT in entries)
         assertEquals(DrawerDestination.HOME, entries.first())

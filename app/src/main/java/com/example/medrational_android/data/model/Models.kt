@@ -269,3 +269,52 @@ data class FavoriteToggleResponse(
     val isFavorited: Boolean,
     val message: String
 )
+// --- Workshop projects (/api/v1/workshops) ------------------------------------------------------
+
+// FIRST_COME_FIRST_SERVED: students register on the form link while OPEN, until it fills up.
+// MOTIVATION: students apply on the form link with a motivation letter, and a committee picks who
+// is accepted. Both work the same in the app; the selection happens on the external form
+enum class ProjectType { MOTIVATION, FIRST_COME_FIRST_SERVED }
+
+// The backend scheduler moves UPCOMING -> OPEN at registrationOpensAt and OPEN -> CLOSED at
+// registrationClosesAt; admins can also force a status
+enum class ProjectStatus { UPCOMING, OPEN, CLOSED }
+
+// Mirrors backend WorkshopProjectResponseDTO. formLink is null for non-admins unless status is OPEN.
+// Dates are ISO LocalDateTime in the server's time zone
+data class WorkshopProject(
+    val id: Long,
+    val authorId: Long?,
+    val authorEmail: String?,
+    val title: String,
+    val description: String,
+    val projectType: ProjectType?,
+    val status: ProjectStatus,
+    val formLink: String?,
+    // null means no limit
+    val capacity: Int? = null,
+    val registrationOpensAt: String,
+    val registrationClosesAt: String,
+    val createdAt: String?,
+    val attachments: List<WorkshopAttachment> = emptyList()
+)
+
+// fileUrl points at the private R2 bucket and can't be opened: use ApiClient.workshopAttachment*Url
+data class WorkshopAttachment(
+    val id: Long,
+    val fileName: String,
+    val fileUrl: String,
+    // The backend can preview it (PDF, Word, PowerPoint, Excel or image)
+    val previewable: Boolean = false
+)
+
+// Mirrors backend CreateWorkshopProjectDTO; dates as "yyyy-MM-dd'T'HH:mm:ss"
+data class CreateWorkshopProjectRequest(
+    val title: String,
+    val description: String,
+    val projectType: ProjectType,
+    val formLink: String,
+    val capacity: Int?,
+    val registrationOpensAt: String,
+    val registrationClosesAt: String
+)
