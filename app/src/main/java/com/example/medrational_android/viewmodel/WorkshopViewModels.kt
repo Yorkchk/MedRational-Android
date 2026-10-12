@@ -9,6 +9,8 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.data.model.parseIsoLocalDateTime
 import com.example.medrational_android.data.model.toIsoLocalDateTime
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,27 @@ internal fun workshopErrorMessage(code: Int): String = when (code) {
     else -> "Something went wrong (HTTP $code). Please try again."
 }
 
+// The backend switches statuses on the minute; refetch a little after, and again a few times if it's late
+private const val STATUS_CHANGE_GRACE_MILLIS = 5_000L
+private const val STATUS_CHANGE_RETRY_MILLIS = 15_000L
+private const val STATUS_CHANGE_CHECKS = 4
+// A change that just passed may not be in the backend's response yet
+private const val STATUS_CHANGE_WINDOW_MILLIS = 60_000L
+
+/**
+ * When the backend will next move [project] on its own (opening for UPCOMING, closing for OPEN), or
+ * null when no change is due. A time that passed less than a minute ago still counts, since the
+ * backend may not have switched yet; an older one means an admin kept the status by hand.
+ */
+fun nextStatusChangeMillis(project: WorkshopProject, nowMillis: Long): Long? {
+    val changeAt = when (project.status) {
+        ProjectStatus.UPCOMING -> parseIsoLocalDateTime(project.registrationOpensAt)
+        ProjectStatus.OPEN -> parseIsoLocalDateTime(project.registrationClosesAt)
+        ProjectStatus.CLOSED -> null
+    } ?: return null
+    return changeAt.takeIf { it > nowMillis - STATUS_CHANGE_WINDOW_MILLIS }
+}
+
 // --- List ----------------------------------------------------------------------------------------
 
 sealed interface WorkshopListUiState {
@@ -38,7 +61,8 @@ sealed interface WorkshopListUiState {
 
 /** Tabs filter by status; a null tab shows every project. */
 class WorkshopListViewModel(
-    private val api: MedRationalApi
+    private val api: MedRationalApi,
+    private val clock: () -> Long = System::currentTimeMillis
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow<ProjectStatus?>(null)
@@ -54,24 +78,54 @@ class WorkshopListViewModel(
         load()
     }
 
+    // Refetches when a listed project is due to open or close
+    private var statusWatch: Job? = null
+
     fun load() {
         val status = _tab.value
         viewModelScope.launch {
-            val result = try {
-                val response = api.getWorkshops(status)
-                val body = response.body()
-                if (response.isSuccessful && body != null) {
-                    WorkshopListUiState.Success(body.content)
-                } else {
-                    WorkshopListUiState.Error(workshopErrorMessage(response.code()))
-                }
-            } catch (e: IOException) {
-                WorkshopListUiState.Error(NETWORK_ERROR)
-            } catch (e: HttpException) {
-                WorkshopListUiState.Error(workshopErrorMessage(e.code()))
-            }
+            val result = fetch(status)
             // Ignore a slow response for a tab the user already left
-            if (status == _tab.value) _uiState.value = result
+            if (status == _tab.value) show(result)
+        }
+    }
+
+    private suspend fun fetch(status: ProjectStatus?): WorkshopListUiState = try {
+        val response = api.getWorkshops(status)
+        val body = response.body()
+        if (response.isSuccessful && body != null) {
+            WorkshopListUiState.Success(body.content)
+        } else {
+            WorkshopListUiState.Error(workshopErrorMessage(response.code()))
+        }
+    } catch (e: IOException) {
+        WorkshopListUiState.Error(NETWORK_ERROR)
+    } catch (e: HttpException) {
+        WorkshopListUiState.Error(workshopErrorMessage(e.code()))
+    }
+
+    private fun show(state: WorkshopListUiState) {
+        _uiState.value = state
+        statusWatch?.cancel()
+        if (state is WorkshopListUiState.Success) watchStatuses(state.projects)
+    }
+
+    private fun watchStatuses(projects: List<WorkshopProject>) {
+        val now = clock()
+        val changeAt = projects.mapNotNull { nextStatusChangeMillis(it, now) }.minOrNull() ?: return
+        val status = _tab.value
+        statusWatch = viewModelScope.launch {
+            delay(changeAt - now + STATUS_CHANGE_GRACE_MILLIS)
+            repeat(STATUS_CHANGE_CHECKS) {
+                // A failed background refetch is retried silently rather than replacing the list
+                val result = fetch(status)
+                if (status != _tab.value) return@launch
+                if (result is WorkshopListUiState.Success && result != _uiState.value) {
+                    show(result)
+                    return@launch
+                }
+                delay(STATUS_CHANGE_RETRY_MILLIS)
+            }
         }
     }
 }
@@ -95,7 +149,8 @@ sealed interface WorkshopDetailUiState {
 }
 
 class WorkshopDetailViewModel(
-    private val api: MedRationalApi
+    private val api: MedRationalApi,
+    private val clock: () -> Long = System::currentTimeMillis
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WorkshopDetailUiState>(WorkshopDetailUiState.Loading)
@@ -107,6 +162,9 @@ class WorkshopDetailViewModel(
 
     private var projectId: Long? = null
 
+    // Refetches when the project is due to open or close
+    private var statusWatch: Job? = null
+
     fun load(id: Long) {
         projectId = id
         // Keep the project on screen while refreshing
@@ -114,25 +172,53 @@ class WorkshopDetailViewModel(
             _uiState.value = WorkshopDetailUiState.Loading
         }
         viewModelScope.launch {
-            val result = try {
-                val response = api.getWorkshop(id)
-                val body = response.body()
-                if (response.isSuccessful && body != null) {
-                    WorkshopDetailUiState.Success(body)
-                } else {
-                    WorkshopDetailUiState.Error(workshopErrorMessage(response.code()))
-                }
-            } catch (e: IOException) {
-                WorkshopDetailUiState.Error(NETWORK_ERROR)
-            } catch (e: HttpException) {
-                WorkshopDetailUiState.Error(workshopErrorMessage(e.code()))
-            }
+            val result = fetch(id)
             val current = _uiState.value
-            _uiState.value = if (result is WorkshopDetailUiState.Error && current is WorkshopDetailUiState.Success) {
+            if (result is WorkshopDetailUiState.Error && current is WorkshopDetailUiState.Success) {
                 _message.value = result.message
-                current.copy(busy = false)
+                _uiState.value = current.copy(busy = false)
             } else {
-                result
+                show(result)
+            }
+        }
+    }
+
+    private suspend fun fetch(id: Long): WorkshopDetailUiState = try {
+        val response = api.getWorkshop(id)
+        val body = response.body()
+        if (response.isSuccessful && body != null) {
+            WorkshopDetailUiState.Success(body)
+        } else {
+            WorkshopDetailUiState.Error(workshopErrorMessage(response.code()))
+        }
+    } catch (e: IOException) {
+        WorkshopDetailUiState.Error(NETWORK_ERROR)
+    } catch (e: HttpException) {
+        WorkshopDetailUiState.Error(workshopErrorMessage(e.code()))
+    }
+
+    private fun show(state: WorkshopDetailUiState) {
+        _uiState.value = state
+        statusWatch?.cancel()
+        if (state is WorkshopDetailUiState.Success) watchStatus(state.project)
+    }
+
+    private fun watchStatus(project: WorkshopProject) {
+        val now = clock()
+        val changeAt = nextStatusChangeMillis(project, now) ?: return
+        statusWatch = viewModelScope.launch {
+            delay(changeAt - now + STATUS_CHANGE_GRACE_MILLIS)
+            repeat(STATUS_CHANGE_CHECKS) {
+                // A failed background refetch is retried silently; an admin action in flight wins
+                val result = fetch(project.id)
+                val current = _uiState.value
+                if (result is WorkshopDetailUiState.Success && result.project.status != project.status &&
+                    current is WorkshopDetailUiState.Success && !current.busy
+                ) {
+                    show(result)
+                    return@launch
+                }
+                delay(STATUS_CHANGE_RETRY_MILLIS)
             }
         }
     }
@@ -153,7 +239,7 @@ class WorkshopDetailViewModel(
                 val response = api.updateWorkshopStatus(current.project.id, status)
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
-                    _uiState.value = WorkshopDetailUiState.Success(body)
+                    show(WorkshopDetailUiState.Success(body))
                 } else {
                     fail(workshopErrorMessage(response.code()))
                 }
