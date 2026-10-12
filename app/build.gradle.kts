@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Push notifications (Firebase Cloud Messaging) need app/google-services.json from the Firebase
+// console. Without it the app still builds, and push is simply off (see data/push/WorkshopPush.kt)
+if (file("google-services.json").exists()) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+} else {
+    logger.warn("app/google-services.json is missing: push notifications are disabled in this build")
+}
+
 // Backend URLs come from local.properties (not committed) so they never live in source.
 // Defaults target the backend on the host machine as seen from the Android emulator.
 val localProps = Properties().apply {
@@ -65,6 +73,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)

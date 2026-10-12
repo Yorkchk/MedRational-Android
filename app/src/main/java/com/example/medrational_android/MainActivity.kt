@@ -1,16 +1,25 @@
 package com.example.medrational_android
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -22,6 +31,10 @@ import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.data.push.WorkshopPush
+import com.example.medrational_android.data.push.projectIdFromPush
+import com.example.medrational_android.data.push.routeForPushTap
+import com.example.medrational_android.data.push.workshopRoute
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -37,6 +50,10 @@ import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
 import com.example.medrational_android.ui.suggestions.SuggestionListScreen
 import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
+import com.example.medrational_android.ui.workshops.EditWorkshopScreen
+import com.example.medrational_android.ui.workshops.NewWorkshopScreen
+import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
+import com.example.medrational_android.ui.workshops.WorkshopListScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
@@ -47,14 +64,29 @@ import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
 import com.example.medrational_android.viewmodel.SuggestionListViewModel
+import com.example.medrational_android.viewmodel.EditWorkshopViewModel
+import com.example.medrational_android.viewmodel.NewWorkshopViewModel
+import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
+import com.example.medrational_android.viewmodel.WorkshopListViewModel
 
 class MainActivity : ComponentActivity() {
+
+    // Project of a tapped workshop push, opened once the app is showing; consumed by MedRationalApp
+    private var pushProjectId by mutableStateOf<Long?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ApiClient.initialize(this)
-        // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+
+        WorkshopPush.ensureChannel(this)
+        // Every installed app gets workshop pushes, signed in or not
+        WorkshopPush.subscribe(this)
+        // Not on a recreation: the push was already handled
+        if (savedInstanceState == null) pushProjectId = intent.pushProjectId()
+        // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+. The client
+        // sends the token to our API, which workshop attachment images need
         Coil.setImageLoader(
             ImageLoader.Builder(applicationContext)
+                .okHttpClient { ApiClient.imageHttpClient }
                 .components {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(ImageDecoderDecoder.Factory()) else add(GifDecoder.Factory())
                 }
@@ -62,23 +94,72 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             MedRationalAndroidTheme {
-                MedRationalApp()
+                MedRationalApp(
+                    pushProjectId = pushProjectId,
+                    onPushProjectOpened = { pushProjectId = null }
+                )
             }
         }
     }
+
+    // A push tapped while the app is already open
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.pushProjectId()?.let { pushProjectId = it }
+    }
+
+    // Pushes put their data in the launch intent's extras, as strings
+    private fun Intent.pushProjectId(): Long? =
+        projectIdFromPush(mapOf(WorkshopPush.EXTRA_PROJECT_ID to getStringExtra(WorkshopPush.EXTRA_PROJECT_ID)))
 }
 
 @Composable
-fun MedRationalApp() {
+fun MedRationalApp(
+    pushProjectId: Long? = null,
+    onPushProjectOpened: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    // Android 13+ asks before an app may show notifications, workshop pushes included
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     val categoryViewModel: CategoryViewModel = viewModel()
     val reasoningViewModel: ReasoningViewModel = viewModel()
 
     // Determine initial destination: if already authenticated, jump to categories
     val startScreen = if (tokenManager.isLoggedIn()) "categories" else "welcome"
+
+    // Asked at startup rather than after sign-in: signed-out phones get workshop pushes too
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // A push tapped while signed out, opened once the user signs in
+    var pendingPushProjectId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // A tapped workshop push opens its project, through the login screen when signed out
+    LaunchedEffect(pushProjectId) {
+        val projectId = pushProjectId ?: return@LaunchedEffect
+        val isLoggedIn = tokenManager.isLoggedIn()
+        if (!isLoggedIn) pendingPushProjectId = projectId
+        navController.navigate(routeForPushTap(projectId, isLoggedIn)) { launchSingleTop = true }
+        onPushProjectOpened()
+    }
+
+    // Login can now be reached from anywhere (a push, or an expired session), so home replaces the
+    // whole back stack
+    val onSignedIn: () -> Unit = {
+        navController.navigate("categories") { popUpTo(navController.graph.id) { inclusive = true } }
+        pendingPushProjectId?.let { projectId ->
+            pendingPushProjectId = null
+            navController.navigate(workshopRoute(projectId))
+        }
+    }
 
     NavHost(navController = navController, startDestination = startScreen) {
 
@@ -112,12 +193,8 @@ fun MedRationalApp() {
 
             LoginScreen(
                 viewModel = authViewModel,
-                onNavigateToAdminDashboard = {
-                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
-                },
-                onNavigateToUserDashboard = {
-                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
-                },
+                onNavigateToAdminDashboard = onSignedIn,
+                onNavigateToUserDashboard = onSignedIn,
                 onNavigateToForgotPassword = {
                     navController.navigate("forgot_password")
                 },
@@ -156,6 +233,7 @@ fun MedRationalApp() {
                     tokenManager.clearToken()
                     // The store holds this user's own scores
                     FileRatingStore.shared.clear()
+                    // The phone stays subscribed to workshop pushes; tapping one leads to login
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },
@@ -163,6 +241,7 @@ fun MedRationalApp() {
                 onNavigateToDownloads = { navController.navigate("downloads") },
                 onNavigateToSuggestions = { navController.navigate("suggestions") },
                 onNavigateToNovelties = { navController.navigate("novelties") },
+                onNavigateToWorkshops = { navController.navigate("workshops") },
                 noveltyCount = noveltyCount
             )
         }
@@ -218,6 +297,73 @@ fun MedRationalApp() {
                 suggestionId = backStackEntry.arguments?.getLong("suggestionId") ?: 0L,
                 viewModel = suggestionDetailViewModel,
                 isAdmin = remember { tokenManager.isAdmin() },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("workshops") {
+            val isAdmin = remember { tokenManager.isAdmin() }
+            val workshopListViewModel: WorkshopListViewModel = viewModel {
+                WorkshopListViewModel(ApiClient.api)
+            }
+
+            WorkshopListScreen(
+                viewModel = workshopListViewModel,
+                isAdmin = isAdmin,
+                onProjectClick = { id -> navController.navigate("workshops/$id") },
+                onNewProjectClick = { navController.navigate("workshops/new") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Admin only: reached from the list's FAB
+        composable("workshops/new") {
+            val newWorkshopViewModel: NewWorkshopViewModel = viewModel {
+                NewWorkshopViewModel(ApiClient.api, tokenManager.getUserId())
+            }
+
+            NewWorkshopScreen(
+                viewModel = newWorkshopViewModel,
+                // Open the new project so documents can be attached; back returns to the list
+                onCreated = { id ->
+                    navController.navigate("workshops/$id") { popUpTo("workshops/new") { inclusive = true } }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "workshops/{workshopId}",
+            arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val isAdmin = remember { tokenManager.isAdmin() }
+            val workshopId = backStackEntry.arguments?.getLong("workshopId") ?: 0L
+            val workshopDetailViewModel: WorkshopDetailViewModel = viewModel {
+                WorkshopDetailViewModel(ApiClient.api)
+            }
+
+            WorkshopDetailScreen(
+                projectId = workshopId,
+                viewModel = workshopDetailViewModel,
+                isAdmin = isAdmin,
+                onEditClick = { navController.navigate("workshops/$workshopId/edit") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Admin only: reached from the project page's menu. Back on the project page, it reloads
+        composable(
+            route = "workshops/{workshopId}/edit",
+            arguments = listOf(navArgument("workshopId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val editWorkshopViewModel: EditWorkshopViewModel = viewModel {
+                EditWorkshopViewModel(ApiClient.api)
+            }
+
+            EditWorkshopScreen(
+                projectId = backStackEntry.arguments?.getLong("workshopId") ?: 0L,
+                viewModel = editWorkshopViewModel,
+                onSaved = { navController.popBackStack() },
                 onBackClick = { navController.popBackStack() }
             )
         }
