@@ -4,13 +4,26 @@ import android.content.Context
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.data.auth.TokenManager
+import com.example.medrational_android.data.download.shouldSendToken
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
+
+/**
+ * [request] with the user's token when it goes to our API (workshop attachment images need it), and
+ * unchanged for any other host, which must never see the token.
+ */
+internal fun authorizeImageRequest(request: Request, token: String?, baseUrl: String): Request =
+    if (!token.isNullOrBlank() && shouldSendToken(request.url.toString(), baseUrl)) {
+        request.newBuilder().header("Authorization", "Bearer $token").build()
+    } else {
+        request
+    }
 
 internal fun workshopAttachmentUrl(baseUrl: String, attachmentId: Long, action: String): String =
     "${baseUrl}api/v1/workshops/attachments/$attachmentId/$action"
@@ -91,6 +104,20 @@ object ApiClient {
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
+
+    /**
+     * Coil's client. Images come from our API, and workshop attachments need the token. Unlike the API
+     * client, a refused image doesn't sign the user out, and image bytes aren't logged.
+     */
+    val imageHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(authorizeImageRequest(chain.request(), tokenManager?.getToken(), BASE_URL))
+            }
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
 
     private val gson = GsonBuilder()
         .setLenient()
