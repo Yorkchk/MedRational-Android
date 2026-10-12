@@ -4,7 +4,6 @@ import android.content.Context
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.data.auth.TokenManager
-import com.example.medrational_android.data.push.WorkshopPush
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -22,10 +21,8 @@ object ApiClient {
     // after local.properties changes.
     val BASE_URL: String = BuildConfig.BASE_URL
     private var tokenManager: TokenManager? = null
-    private var appContext: Context? = null
 
     fun initialize(context: Context) {
-        appContext = context.applicationContext
         tokenManager = TokenManager(context.applicationContext)
     }
 
@@ -53,8 +50,8 @@ object ApiClient {
         // If the server rejects the token (user deleted or revoked), clear the stored credentials
         if (response.code == 401 || response.code == 403) {
             tokenManager?.clearToken()
-            // Signed out, so this phone stops receiving workshop pushes
-            appContext?.let(WorkshopPush::unsubscribe)
+            // The phone stays subscribed to workshop pushes: an expired session mustn't make users
+            // miss a registration opening
         }
 
         response
