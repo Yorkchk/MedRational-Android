@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.example.medrational_android.data.model.ProjectStatus
+import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.data.model.formatIsoLocalDateTime
 
@@ -16,6 +17,19 @@ fun ProjectStatus.label(): String = when (this) {
     ProjectStatus.UPCOMING -> "Upcoming"
     ProjectStatus.OPEN -> "Open"
     ProjectStatus.CLOSED -> "Closed"
+}
+
+fun ProjectType.label(): String = when (this) {
+    ProjectType.FIRST_COME_FIRST_SERVED -> "First come, first served"
+    ProjectType.MOTIVATION -> "Motivation letter"
+}
+
+// What students read under the "Project type" line on the project page; the selection itself
+// happens on the external form
+fun ProjectType.description(): String = when (this) {
+    ProjectType.FIRST_COME_FIRST_SERVED -> "Register as soon as registration opens: spots go to the first to sign up."
+    ProjectType.MOTIVATION ->
+        "Apply through the registration link with a motivation letter. The committee decides who is accepted."
 }
 
 fun WorkshopProject.opensLabel(is24Hour: Boolean = true): String = formatIsoLocalDateTime(registrationOpensAt, is24Hour)

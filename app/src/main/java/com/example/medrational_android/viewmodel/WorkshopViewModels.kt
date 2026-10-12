@@ -353,7 +353,9 @@ data class WorkshopForm(
     // Digits only; blank means no limit
     val capacity: String = "",
     val opensAtMillis: Long? = null,
-    val closesAtMillis: Long? = null
+    val closesAtMillis: Long? = null,
+    // Chosen when creating; both types work the same in the app
+    val projectType: ProjectType = ProjectType.FIRST_COME_FIRST_SERVED
 )
 
 /**
@@ -380,7 +382,7 @@ fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): String? {
 }
 
 // Call only with a form validateWorkshopForm accepted
-private fun WorkshopForm.toRequest(projectType: ProjectType) = CreateWorkshopProjectRequest(
+private fun WorkshopForm.toRequest() = CreateWorkshopProjectRequest(
     title = title.trim(),
     description = description.trim(),
     projectType = projectType,
@@ -397,7 +399,8 @@ fun WorkshopProject.toForm() = WorkshopForm(
     formLink = formLink.orEmpty(),
     capacity = capacity?.toString().orEmpty(),
     opensAtMillis = parseIsoLocalDateTime(registrationOpensAt),
-    closesAtMillis = parseIsoLocalDateTime(registrationClosesAt)
+    closesAtMillis = parseIsoLocalDateTime(registrationClosesAt),
+    projectType = projectType ?: ProjectType.FIRST_COME_FIRST_SERVED
 )
 
 // --- New project (admin) -------------------------------------------------------------------------
@@ -430,7 +433,7 @@ class NewWorkshopViewModel(
             _uiState.value = NewWorkshopUiState.Error(it)
             return
         }
-        val request = form.toRequest(ProjectType.FIRST_COME_FIRST_SERVED)
+        val request = form.toRequest()
         _uiState.value = NewWorkshopUiState.Sending
         viewModelScope.launch {
             _uiState.value = try {
@@ -521,7 +524,7 @@ class EditWorkshopViewModel(
             return
         }
         // The type isn't on the form, so it stays as it was
-        val request = form.toRequest(original.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED)
+        val request = form.copy(projectType = original.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED).toRequest()
         _uiState.value = current.copy(saving = true)
         viewModelScope.launch {
             val error = try {

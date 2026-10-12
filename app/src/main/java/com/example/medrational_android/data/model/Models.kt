@@ -272,7 +272,8 @@ data class FavoriteToggleResponse(
 // --- Workshop projects (/api/v1/workshops) ------------------------------------------------------
 
 // FIRST_COME_FIRST_SERVED: students register on the form link while OPEN, until it fills up.
-// MOTIVATION: application-based projects, not handled by the app yet
+// MOTIVATION: students apply on the form link with a motivation letter, and a committee picks who
+// is accepted. Both work the same in the app; the selection happens on the external form
 enum class ProjectType { MOTIVATION, FIRST_COME_FIRST_SERVED }
 
 // The backend scheduler moves UPCOMING -> OPEN at registrationOpensAt and OPEN -> CLOSED at

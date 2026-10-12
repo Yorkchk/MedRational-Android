@@ -296,6 +296,22 @@ class WorkshopViewModelsTest {
     }
 
     @Test
+    fun `creating sends the type the admin picked`() {
+        val request = slot<CreateWorkshopProjectRequest>()
+        coEvery { api.createWorkshop(any(), capture(request)) } returns Response.success(project())
+
+        NewWorkshopViewModel(api, authorId = 9, clock = { now })
+            .submit(form().copy(projectType = ProjectType.MOTIVATION))
+
+        assertEquals(ProjectType.MOTIVATION, request.captured.projectType)
+    }
+
+    @Test
+    fun `a new project is first come, first served unless the admin picks otherwise`() {
+        assertEquals(ProjectType.FIRST_COME_FIRST_SERVED, WorkshopForm().projectType)
+    }
+
+    @Test
     fun `rejected create is an Error that can be retried`() {
         coEvery { api.createWorkshop(any(), any()) } returns error(400)
 
@@ -374,6 +390,32 @@ class WorkshopViewModelsTest {
             ),
             viewModel.uiState.value
         )
+    }
+
+    @Test
+    fun `editing a motivation project keeps its type`() {
+        val viewModel = loadedEdit(project(formLink = LINK).copy(projectType = ProjectType.MOTIVATION))
+        val form = (viewModel.uiState.value as EditWorkshopUiState.Editing).initial
+        val request = slot<CreateWorkshopProjectRequest>()
+        coEvery { api.updateWorkshop(ID, capture(request)) } returns Response.success(project())
+
+        viewModel.save(form.copy(title = "Renamed"))
+
+        assertEquals(ProjectType.MOTIVATION, form.projectType)
+        assertEquals(ProjectType.MOTIVATION, request.captured.projectType)
+    }
+
+    // The edit screen has no type picker, so even a form saying otherwise can't change it
+    @Test
+    fun `saving an edit never changes the type`() {
+        val viewModel = loadedEdit(project(formLink = LINK).copy(projectType = ProjectType.MOTIVATION))
+        val form = (viewModel.uiState.value as EditWorkshopUiState.Editing).initial
+        val request = slot<CreateWorkshopProjectRequest>()
+        coEvery { api.updateWorkshop(ID, capture(request)) } returns Response.success(project())
+
+        viewModel.save(form.copy(projectType = ProjectType.FIRST_COME_FIRST_SERVED))
+
+        assertEquals(ProjectType.MOTIVATION, request.captured.projectType)
     }
 
     @Test

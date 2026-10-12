@@ -64,6 +64,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.ProjectStatus
+import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopAttachment
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
@@ -311,11 +312,13 @@ private fun ProjectDetails(
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val is24Hour = is24HourClock()
+                    val projectType = project.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED
+                    DetailLine(label = "Project type", value = projectType.label())
                     DetailLine(label = "Registration opens", value = project.opensLabel(is24Hour))
                     DetailLine(label = "Registration closes", value = project.closesLabel(is24Hour))
                     DetailLine(label = "Capacity", value = project.capacityLabel() ?: "No limit")
                     Text(
-                        text = "First come, first served: register as soon as registration opens.",
+                        text = projectType.description(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
