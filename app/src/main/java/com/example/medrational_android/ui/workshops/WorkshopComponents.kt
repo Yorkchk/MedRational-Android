@@ -1,14 +1,16 @@
 package com.example.medrational_android.ui.workshops
 
+import android.text.format.DateFormat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
-import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.data.model.formatIsoLocalDateTime
 
 fun ProjectStatus.label(): String = when (this) {
     ProjectStatus.UPCOMING -> "Upcoming"
@@ -16,9 +18,13 @@ fun ProjectStatus.label(): String = when (this) {
     ProjectStatus.CLOSED -> "Closed"
 }
 
-fun WorkshopProject.opensLabel(): String = formatIsoDateTime(registrationOpensAt) ?: registrationOpensAt
+fun WorkshopProject.opensLabel(is24Hour: Boolean = true): String = formatIsoLocalDateTime(registrationOpensAt, is24Hour)
 
-fun WorkshopProject.closesLabel(): String = formatIsoDateTime(registrationClosesAt) ?: registrationClosesAt
+fun WorkshopProject.closesLabel(is24Hour: Boolean = true): String = formatIsoLocalDateTime(registrationClosesAt, is24Hour)
+
+/** The phone's 12/24-hour setting, which every workshop time follows. */
+@Composable
+fun is24HourClock(): Boolean = DateFormat.is24HourFormat(LocalContext.current)
 
 fun WorkshopProject.capacityLabel(): String? = capacity?.let { if (it == 1) "1 spot" else "$it spots" }
 

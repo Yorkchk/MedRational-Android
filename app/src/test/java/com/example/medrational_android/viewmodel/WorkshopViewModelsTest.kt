@@ -201,6 +201,8 @@ class WorkshopViewModelsTest {
 
     // --- new project -------------------------------------------------------------------------------
 
+    // Fixed "now" for new projects, a few days before the form's opening time
+    private val now = parseIsoLocalDateTime("2026-10-11T12:00:00")!!
     private val opens = parseIsoLocalDateTime("2026-10-20T09:00:00")!!
     private val closes = parseIsoLocalDateTime("2026-10-21T18:00:00")!!
 
@@ -233,9 +235,28 @@ class WorkshopViewModelsTest {
         assertEquals("Registration must close after it opens.", validateWorkshopForm(form(closesAt = opens)))
     }
 
+    // A 7:53 picked on a 24-hour dial meant 07:53, hours in the past: the bug behind projects created CLOSED
+    @Test
+    fun `new project opening in the past is rejected`() {
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
+
+        viewModel.submit(form(opensAt = now - 12 * 60 * 60 * 1000, closesAt = now - 11 * 60 * 60 * 1000))
+
+        assertEquals(
+            NewWorkshopUiState.Error("Registration must open in the future. Check the date and AM/PM."),
+            viewModel.uiState.value
+        )
+        coVerify(exactly = 0) { api.createWorkshop(any(), any()) }
+    }
+
+    @Test
+    fun `editing may keep an opening time that already passed`() {
+        assertNull(validateWorkshopForm(form(opensAt = now - 1000, closesAt = now + 1000)))
+    }
+
     @Test
     fun `invalid form makes no request`() {
-        val viewModel = NewWorkshopViewModel(api, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
 
         viewModel.submit(form(closesAt = opens - 1))
 
@@ -248,7 +269,7 @@ class WorkshopViewModelsTest {
         val request = slot<CreateWorkshopProjectRequest>()
         coEvery { api.createWorkshop(9, capture(request)) } returns Response.success(project(id = 12))
 
-        val viewModel = NewWorkshopViewModel(api, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
         viewModel.submit(form())
 
         assertEquals(
@@ -267,7 +288,7 @@ class WorkshopViewModelsTest {
         val request = slot<CreateWorkshopProjectRequest>()
         coEvery { api.createWorkshop(any(), capture(request)) } returns Response.success(project())
 
-        NewWorkshopViewModel(api, authorId = 9).submit(form(capacity = ""))
+        NewWorkshopViewModel(api, authorId = 9, clock = { now }).submit(form(capacity = ""))
 
         assertNull(request.captured.capacity)
     }
@@ -276,7 +297,7 @@ class WorkshopViewModelsTest {
     fun `rejected create is an Error that can be retried`() {
         coEvery { api.createWorkshop(any(), any()) } returns error(400)
 
-        val viewModel = NewWorkshopViewModel(api, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
         viewModel.submit(form())
 
         assertTrue(viewModel.uiState.value is NewWorkshopUiState.Error)
@@ -296,7 +317,7 @@ class WorkshopViewModelsTest {
         coEvery { api.uploadWorkshopAttachment(12, any()) } returns
             Response.success(WorkshopAttachment(1, "x", "https://cdn.example.com/x"))
 
-        val viewModel = NewWorkshopViewModel(api, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
         viewModel.submit(form(), files)
 
         assertEquals(NewWorkshopUiState.Created(12, failedFiles = emptyList()), viewModel.uiState.value)
@@ -316,7 +337,7 @@ class WorkshopViewModelsTest {
         coEvery { api.uploadWorkshopAttachment(12, files[1].part) } returns error(413)
         coEvery { api.uploadWorkshopAttachment(12, files[2].part) } throws IOException("offline")
 
-        val viewModel = NewWorkshopViewModel(api, authorId = 9)
+        val viewModel = NewWorkshopViewModel(api, authorId = 9, clock = { now })
         viewModel.submit(form(), files)
 
         assertEquals(NewWorkshopUiState.Created(12, failedFiles = listOf("huge.zip", "map.png")), viewModel.uiState.value)
@@ -326,7 +347,7 @@ class WorkshopViewModelsTest {
     fun `no file is uploaded when the project can't be created`() {
         coEvery { api.createWorkshop(any(), any()) } returns error(400)
 
-        NewWorkshopViewModel(api, authorId = 9).submit(form(), listOf(pending("program.pdf")))
+        NewWorkshopViewModel(api, authorId = 9, clock = { now }).submit(form(), listOf(pending("program.pdf")))
 
         coVerify(exactly = 0) { api.uploadWorkshopAttachment(any(), any()) }
     }

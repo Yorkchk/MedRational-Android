@@ -55,6 +55,16 @@ class DatesTest {
     }
 
     @Test
+    fun `times follow the phone's 12 or 24-hour clock`() {
+        val evening = parseIsoLocalDateTime("2026-10-11T19:53:00")!!
+
+        assertEquals("11 Oct 2026, 19:53", formatMillisDateTime(evening, is24Hour = true))
+        assertEquals("11 Oct 2026, 7:53 PM", formatMillisDateTime(evening, is24Hour = false))
+        assertEquals("11 Oct 2026, 7:53 AM", formatIsoLocalDateTime("2026-10-11T07:53:00", is24Hour = false))
+        assertEquals("soon", formatIsoLocalDateTime("soon", is24Hour = false))
+    }
+
+    @Test
     fun `editing opens the date picker on the stored day`() {
         // Just after midnight locally (UTC+1), which is still the previous day in UTC
         val stored = parseIsoLocalDateTime("2026-10-12T00:30:00")!!
