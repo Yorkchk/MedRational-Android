@@ -10,8 +10,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 
 /**
  * Workshop reminders arrive as Firebase Cloud Messaging pushes. The backend scheduler publishes
- * them to one topic, and every signed-in phone subscribes to it, so the server never needs to
- * know which phones exist or who is signed in on them.
+ * them to one topic, and every phone with the app subscribes to it at startup, signed in or not,
+ * so the server never needs to know which phones exist or who is signed in on them.
  */
 object WorkshopPush {
 
@@ -30,18 +30,15 @@ object WorkshopPush {
     // False in builds without app/google-services.json
     private fun available(context: Context): Boolean = FirebaseApp.getApps(context).isNotEmpty()
 
-    /** Safe to call repeatedly; FCM keeps the subscription across app restarts and token changes. */
+    /**
+     * Called at every app start. Safe to call repeatedly; FCM keeps the subscription across app
+     * restarts and token changes. Signing out doesn't undo it: only uninstalling the app or turning
+     * off its notifications stops the pushes.
+     */
     fun subscribe(context: Context) {
         if (!available(context)) return
         FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
             .addOnFailureListener { Log.w(TAG, "Couldn't subscribe to $TOPIC", it) }
-    }
-
-    /** On sign-out: this phone stops receiving workshop pushes. */
-    fun unsubscribe(context: Context) {
-        if (!available(context)) return
-        FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC)
-            .addOnFailureListener { Log.w(TAG, "Couldn't unsubscribe from $TOPIC", it) }
     }
 
     /** The channel pushes are shown on; it must exist before the first push arrives. */
@@ -57,3 +54,12 @@ object WorkshopPush {
 /** The project a push is about, or null when it doesn't name a valid one. */
 fun projectIdFromPush(data: Map<String, String?>): Long? =
     data[WorkshopPush.EXTRA_PROJECT_ID]?.trim()?.toLongOrNull()?.takeIf { it > 0 }
+
+fun workshopRoute(projectId: Long): String = "workshops/$projectId"
+
+/**
+ * Where a tapped push leads: its project, or the login screen when signed out (the workshops API
+ * needs a signed-in user). The project then opens after login.
+ */
+fun routeForPushTap(projectId: Long, isLoggedIn: Boolean): String =
+    if (isLoggedIn) workshopRoute(projectId) else "login"

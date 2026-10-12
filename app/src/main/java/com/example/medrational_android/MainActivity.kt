@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,6 +33,8 @@ import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.push.WorkshopPush
 import com.example.medrational_android.data.push.projectIdFromPush
+import com.example.medrational_android.data.push.routeForPushTap
+import com.example.medrational_android.data.push.workshopRoute
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -75,6 +78,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ApiClient.initialize(this)
         WorkshopPush.ensureChannel(this)
+        // Every installed app gets workshop pushes, signed in or not
+        WorkshopPush.subscribe(this)
         // Not on a recreation: the push was already handled
         if (savedInstanceState == null) pushProjectId = intent.pushProjectId()
         // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+
@@ -123,11 +128,35 @@ fun MedRationalApp(
     // Determine initial destination: if already authenticated, jump to categories
     val startScreen = if (tokenManager.isLoggedIn()) "categories" else "welcome"
 
-    // A tapped workshop push opens its project; the workshops API needs a signed-in user
+    // Asked at startup rather than after sign-in: signed-out phones get workshop pushes too
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // A push tapped while signed out, opened once the user signs in
+    var pendingPushProjectId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // A tapped workshop push opens its project, through the login screen when signed out
     LaunchedEffect(pushProjectId) {
         val projectId = pushProjectId ?: return@LaunchedEffect
-        if (tokenManager.isLoggedIn()) navController.navigate("workshops/$projectId")
+        val isLoggedIn = tokenManager.isLoggedIn()
+        if (!isLoggedIn) pendingPushProjectId = projectId
+        navController.navigate(routeForPushTap(projectId, isLoggedIn)) { launchSingleTop = true }
         onPushProjectOpened()
+    }
+
+    // Login can now be reached from anywhere (a push, or an expired session), so home replaces the
+    // whole back stack
+    val onSignedIn: () -> Unit = {
+        navController.navigate("categories") { popUpTo(navController.graph.id) { inclusive = true } }
+        pendingPushProjectId?.let { projectId ->
+            pendingPushProjectId = null
+            navController.navigate(workshopRoute(projectId))
+        }
     }
 
     NavHost(navController = navController, startDestination = startScreen) {
@@ -162,12 +191,8 @@ fun MedRationalApp(
 
             LoginScreen(
                 viewModel = authViewModel,
-                onNavigateToAdminDashboard = {
-                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
-                },
-                onNavigateToUserDashboard = {
-                    navController.navigate("categories") { popUpTo("welcome") { inclusive = true } }
-                },
+                onNavigateToAdminDashboard = onSignedIn,
+                onNavigateToUserDashboard = onSignedIn,
                 onNavigateToForgotPassword = {
                     navController.navigate("forgot_password")
                 },
@@ -198,17 +223,6 @@ fun MedRationalApp(
             LaunchedEffect(Unit) {
                 if (tokenManager.isLoggedIn()) noveltyBadgeViewModel.refresh()
             }
-            // Signed-in phones get workshop pushes. Repeating it is harmless, and it covers both a
-            // fresh sign-in and an app restart
-            LaunchedEffect(Unit) {
-                if (!tokenManager.isLoggedIn()) return@LaunchedEffect
-                WorkshopPush.subscribe(context)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }
 
             CategoryListScreen(
                 viewModel = categoryViewModel,
@@ -217,7 +231,7 @@ fun MedRationalApp(
                     tokenManager.clearToken()
                     // The store holds this user's own scores
                     FileRatingStore.shared.clear()
-                    WorkshopPush.unsubscribe(context)
+                    // The phone stays subscribed to workshop pushes; tapping one leads to login
                     navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
                 },
                 onNavigateToSearch = { navController.navigate("search") },
