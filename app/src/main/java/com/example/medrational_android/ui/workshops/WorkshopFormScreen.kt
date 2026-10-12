@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +14,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,11 +56,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.data.model.combineDateAndTime
+import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.formatMillisDateTime
 import com.example.medrational_android.data.model.toUtcDateMillis
 import com.example.medrational_android.data.upload.PickedFile
@@ -73,7 +80,7 @@ import java.util.Calendar
 
 private enum class DateField { OPENS, CLOSES }
 
-/** Admin form for a new first-come, first-served project, with optional documents. */
+/** Admin form for a new project of either type, with optional documents. */
 @Composable
 fun NewWorkshopScreen(
     viewModel: NewWorkshopViewModel,
@@ -114,9 +121,10 @@ fun NewWorkshopScreen(
     WorkshopFormScaffold(title = "New project", onBackClick = onBackClick) {
         WorkshopFormFields(
             initial = WorkshopForm(),
-            intro = "First come, first served. Students see the registration link only while registration is " +
-                "open, and everyone is notified 10 minutes before it opens and closes.",
+            intro = "Students see the registration link only while registration is open, and everyone is " +
+                "notified 10 minutes before it opens and closes.",
             submitLabel = "Create project",
+            showTypePicker = true,
             busy = sending,
             onSubmit = { form ->
                 scope.launch {
@@ -237,6 +245,8 @@ private fun WorkshopFormFields(
     submitLabel: String,
     busy: Boolean,
     onSubmit: (WorkshopForm) -> Unit,
+    // Only when creating: an existing project keeps its type
+    showTypePicker: Boolean = false,
     extraContent: @Composable () -> Unit = {}
 ) {
     var title by rememberSaveable(initial) { mutableStateOf(initial.title) }
@@ -245,6 +255,7 @@ private fun WorkshopFormFields(
     var capacity by rememberSaveable(initial) { mutableStateOf(initial.capacity) }
     var opensAt by rememberSaveable(initial) { mutableStateOf(initial.opensAtMillis) }
     var closesAt by rememberSaveable(initial) { mutableStateOf(initial.closesAtMillis) }
+    var projectType by rememberSaveable(initial) { mutableStateOf(initial.projectType) }
     var picking by rememberSaveable { mutableStateOf<DateField?>(null) }
 
     Text(
@@ -252,6 +263,9 @@ private fun WorkshopFormFields(
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+    if (showTypePicker) {
+        ProjectTypePicker(selected = projectType, enabled = !busy, onSelect = { projectType = it })
+    }
     OutlinedTextField(
         value = title,
         onValueChange = { title = it },
@@ -294,7 +308,7 @@ private fun WorkshopFormFields(
     DateTimeButton(label = "Registration closes", millis = closesAt, enabled = !busy, onClick = { picking = DateField.CLOSES })
     extraContent()
     Button(
-        onClick = { onSubmit(WorkshopForm(title, description, formLink, capacity, opensAt, closesAt)) },
+        onClick = { onSubmit(WorkshopForm(title, description, formLink, capacity, opensAt, closesAt, projectType)) },
         enabled = !busy,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -317,6 +331,45 @@ private fun WorkshopFormFields(
                 picking = null
             }
         )
+    }
+}
+
+// Both types work the same in the app: the difference is what students do on the external form
+private fun ProjectType.formHint(): String = when (this) {
+    ProjectType.FIRST_COME_FIRST_SERVED -> "Students register on the link as soon as registration opens, until it's full."
+    ProjectType.MOTIVATION -> "Students apply on the link with a motivation letter; the committee decides who is accepted."
+}
+
+@Composable
+private fun ProjectTypePicker(selected: ProjectType, enabled: Boolean, onSelect: (ProjectType) -> Unit) {
+    Column(modifier = Modifier.selectableGroup()) {
+        Text("Project type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        ProjectType.entries.sortedBy { it != ProjectType.FIRST_COME_FIRST_SERVED }.forEach { type ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = type == selected,
+                        enabled = enabled,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(type) }
+                    )
+                    .padding(vertical = 4.dp)
+            ) {
+                // The row handles the click, so TalkBack reads it as one radio button
+                RadioButton(selected = type == selected, onClick = null, enabled = enabled)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(type.label(), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = type.formHint(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
 
