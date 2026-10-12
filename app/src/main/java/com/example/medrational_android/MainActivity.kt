@@ -82,9 +82,11 @@ class MainActivity : ComponentActivity() {
         WorkshopPush.subscribe(this)
         // Not on a recreation: the push was already handled
         if (savedInstanceState == null) pushProjectId = intent.pushProjectId()
-        // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+
+        // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+. The client
+        // sends the token to our API, which workshop attachment images need
         Coil.setImageLoader(
             ImageLoader.Builder(applicationContext)
+                .okHttpClient { ApiClient.imageHttpClient }
                 .components {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(ImageDecoderDecoder.Factory()) else add(GifDecoder.Factory())
                 }
