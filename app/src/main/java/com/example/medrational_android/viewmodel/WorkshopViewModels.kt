@@ -270,8 +270,11 @@ data class WorkshopForm(
     val closesAtMillis: Long? = null
 )
 
-/** The first problem with [form], or null when it can be sent. */
-fun validateWorkshopForm(form: WorkshopForm): String? {
+/**
+ * The first problem with [form], or null when it can be sent. With [nowMillis] (new projects), the
+ * opening time must be after it: a time in the past is almost always a wrong date or AM/PM.
+ */
+fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): String? {
     val link = form.formLink.trim()
     return when {
         form.title.isBlank() -> "Enter a title."
@@ -284,6 +287,8 @@ fun validateWorkshopForm(form: WorkshopForm): String? {
         form.opensAtMillis == null -> "Pick when registration opens."
         form.closesAtMillis == null -> "Pick when registration closes."
         form.closesAtMillis <= form.opensAtMillis -> "Registration must close after it opens."
+        nowMillis != null && form.opensAtMillis <= nowMillis ->
+            "Registration must open in the future. Check the date and AM/PM."
         else -> null
     }
 }
@@ -325,7 +330,8 @@ sealed interface NewWorkshopUiState {
 class NewWorkshopViewModel(
     private val api: MedRationalApi,
     // The signed-in admin, recorded as the author
-    private val authorId: Long
+    private val authorId: Long,
+    private val clock: () -> Long = System::currentTimeMillis
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NewWorkshopUiState>(NewWorkshopUiState.Idle)
@@ -334,7 +340,7 @@ class NewWorkshopViewModel(
     /** Creates the project, then attaches [attachments] one by one. */
     fun submit(form: WorkshopForm, attachments: List<PendingAttachment> = emptyList()) {
         if (_uiState.value == NewWorkshopUiState.Sending) return
-        validateWorkshopForm(form)?.let {
+        validateWorkshopForm(form, nowMillis = clock())?.let {
             _uiState.value = NewWorkshopUiState.Error(it)
             return
         }

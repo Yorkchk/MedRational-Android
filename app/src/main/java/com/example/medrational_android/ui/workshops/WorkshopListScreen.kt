@@ -162,10 +162,11 @@ private fun ProjectCard(project: WorkshopProject, onClick: () -> Unit, modifier:
                 Spacer(modifier = Modifier.width(8.dp))
                 WorkshopStatusChip(status = project.status)
             }
+            val is24Hour = is24HourClock()
             val dates = when (project.status) {
-                ProjectStatus.UPCOMING -> "Registration opens ${project.opensLabel()}"
-                ProjectStatus.OPEN -> "Registration closes ${project.closesLabel()}"
-                ProjectStatus.CLOSED -> "Registration closed ${project.closesLabel()}"
+                ProjectStatus.UPCOMING -> "Registration opens ${project.opensLabel(is24Hour)}"
+                ProjectStatus.OPEN -> "Registration closes ${project.closesLabel(is24Hour)}"
+                ProjectStatus.CLOSED -> "Registration closed ${project.closesLabel(is24Hour)}"
             }
             Text(
                 text = listOfNotNull(dates, project.capacityLabel()).joinToString(" · "),

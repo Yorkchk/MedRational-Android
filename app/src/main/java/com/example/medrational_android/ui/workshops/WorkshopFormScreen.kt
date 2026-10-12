@@ -324,7 +324,8 @@ private fun WorkshopFormFields(
 private fun DateTimeButton(label: String, millis: Long?, enabled: Boolean, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text("  $label: ${millis?.let(::formatMillisDateTime) ?: "pick a date and time"}")
+        val is24Hour = is24HourClock()
+        Text("  $label: ${millis?.let { formatMillisDateTime(it, is24Hour) } ?: "pick a date and time"}")
     }
 }
 
@@ -356,7 +357,8 @@ private fun DateTimePickerDialog(initialMillis: Long?, onDismissRequest: () -> U
         val timeState = rememberTimePickerState(
             initialHour = initial?.get(Calendar.HOUR_OF_DAY) ?: 0,
             initialMinute = initial?.get(Calendar.MINUTE) ?: 0,
-            is24Hour = true
+            // A forced 24-hour dial reads "7" as 07:00; follow the phone so AM/PM shows when it uses it
+            is24Hour = is24HourClock()
         )
         AlertDialog(
             onDismissRequest = onDismissRequest,
