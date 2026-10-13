@@ -102,6 +102,28 @@ interface MedRationalApi {
     @POST("api/v1/auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<AuthMessageResponse>
 
+    // Profile: the user comes from the JWT. Wrong or expired codes answer 400, never 401/403
+    @GET("api/v1/users/me")
+    suspend fun getMyProfile(): Response<UserProfile>
+
+    @PUT("api/v1/users/me")
+    suspend fun updateMyProfile(@Body request: UpdateProfileRequest): Response<UserProfile>
+
+    // Emails a code to the current address
+    @POST("api/v1/users/me/password/code")
+    suspend fun requestPasswordChangeCode(): Response<AuthMessageResponse>
+
+    @PUT("api/v1/users/me/password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<AuthMessageResponse>
+
+    // Emails a code to the new address
+    @POST("api/v1/users/me/email/code")
+    suspend fun requestEmailChangeCode(@Body request: RequestEmailChangeRequest): Response<AuthMessageResponse>
+
+    // Returns a new token: the old one is tied to the old email and stops working
+    @PUT("api/v1/users/me/email")
+    suspend fun confirmEmailChange(@Body request: ConfirmCodeRequest): Response<AuthResponse>
+
     @GET("api/v1/search/files")
     suspend fun searchFiles(
         @Query("query") query: String?,

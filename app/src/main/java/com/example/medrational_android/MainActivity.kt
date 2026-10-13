@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -42,6 +43,9 @@ import com.example.medrational_android.ui.categories.CategoryListScreen
 import com.example.medrational_android.ui.downloads.RecentDownloadsScreen
 import com.example.medrational_android.ui.favorites.FavoritesScreen
 import com.example.medrational_android.ui.novelties.NoveltiesScreen
+import com.example.medrational_android.ui.profile.ChangeEmailScreen
+import com.example.medrational_android.ui.profile.ChangePasswordScreen
+import com.example.medrational_android.ui.profile.ProfileScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
@@ -56,6 +60,9 @@ import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
 import com.example.medrational_android.ui.workshops.WorkshopListScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
+import com.example.medrational_android.viewmodel.ChangeEmailViewModel
+import com.example.medrational_android.viewmodel.ChangePasswordViewModel
+import com.example.medrational_android.viewmodel.ProfileViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
@@ -242,7 +249,47 @@ fun MedRationalApp(
                 onNavigateToSuggestions = { navController.navigate("suggestions") },
                 onNavigateToNovelties = { navController.navigate("novelties") },
                 onNavigateToWorkshops = { navController.navigate("workshops") },
+                onNavigateToProfile = { navController.navigate("profile") },
                 noveltyCount = noveltyCount
+            )
+        }
+
+        composable("profile") {
+            val profileViewModel: ProfileViewModel = viewModel { ProfileViewModel(ApiClient.api, tokenManager) }
+
+            ProfileScreen(
+                viewModel = profileViewModel,
+                onChangeEmailClick = { navController.navigate("profile/email") },
+                onChangePasswordClick = { navController.navigate("profile/password") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("profile/email") {
+            val changeEmailViewModel: ChangeEmailViewModel = viewModel { ChangeEmailViewModel(ApiClient.api, tokenManager) }
+
+            ChangeEmailScreen(
+                viewModel = changeEmailViewModel,
+                currentEmail = remember { tokenManager.getEmail() },
+                onEmailChanged = {
+                    Toast.makeText(context, "Email updated", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("profile/password") {
+            val changePasswordViewModel: ChangePasswordViewModel = viewModel { ChangePasswordViewModel(ApiClient.api) }
+
+            ChangePasswordScreen(
+                viewModel = changePasswordViewModel,
+                email = remember { tokenManager.getEmail() },
+                onPasswordChanged = {
+                    Toast.makeText(context, "Password changed", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                },
+                onBackClick = { navController.popBackStack() }
             )
         }
 

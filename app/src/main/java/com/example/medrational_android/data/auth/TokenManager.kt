@@ -56,6 +56,11 @@ class TokenManager(context: Context) {
             .apply()
     }
 
+    // After a profile edit, so the side menu shows the new name
+    fun saveUserName(fullName: String?) {
+        sharedPreferences.edit().putString(KEY_USER_NAME, fullName ?: "").apply()
+    }
+
     fun getToken(): String? {
         return sharedPreferences.getString(KEY_JWT_TOKEN, null)
     }
