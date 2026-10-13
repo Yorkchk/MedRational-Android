@@ -107,7 +107,11 @@ fun FileDetailScreen(
     val downloader = remember { AndroidDownloader(context) }
     val tokenManager = remember { TokenManager(context) }
     val viewModel: FileDetailViewModel = viewModel {
-        FileDetailViewModel(ApiClient.api, File(context.cacheDir, "previews"))
+        FileDetailViewModel(
+            ApiClient.api,
+            File(context.cacheDir, "previews"),
+            recordViews = tokenManager.isLoggedIn() && !tokenManager.isAdmin()
+        )
     }
     val favoriteViewModel: FavoriteViewModel = viewModel { FavoriteViewModel(tokenManager) }
     val hashtagsViewModel: FileHashtagsViewModel = viewModel { FileHashtagsViewModel(ApiClient.api) }

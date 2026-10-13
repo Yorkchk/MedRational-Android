@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.NewReleases
@@ -35,7 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 
-enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, PROFILE, SIGN_OUT }
+enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, STATISTICS, PROFILE, SIGN_OUT }
 
 data class DrawerEntry(val destination: DrawerDestination, @StringRes val label: Int)
 
@@ -54,6 +55,8 @@ fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> 
     // Suggestions are tied to an account, so they need a signed-in user
     if (isLoggedIn) {
         add(DrawerEntry(DrawerDestination.SUGGESTIONS, if (isAdmin) R.string.drawer_suggestions_inbox else R.string.drawer_suggestions))
+        // The statistics endpoint is admin only, and a 403 would log anyone else out
+        if (isAdmin) add(DrawerEntry(DrawerDestination.STATISTICS, R.string.drawer_statistics))
         add(DrawerEntry(DrawerDestination.PROFILE, R.string.drawer_profile))
         add(DrawerEntry(DrawerDestination.SIGN_OUT, R.string.home_sign_out))
     }
@@ -67,6 +70,7 @@ private fun DrawerDestination.icon(): ImageVector = when (this) {
     DrawerDestination.FAVORITES -> Icons.Default.Favorite
     DrawerDestination.DOWNLOADS -> Icons.Default.History
     DrawerDestination.SUGGESTIONS -> Icons.Default.Lightbulb
+    DrawerDestination.STATISTICS -> Icons.Default.Insights
     DrawerDestination.PROFILE -> Icons.Default.Person
     DrawerDestination.SIGN_OUT -> Icons.AutoMirrored.Filled.Logout
 }

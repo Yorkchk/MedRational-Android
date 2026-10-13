@@ -12,3 +12,6 @@ val Pink40 = Color(0xFF7D5260)
 
 // Filled rating stars; reads on both light and dark surfaces
 val RatingStar = Color(0xFFFFB300)
+
+// A statistic that went up since the previous week; reads on both light and dark surfaces
+val TrendUp = Color(0xFF2E9D4A)

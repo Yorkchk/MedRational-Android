@@ -347,3 +347,119 @@ data class CreateWorkshopProjectRequest(
     val registrationOpensAt: String,
     val registrationClosesAt: String
 )
+
+// --- Admin statistics (/api/v1/admin/analytics/dashboard) ---
+// Mirror backend AdminStatisticsDTO and its parts. Every field has a default so Gson keeps it when
+// the backend leaves it out. A "week" is the last 7 days, today included, and students are the
+// non-admin accounts
+
+data class AdminStatistics(
+    val generatedAt: String? = null,
+    val users: UserStats = UserStats(),
+    val usage: UsageStats = UsageStats(),
+    val lastWeek: ContentStats = ContentStats(),
+    val allTime: ContentStats = ContentStats(),
+    val trends: TrendStats = TrendStats(),
+    val engagement: EngagementStats = EngagementStats()
+)
+
+// One chart point: the first day of the period as "yyyy-MM-dd", and its value
+data class StatPoint(
+    val periodStart: String = "",
+    val value: Long = 0
+)
+
+data class UserStats(
+    val totalStudents: Long = 0,
+    val newStudentsThisWeek: Long = 0,
+    val newStudentsPreviousWeek: Long = 0,
+    val weeklyActiveStudents: Long = 0,
+    val weeklyActiveStudentsPreviousWeek: Long = 0,
+    val dailyActiveStudents: Long = 0,
+    // Students who downloaded or opened at least one file
+    val activatedStudents: Long = 0,
+    // 12 weeks, oldest first
+    val weeklySignUps: List<StatPoint> = emptyList(),
+    val weeklyActiveSeries: List<StatPoint> = emptyList()
+)
+
+data class UsageStats(
+    val totalDownloads: Long = 0,
+    val downloadsThisWeek: Long = 0,
+    val downloadsPreviousWeek: Long = 0,
+    val totalViews: Long = 0,
+    val viewsThisWeek: Long = 0,
+    val viewsPreviousWeek: Long = 0,
+    // 30 days, oldest first
+    val dailyDownloads: List<StatPoint> = emptyList(),
+    val dailyViews: List<StatPoint> = emptyList()
+)
+
+// A ranked file; metricValue is the count the list is ranked by (downloads, views, favorites, ratings)
+data class FileMetric(
+    val fileId: Long = 0,
+    val fileName: String = "",
+    // null when the file has no reasoning, so it can't be opened
+    val reasoningId: Long? = null,
+    val categoryName: String? = null,
+    val reasoningTitle: String? = null,
+    val metricValue: Long = 0,
+    val avgRating: Double? = null,
+    val totalRatings: Int? = null
+)
+
+data class CategoryActivity(
+    val categoryId: Long = 0,
+    val categoryName: String = "",
+    val downloads: Long = 0,
+    val views: Long = 0,
+    val favorites: Long = 0
+)
+
+data class HashtagActivity(
+    val name: String = "",
+    val downloads: Long = 0
+)
+
+data class ContentStats(
+    val topDownloaded: List<FileMetric> = emptyList(),
+    val topViewed: List<FileMetric> = emptyList(),
+    val mostFavorited: List<FileMetric> = emptyList(),
+    // Every category, busiest first
+    val categories: List<CategoryActivity> = emptyList(),
+    val topHashtags: List<HashtagActivity> = emptyList()
+)
+
+// A file or category whose downloads plus views rose against the previous week. reasoningId and
+// categoryName are only set for files
+data class TrendingItem(
+    val id: Long = 0,
+    val name: String = "",
+    val reasoningId: Long? = null,
+    val categoryName: String? = null,
+    val thisWeek: Long = 0,
+    val previousWeek: Long = 0
+)
+
+data class TrendStats(
+    val files: List<TrendingItem> = emptyList(),
+    val categories: List<TrendingItem> = emptyList()
+)
+
+data class EngagementStats(
+    val totalFiles: Long = 0,
+    val newFilesThisWeek: Long = 0,
+    val filesWithoutDownloads: Long = 0,
+    val totalFavorites: Long = 0,
+    val favoritesThisWeek: Long = 0,
+    val totalRatings: Long = 0,
+    val ratingsThisWeek: Long = 0,
+    // null when nobody rated anything yet
+    val averageRating: Double? = null,
+    val highestRated: List<FileMetric> = emptyList(),
+    val openSuggestions: Long = 0,
+    val unreadSuggestions: Long = 0,
+    val upcomingWorkshops: Long = 0,
+    val openWorkshops: Long = 0,
+    val closedWorkshops: Long = 0
+)

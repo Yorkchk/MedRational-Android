@@ -48,6 +48,16 @@ fun toUtcDateMillis(localMillis: Long): Long {
     }.timeInMillis
 }
 
+/** Local midnight of an ISO LocalDate from the backend ("2026-10-07"), or null when it can't be parsed. */
+fun parseIsoLocalDate(isoDate: String): Long? = try {
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(isoDate)?.time
+} catch (e: ParseException) {
+    null
+}
+
+/** "7 Oct" for local epoch millis; month names follow [locale] ("7 oct." in French). */
+fun formatMillisShortDate(millis: Long, locale: Locale): String = SimpleDateFormat("d MMM", locale).format(Date(millis))
+
 /**
  * "12 Mar 2026, 19:15", or "12 Mar 2026, 7:15 PM" when [is24Hour] is false, for local epoch millis.
  * Month names follow [locale], the app's language: "12 mars 2026, 19:15" in French.

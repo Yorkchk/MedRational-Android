@@ -257,6 +257,17 @@ interface MedRationalApi {
     @DELETE("api/v1/workshops/{id}")
     suspend fun deleteWorkshop(@Path("id") id: Long): Response<Unit>
 
+    // --- Admin statistics ---
+
+    // Admin only: a 403 logs the user out, so never call it for other users
+    @GET("api/v1/admin/analytics/dashboard")
+    suspend fun getAdminStatistics(): Response<AdminStatistics>
+
+    // Signed-in users only. Counts a student opening the file; the backend ignores admins and
+    // reopenings within 30 minutes
+    @POST("api/v1/files/{id}/views")
+    suspend fun recordFileView(@Path("id") fileId: Long): Response<Unit>
+
     @GET("api/v1/users/{userId}/favorites/{fileId}/status")
     suspend fun isFileFavorited(
         @Path("userId") userId: Long,
