@@ -14,11 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.AuthUiState
 import com.example.medrational_android.viewmodel.AuthViewModel
 
@@ -55,12 +58,12 @@ fun ForgotPasswordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isOtpStep) "Verify Code" else "Reset Password") },
+                title = { Text(if (isOtpStep) stringResource(R.string.forgot_verify_title) else stringResource(R.string.forgot_title)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (isOtpStep) viewModel.resetState() else onBackClick()
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -77,13 +80,13 @@ fun ForgotPasswordScreen(
         ) {
             if (!isOtpStep) {
                 Text(
-                    text = "Forgot Password",
+                    text = stringResource(R.string.forgot_heading),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Enter your email and chosen new password. We will send an OTP to confirm your identity.",
+                    text = stringResource(R.string.forgot_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -92,14 +95,14 @@ fun ForgotPasswordScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Registered Email") },
+                    label = { Text(stringResource(R.string.forgot_registered_email)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     isError = email.isNotEmpty() && !isEmailValid,
                     supportingText = {
                         if (email.isNotEmpty() && !isEmailValid) {
-                            Text("Please enter a valid email", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.auth_invalid_email), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -108,7 +111,7 @@ fun ForgotPasswordScreen(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("New Password") },
+                    label = { Text(stringResource(R.string.forgot_new_password)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -124,7 +127,7 @@ fun ForgotPasswordScreen(
                     isError = newPassword.isNotEmpty() && !isPasswordValid,
                     supportingText = {
                         if (newPassword.isNotEmpty() && !isPasswordValid) {
-                            Text("Minimum 6 characters", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.auth_password_min_length), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -133,7 +136,7 @@ fun ForgotPasswordScreen(
                 OutlinedTextField(
                     value = repeatPassword,
                     onValueChange = { repeatPassword = it },
-                    label = { Text("Repeat New Password") },
+                    label = { Text(stringResource(R.string.forgot_repeat_password)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -141,7 +144,7 @@ fun ForgotPasswordScreen(
                     isError = repeatPassword.isNotEmpty() && !doPasswordsMatch,
                     supportingText = {
                         if (repeatPassword.isNotEmpty() && !doPasswordsMatch) {
-                            Text("Passwords do not match", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.forgot_passwords_mismatch), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -156,19 +159,19 @@ fun ForgotPasswordScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Send Reset Code")
+                        Text(stringResource(R.string.forgot_send_code))
                     }
                 }
             } else {
                 val currentEmail = (uiState as? AuthUiState.OtpSent)?.email ?: email
                 Text(
-                    text = "Confirm Reset Code",
+                    text = stringResource(R.string.forgot_confirm_code),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "A 6-digit confirmation code was sent to $currentEmail",
+                    text = stringResource(R.string.forgot_code_sent_to, currentEmail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -177,7 +180,7 @@ fun ForgotPasswordScreen(
                 OutlinedTextField(
                     value = otpCode,
                     onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpCode = it },
-                    label = { Text("6-Digit Code") },
+                    label = { Text(stringResource(R.string.auth_code_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -193,7 +196,7 @@ fun ForgotPasswordScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Confirm & Update Password")
+                        Text(stringResource(R.string.forgot_confirm_update))
                     }
                 }
             }
@@ -201,7 +204,7 @@ fun ForgotPasswordScreen(
             if (uiState is AuthUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (uiState as AuthUiState.Error).error,
+                    text = (uiState as AuthUiState.Error).error.asString(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )

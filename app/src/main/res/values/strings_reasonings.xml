@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="reasonings_error_load">Impossible de charger les raisonnements (HTTP %1$d).</string>
+    <string name="upload_error_read_file">Impossible de lire le fichier sélectionné.</string>
+    <string name="upload_error_failed">L’envoi a échoué. Vérifiez votre connexion et réessayez.</string>
+    <string name="upload_done">%1$s envoyé</string>
+    <string name="upload_done_tagged">%1$s envoyé et étiqueté</string>
+    <string name="upload_done_tags_failed">%1$s envoyé, mais ses hashtags n’ont pas pu être enregistrés.</string>
+    <string name="bulk_tag_failed" tools:ignore="PluralsCandidate">Échec de l’ajout pour %1$d sur %2$s.</string>
+    <string name="bulk_remove_failed" tools:ignore="PluralsCandidate">Impossible de retirer %1$d sur %2$s.</string>
+    <string name="bulk_load_failed">Impossible de charger les hashtags des fichiers sélectionnés.</string>
+    <string name="selection_cancel">Annuler la sélection</string>
+    <string name="selection_add_tags">Ajouter des hashtags aux fichiers sélectionnés</string>
+    <string name="selection_remove_tags">Retirer des hashtags des fichiers sélectionnés</string>
+    <string name="download_started">Téléchargement de %1$s…</string>
+    <string name="download_category_zip_name">%1$s_Documents.zip</string>
+    <string name="download_reasoning_zip_name">%1$s_Fichiers.zip</string>
+    <string name="reasonings_download_category">Télécharger la catégorie (ZIP)</string>
+    <string name="reasonings_add">Ajouter un raisonnement clinique</string>
+    <string name="reasonings_empty">Aucun raisonnement pour cette catégorie.</string>
+    <string name="upload_dialog_title">Envoyer un fichier</string>
+    <string name="upload_dialog_confirm">Envoyer</string>
+    <string name="upload_dialog_tags_hint">Facultatif. Séparez plusieurs hashtags par des espaces ou des virgules</string>
+    <string name="upload_selected_file">Fichier sélectionné</string>
+    <string name="upload_in_progress">Envoi du fichier…</string>
+    <string name="bulk_tag_dialog_confirm">Ajouter</string>
+    <string name="bulk_tag_dialog_hint">Ajoutés à chaque fichier sélectionné</string>
+    <string name="reasoning_download_all">Télécharger tous les fichiers</string>
+    <string name="reasoning_upload_file">Envoyer un fichier</string>
+    <string name="reasoning_delete">Supprimer le raisonnement</string>
+    <string name="reasoning_attached_files">Fichiers joints (%1$d)</string>
+    <string name="file_tap_to_preview">" · Appuyez pour l’aperçu"</string>
+    <string name="file_tap_to_open">" · Appuyez pour ouvrir"</string>
+    <string name="favorite_remove">Retirer des favoris</string>
+    <string name="favorite_add">Ajouter aux favoris</string>
+    <string name="file_delete">Supprimer le fichier</string>
+    <string name="reasoning_new">Nouveau raisonnement clinique</string>
+    <string name="reasoning_title_label">Titre / algorithme diagnostique</string>
+    <string name="reasoning_content_label">Algorithme / étapes du protocole</string>
+    <string name="bulk_remove_title">Retirer des hashtags</string>
+    <string name="bulk_remove_none">Les fichiers sélectionnés n’ont aucun hashtag.</string>
+    <string name="bulk_remove_hint">Retirés de chaque fichier sélectionné qui les a. Un hashtag qu’aucun autre fichier n’utilise est supprimé.</string>
+    <string name="bulk_remove_confirm">Retirer</string>
+    <plurals name="hashtag_count">
+        <item quantity="one">%d hashtag</item>
+        <item quantity="many">%d hashtags</item>
+        <item quantity="other">%d hashtags</item>
+    </plurals>
+    <plurals name="file_count">
+        <item quantity="one">%d fichier</item>
+        <item quantity="many">%d fichiers</item>
+        <item quantity="other">%d fichiers</item>
+    </plurals>
+    <plurals name="bulk_tags_added">
+        <item quantity="one">%2$s ajouté à %3$s</item>
+        <item quantity="many">%2$s ajoutés à %3$s</item>
+        <item quantity="other">%2$s ajoutés à %3$s</item>
+    </plurals>
+    <plurals name="bulk_tags_removed">
+        <item quantity="one">%2$s retiré de %3$s</item>
+        <item quantity="many">%2$s retirés de %3$s</item>
+        <item quantity="other">%2$s retirés de %3$s</item>
+    </plurals>
+    <plurals name="selection_count">
+        <item quantity="one">%d sélectionné</item>
+        <item quantity="many">%d sélectionnés</item>
+        <item quantity="other">%d sélectionnés</item>
+    </plurals>
+    <plurals name="bulk_tag_dialog_title">
+        <item quantity="one">Étiqueter %d fichier</item>
+        <item quantity="many">Étiqueter %d fichiers</item>
+        <item quantity="other">Étiqueter %d fichiers</item>
+    </plurals>
+</resources>

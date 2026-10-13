@@ -2,6 +2,7 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.CreateWorkshopProjectRequest
 import com.example.medrational_android.data.model.ProjectStatus
@@ -9,6 +10,7 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.data.model.parseIsoLocalDateTime
 import com.example.medrational_android.data.model.toIsoLocalDateTime
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,14 +22,14 @@ import okhttp3.MultipartBody
 import retrofit2.HttpException
 import java.io.IOException
 
-private const val NETWORK_ERROR = "Network error. Check your connection and try again."
+private val NETWORK_ERROR = UiText.Res(R.string.error_network)
 
 // Turns the backend's workshop error codes into something a user can act on
-internal fun workshopErrorMessage(code: Int): String = when (code) {
-    400 -> "Please check the form: every field is required and registration must close after it opens."
-    404 -> "This project no longer exists."
-    413 -> "Files must be 10 MB or smaller."
-    else -> "Something went wrong (HTTP $code). Please try again."
+internal fun workshopErrorMessage(code: Int): UiText = when (code) {
+    400 -> UiText.Res(R.string.workshop_error_form)
+    404 -> UiText.Res(R.string.workshop_error_gone)
+    413 -> UiText.Res(R.string.error_file_too_large)
+    else -> UiText.Res(R.string.error_generic_http, listOf(code))
 }
 
 // The backend switches statuses on the minute; refetch a little after, and again a few times if it's late
@@ -56,7 +58,7 @@ fun nextStatusChangeMillis(project: WorkshopProject, nowMillis: Long): Long? {
 sealed interface WorkshopListUiState {
     data object Loading : WorkshopListUiState
     data class Success(val projects: List<WorkshopProject>) : WorkshopListUiState
-    data class Error(val message: String) : WorkshopListUiState
+    data class Error(val message: UiText) : WorkshopListUiState
 }
 
 /** Tabs filter by status; a null tab shows every project. */
@@ -143,7 +145,7 @@ sealed interface WorkshopDetailUiState {
         val registrationLink: String?
             get() = project.formLink?.takeIf { project.status == ProjectStatus.OPEN && it.isNotBlank() }
     }
-    data class Error(val message: String) : WorkshopDetailUiState
+    data class Error(val message: UiText) : WorkshopDetailUiState
     // Deleted by the admin; the screen goes back
     data object Deleted : WorkshopDetailUiState
 }
@@ -157,8 +159,8 @@ class WorkshopDetailViewModel(
     val uiState: StateFlow<WorkshopDetailUiState> = _uiState.asStateFlow()
 
     // One-shot feedback for an action, cleared by onMessageShown()
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     private var projectId: Long? = null
 
@@ -280,7 +282,7 @@ class WorkshopDetailViewModel(
                             state
                         }
                     }
-                    _message.value = "Attached ${attachment.fileName}."
+                    _message.value = UiText.Res(R.string.workshop_attached, listOf(attachment.fileName))
                 } else {
                     fail(workshopErrorMessage(response.code()))
                 }
@@ -336,7 +338,7 @@ class WorkshopDetailViewModel(
         }
     }
 
-    private fun fail(message: String) {
+    private fun fail(message: UiText) {
         _message.value = message
         _uiState.update { state ->
             if (state is WorkshopDetailUiState.Success) state.copy(busy = false) else state
@@ -362,21 +364,21 @@ data class WorkshopForm(
  * The first problem with [form], or null when it can be sent. With [nowMillis] (new projects), the
  * opening time must be after it: a time in the past is almost always a wrong date or time.
  */
-fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): String? {
+fun validateWorkshopForm(form: WorkshopForm, nowMillis: Long? = null): UiText? {
     val link = form.formLink.trim()
     return when {
-        form.title.isBlank() -> "Enter a title."
-        form.description.isBlank() -> "Enter a description."
-        link.isEmpty() -> "Enter the registration link."
+        form.title.isBlank() -> UiText.Res(R.string.workshop_error_title)
+        form.description.isBlank() -> UiText.Res(R.string.workshop_error_description)
+        link.isEmpty() -> UiText.Res(R.string.workshop_error_link)
         !(link.startsWith("https://") || link.startsWith("http://")) || link.length <= "https://".length ->
-            "The registration link must start with http:// or https://."
+            UiText.Res(R.string.workshop_error_link_scheme)
         form.capacity.isNotBlank() && (form.capacity.trim().toIntOrNull() ?: 0) <= 0 ->
-            "Capacity must be a positive number, or left empty for no limit."
-        form.opensAtMillis == null -> "Pick when registration opens."
-        form.closesAtMillis == null -> "Pick when registration closes."
-        form.closesAtMillis <= form.opensAtMillis -> "Registration must close after it opens."
+            UiText.Res(R.string.workshop_error_capacity)
+        form.opensAtMillis == null -> UiText.Res(R.string.workshop_error_opens)
+        form.closesAtMillis == null -> UiText.Res(R.string.workshop_error_closes)
+        form.closesAtMillis <= form.opensAtMillis -> UiText.Res(R.string.workshop_error_close_after_open)
         nowMillis != null && form.opensAtMillis <= nowMillis ->
-            "Registration must open in the future. Check the date and time."
+            UiText.Res(R.string.workshop_error_open_future)
         else -> null
     }
 }
@@ -413,7 +415,7 @@ sealed interface NewWorkshopUiState {
     data object Sending : NewWorkshopUiState
     // failedFiles: picked files that couldn't be attached; the project exists regardless
     data class Created(val projectId: Long, val failedFiles: List<String> = emptyList()) : NewWorkshopUiState
-    data class Error(val message: String) : NewWorkshopUiState
+    data class Error(val message: UiText) : NewWorkshopUiState
 }
 
 class NewWorkshopViewModel(
@@ -474,7 +476,7 @@ class NewWorkshopViewModel(
 
 sealed interface EditWorkshopUiState {
     data object Loading : EditWorkshopUiState
-    data class LoadError(val message: String) : EditWorkshopUiState
+    data class LoadError(val message: UiText) : EditWorkshopUiState
     // initial seeds the form; the screen owns the edits from there
     data class Editing(val initial: WorkshopForm, val saving: Boolean = false) : EditWorkshopUiState
     data object Saved : EditWorkshopUiState
@@ -488,8 +490,8 @@ class EditWorkshopViewModel(
     val uiState: StateFlow<EditWorkshopUiState> = _uiState.asStateFlow()
 
     // One-shot feedback for a rejected save, cleared by onMessageShown()
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     private var project: WorkshopProject? = null
 

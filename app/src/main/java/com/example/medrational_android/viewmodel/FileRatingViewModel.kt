@@ -2,10 +2,12 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RateFileRequest
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +27,9 @@ sealed interface FileRatingUiState {
         // A rate/remove request is in flight; the stars ignore taps until it settles
         val isSubmitting: Boolean = false,
         // One-shot error to show, cleared by onMessageShown()
-        val message: String? = null
+        val message: UiText? = null
     ) : FileRatingUiState
-    data class Error(val message: String) : FileRatingUiState
+    data class Error(val message: UiText) : FileRatingUiState
 }
 
 /**
@@ -43,13 +45,13 @@ class FileRatingViewModel(
     private sealed interface Load {
         data object Loading : Load
         data object Loaded : Load
-        data class Failed(val message: String) : Load
+        data class Failed(val message: UiText) : Load
     }
 
     private var fileId: Long? = null
     private val load = MutableStateFlow<Load>(Load.Loading)
     private val submitting = MutableStateFlow(false)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiText?>(null)
 
     // Stays Loading until this user's own score arrives, so a score cached for someone else never shows
     val uiState: StateFlow<FileRatingUiState> =
@@ -74,12 +76,12 @@ class FileRatingViewModel(
                     store.put(body)
                     Load.Loaded
                 } else {
-                    Load.Failed("Couldn't load ratings (HTTP ${response.code()}).")
+                    Load.Failed(UiText.Res(R.string.rating_error_load, listOf(response.code())))
                 }
             } catch (e: IOException) {
-                Load.Failed("Network error while loading ratings.")
+                Load.Failed(UiText.Res(R.string.rating_error_load_network))
             } catch (e: HttpException) {
-                Load.Failed("Couldn't load ratings (HTTP ${e.code()}).")
+                Load.Failed(UiText.Res(R.string.rating_error_load, listOf(e.code())))
             }
         }
     }
@@ -119,12 +121,12 @@ class FileRatingViewModel(
                     store.put(body)
                     null
                 } else {
-                    "Couldn't save your rating (HTTP ${response.code()})."
+                    UiText.Res(R.string.rating_error_save, listOf(response.code()))
                 }
             } catch (e: IOException) {
-                "Network error. Your rating wasn't saved."
+                UiText.Res(R.string.rating_error_save_network)
             } catch (e: HttpException) {
-                "Couldn't save your rating (HTTP ${e.code()})."
+                UiText.Res(R.string.rating_error_save, listOf(e.code()))
             }
             if (error != null) {
                 store.put(previous)

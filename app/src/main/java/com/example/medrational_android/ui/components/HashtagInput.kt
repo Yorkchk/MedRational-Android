@@ -28,8 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.HashtagUsage
 import com.example.medrational_android.viewmodel.parseHashtags
 import com.example.medrational_android.viewmodel.suggestHashtags
@@ -69,7 +71,7 @@ fun HashtagInput(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Remove #$name",
+                                contentDescription = stringResource(R.string.hashtags_remove_named, name),
                                 modifier = Modifier
                                     .size(InputChipDefaults.IconSize)
                                     .clickable { onSelectedChange(selected - name) }
@@ -94,7 +96,7 @@ fun HashtagInput(
             modifier = Modifier.fillMaxWidth(),
             prefix = { Text("#") },
             singleLine = true,
-            placeholder = { Text(if (singleTag) "New name" else "Type a tag") },
+            placeholder = { Text(if (singleTag) stringResource(R.string.hashtags_new_name) else stringResource(R.string.hashtags_type_tag)) },
             supportingText = supportingText?.let { { Text(it) } },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
@@ -106,7 +108,7 @@ fun HashtagInput(
         val suggestions = suggestionsFor(text, selected)
         if (suggestions.isNotEmpty()) {
             Text(
-                text = if (text.isBlank()) "Most used" else "Existing tags",
+                text = if (text.isBlank()) stringResource(R.string.hashtags_most_used) else stringResource(R.string.hashtags_existing),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -182,7 +184,7 @@ fun HashtagPickerDialog(
             TextButton(onClick = { onConfirm(result) }, enabled = isValid(result)) { Text(confirmLabel) }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) { Text("Cancel") }
+            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

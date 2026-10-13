@@ -2,9 +2,11 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.Hashtag
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -32,8 +34,8 @@ class BulkHashtagViewModel(private val api: MedRationalApi) : ViewModel() {
     val uiState: StateFlow<BulkHashtagUiState> = _uiState.asStateFlow()
 
     // One-shot result summary, cleared by onMessageShown()
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     fun addTags(fileIds: Set<Long>, names: List<String>) {
         if (fileIds.isEmpty() || names.isEmpty()) return
@@ -43,9 +45,9 @@ class BulkHashtagViewModel(private val api: MedRationalApi) : ViewModel() {
                 api.attachHashtags(fileId, AttachHashtagsRequest(names)).isSuccessful
             }
             _message.value = if (failures == 0) {
-                "Added ${plural(names.size, "tag")} to ${plural(fileIds.size, "file")}"
+                UiText.Plural(R.plurals.bulk_tags_added, names.size, listOf(names.size, tagCount(names.size), fileCount(fileIds.size)))
             } else {
-                "Couldn't tag $failures of ${plural(fileIds.size, "file")}."
+                UiText.Res(R.string.bulk_tag_failed, listOf(failures, fileCount(fileIds.size)))
             }
             _uiState.value = BulkHashtagUiState.Idle
         }
@@ -60,7 +62,7 @@ class BulkHashtagViewModel(private val api: MedRationalApi) : ViewModel() {
                 fileIds.map { fileId -> async { fileId to fetchHashtags(fileId) } }.awaitAll()
             }
             if (results.any { it.second == null }) {
-                _message.value = "Couldn't load the hashtags of the selected files."
+                _message.value = UiText.Res(R.string.bulk_load_failed)
                 _uiState.value = BulkHashtagUiState.Idle
                 return@launch
             }
@@ -85,9 +87,10 @@ class BulkHashtagViewModel(private val api: MedRationalApi) : ViewModel() {
                 api.detachHashtag(fileId, hashtagId).isSuccessful
             }
             _message.value = if (failures == 0) {
-                "Removed ${plural(tags.size, "tag")} from ${plural(pairs.map { it.first }.distinct().size, "file")}"
+                val files = pairs.map { it.first }.distinct().size
+                UiText.Plural(R.plurals.bulk_tags_removed, tags.size, listOf(tags.size, tagCount(tags.size), fileCount(files)))
             } else {
-                "Couldn't remove $failures of ${pairs.size} tags."
+                UiText.Res(R.string.bulk_remove_failed, listOf(failures, tagCount(pairs.size)))
             }
             _uiState.value = BulkHashtagUiState.Idle
         }
@@ -124,5 +127,7 @@ class BulkHashtagViewModel(private val api: MedRationalApi) : ViewModel() {
             !succeeded
         }
 
-    private fun plural(count: Int, noun: String) = if (count == 1) "1 $noun" else "$count ${noun}s"
+    private fun tagCount(count: Int) = UiText.Plural(R.plurals.hashtag_count, count)
+
+    private fun fileCount(count: Int) = UiText.Plural(R.plurals.file_count, count)
 }

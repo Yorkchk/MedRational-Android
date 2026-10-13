@@ -1,6 +1,9 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.R
+import com.example.medrational_android.TestStrings.en
+import com.example.medrational_android.TestStrings.fr
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.AuthMessageResponse
@@ -105,21 +108,25 @@ class ProfileViewModelsTest {
 
         viewModel.save("Sara", "Idrissi", "06123")
         assertEquals(
-            ProfileSaveState.Error("Phone number must be exactly 10 digits."),
-            viewModel.saveState.value
+            "Phone number must be exactly 10 digits.",
+            en((viewModel.saveState.value as ProfileSaveState.Error).message)
         )
         coVerify(exactly = 0) { api.updateMyProfile(any()) }
     }
 
     @Test
-    fun `a rejected save shows the backend's field error`() {
+    // The backend's messages are in English, so the app shows its own
+    fun `a rejected save asks to check the fields`() {
         coEvery { api.updateMyProfile(any()) } returns
             Response.error(400, """{"status":400,"errors":{"lastName":"Last name is required"}}""".toResponseBody())
         val viewModel = ProfileViewModel(api, tokenManager)
 
         viewModel.save("Sara", "Idrissi", "")
 
-        assertEquals(ProfileSaveState.Error("Last name is required"), viewModel.saveState.value)
+        assertEquals(
+            "Please check the information you entered.",
+            en((viewModel.saveState.value as ProfileSaveState.Error).message)
+        )
         verify(exactly = 0) { tokenManager.saveUserName(any()) }
     }
 
@@ -137,14 +144,16 @@ class ProfileViewModelsTest {
     }
 
     @Test
-    fun `an email in use shows the backend's message`() {
+    fun `an email in use is reported`() {
         every { tokenManager.getEmail() } returns "old@example.com"
         coEvery { api.requestEmailChangeCode(any()) } returns badRequest("This email is already in use.")
         val viewModel = ChangeEmailViewModel(api, tokenManager)
 
         viewModel.requestCode("taken@example.com")
 
-        assertEquals(ChangeEmailUiState.EnterEmail(error = "This email is already in use."), viewModel.uiState.value)
+        val error = (viewModel.uiState.value as ChangeEmailUiState.EnterEmail).error
+        assertEquals("This email is already in use.", en(error))
+        assertEquals("Cet e-mail est déjà utilisé.", fr(error))
     }
 
     @Test
@@ -156,7 +165,7 @@ class ProfileViewModelsTest {
         assertTrue((viewModel.uiState.value as ChangeEmailUiState.EnterEmail).error != null)
 
         viewModel.requestCode("OLD@example.com")
-        assertEquals(ChangeEmailUiState.EnterEmail(error = "This is already your email."), viewModel.uiState.value)
+        assertEquals("This is already your email.", en((viewModel.uiState.value as ChangeEmailUiState.EnterEmail).error))
         coVerify(exactly = 0) { api.requestEmailChangeCode(any()) }
     }
 
@@ -186,10 +195,9 @@ class ProfileViewModelsTest {
 
         viewModel.confirm("000000")
 
-        assertEquals(
-            ChangeEmailUiState.EnterCode(newEmail = "new@example.com", error = "Invalid verification code."),
-            viewModel.uiState.value
-        )
+        val state = viewModel.uiState.value as ChangeEmailUiState.EnterCode
+        assertEquals("new@example.com", state.newEmail)
+        assertEquals("Invalid or expired verification code.", en(state.error))
         verify(exactly = 0) { tokenManager.saveAuth(any(), any(), any(), any(), any()) }
     }
 
@@ -202,7 +210,7 @@ class ProfileViewModelsTest {
 
         viewModel.confirm("123")
 
-        assertEquals("Please enter the 6-digit code.", (viewModel.uiState.value as ChangeEmailUiState.EnterCode).error)
+        assertEquals("Please enter the 6-digit code.", en((viewModel.uiState.value as ChangeEmailUiState.EnterCode).error))
         coVerify(exactly = 0) { api.confirmEmailChange(any()) }
     }
 
@@ -216,7 +224,7 @@ class ProfileViewModelsTest {
         viewModel.resendCode()
 
         val state = viewModel.uiState.value as ChangeEmailUiState.EnterCode
-        assertEquals("A new code was sent to new@example.com.", state.notice)
+        assertEquals("A new code was sent to new@example.com.", en(state.notice))
         coVerify(exactly = 2) { api.requestEmailChangeCode(RequestEmailChangeRequest("new@example.com")) }
     }
 
@@ -251,11 +259,11 @@ class ProfileViewModelsTest {
         viewModel.confirm("123456", "abc", "abc")
         assertEquals(
             "Password must be at least 6 characters.",
-            (viewModel.uiState.value as ChangePasswordUiState.EnterCode).error
+            en((viewModel.uiState.value as ChangePasswordUiState.EnterCode).error)
         )
 
         viewModel.confirm("123456", "secret1", "secret2")
-        assertEquals("Passwords don't match.", (viewModel.uiState.value as ChangePasswordUiState.EnterCode).error)
+        assertEquals("Passwords don't match.", en((viewModel.uiState.value as ChangePasswordUiState.EnterCode).error))
         coVerify(exactly = 0) { api.changePassword(any()) }
     }
 
@@ -271,23 +279,23 @@ class ProfileViewModelsTest {
     }
 
     @Test
-    fun `a wrong password code shows the backend's message`() {
+    fun `a wrong password code is reported`() {
         val viewModel = passwordViewModelAtCodeStep()
         coEvery { api.changePassword(any()) } returns badRequest("Invalid verification code.")
 
         viewModel.confirm("000000", "secret1", "secret1")
 
         val state = viewModel.uiState.value as ChangePasswordUiState.EnterCode
-        assertEquals("Invalid verification code.", state.error)
+        assertEquals("Invalid or expired verification code.", en(state.error))
         assertNull(state.notice)
     }
 
     // --- Error parsing ---
 
     @Test
-    fun `an error body without a message falls back to the status code`() {
+    fun `a server error shows the status code`() {
         val response = Response.error<Unit>(500, "".toResponseBody())
 
-        assertEquals("Couldn't save (HTTP 500).", profileErrorMessage(response, "Couldn't save"))
+        assertEquals("Couldn't save your profile (HTTP 500).", en(profileErrorMessage(response, R.string.profile_error_save)))
     }
 }

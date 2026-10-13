@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="favorites_error_session">Session introuvable. Veuillez vous reconnecter.</string>
+    <string name="favorites_error_load">Impossible de charger vos favoris (HTTP %1$d).</string>
+    <string name="search_error">La recherche a échoué (HTTP %1$d).</string>
+    <string name="novelties_error_load">Impossible de charger les nouveautés (HTTP %1$d).</string>
+    <string name="downloads_error_load">Impossible de charger vos téléchargements (HTTP %1$d).</string>
+    <string name="favorites_title">Mes fichiers enregistrés</string>
+    <string name="favorites_empty">Aucun fichier enregistré pour l’instant.</string>
+    <string name="favorites_empty_hint">Appuyez sur le cœur d’un fichier pour l’enregistrer ici.</string>
+    <string name="favorites_details">Détails</string>
+    <string name="favorites_removed">Retiré des favoris</string>
+    <string name="file_untitled">Fichier sans titre</string>
+    <string name="favorites_general">Général</string>
+    <string name="downloads_title">Téléchargements récents</string>
+    <string name="downloads_downloaded_on">Téléchargé le %1$s</string>
+    <string name="downloads_empty">Aucun téléchargement pour l’instant.</string>
+    <string name="downloads_empty_hint">Les fichiers que vous téléchargez apparaîtront ici pour les rouvrir rapidement.</string>
+    <string name="search_title">Découvrir et rechercher</string>
+    <string name="search_placeholder">Rechercher par catégorie, raisonnement</string>
+    <string name="search_all_categories">Toutes les catégories</string>
+    <string name="search_idle">Saisissez une recherche ou choisissez une catégorie ci-dessus pour trouver des fichiers.</string>
+    <string name="search_no_results">Aucun fichier correspondant.</string>
+    <string name="novelties_title">Nouveautés</string>
+    <string name="novelties_caught_up_latest">Vous êtes à jour. Voici les derniers ajouts.</string>
+    <string name="novelties_load_more_failed">Impossible de charger la suite. Réessayer</string>
+    <string name="novelties_new_badge">NOUVEAU</string>
+    <string name="novelties_uploaded_on">Ajouté le %1$s</string>
+    <string name="novelties_caught_up">Vous êtes à jour.</string>
+    <string name="novelties_empty_hint">Les fichiers ajoutés récemment apparaîtront ici.</string>
+    <plurals name="novelties_new_count">
+        <item quantity="one">%d nouveau fichier depuis votre dernière visite</item>
+        <item quantity="many">%d nouveaux fichiers depuis votre dernière visite</item>
+        <item quantity="other">%d nouveaux fichiers depuis votre dernière visite</item>
+    </plurals>
+</resources>
