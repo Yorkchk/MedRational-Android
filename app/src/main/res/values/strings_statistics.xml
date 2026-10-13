@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="stats_title">Statistiques</string>
+    <string name="stats_refresh">Actualiser</string>
+    <string name="stats_error_load">Impossible de charger les statistiques (HTTP %1$d).</string>
+    <string name="stats_updated_at">Mis à jour le %1$s</string>
+    <string name="stats_scope_note">Une semaine correspond aux 7 derniers jours, aujourd\'hui compris. Les comptes admin ne sont pas comptés parmi les étudiants.</string>
+    <string name="stats_no_value">—</string>
+    <string name="stats_unassigned">Non classé</string>
+    <string name="stats_list_empty">Aucune donnée sur cette période.</string>
+    <string name="stats_percent">%1$d %%</string>
+
+    <string name="stats_delta_up">+%1$d %%</string>
+    <string name="stats_delta_down">−%1$d %%</string>
+    <string name="stats_delta_flat">Stable</string>
+    <string name="stats_delta_new">Nouveau</string>
+    <string name="stats_delta_description">%1$s par rapport aux 7 jours précédents</string>
+
+    <string name="stats_section_students">Étudiants</string>
+    <string name="stats_total_students">Étudiants inscrits</string>
+    <string name="stats_weekly_active">Actifs sur 7 jours</string>
+    <string name="stats_stickiness">Fidélité</string>
+    <string name="stats_stickiness_caption">Actifs du jour parmi ceux de la semaine</string>
+    <string name="stats_activation">Activation</string>
+    <string name="stats_activation_caption">Ont ouvert ou téléchargé au moins un fichier</string>
+    <string name="stats_chart_signups">Inscriptions par semaine</string>
+    <string name="stats_chart_weekly_active">Étudiants actifs par semaine</string>
+
+    <string name="stats_section_usage">Utilisation</string>
+    <string name="stats_downloads_week">Téléchargements (7 j)</string>
+    <string name="stats_views_week">Consultations (7 j)</string>
+    <string name="stats_total_caption">%1$s au total</string>
+    <string name="stats_chart_daily_usage">Par jour, sur 30 jours</string>
+    <string name="stats_legend_downloads">Téléchargements</string>
+    <string name="stats_legend_views">Consultations</string>
+    <string name="stats_chart_summary">%1$s, du %2$s au %3$s, maximum %4$s</string>
+
+    <string name="stats_section_trending">Tendances de la semaine</string>
+    <string name="stats_trending_note">Téléchargements et consultations additionnés, comparés aux 7 jours précédents.</string>
+    <string name="stats_trending_files">Fichiers en hausse</string>
+    <string name="stats_trending_categories">Catégories en hausse</string>
+    <string name="stats_trending_empty">Rien n\'est en hausse cette semaine.</string>
+    <string name="stats_trending_counts">%1$s cette semaine, %2$s la semaine d\'avant</string>
+
+    <string name="stats_section_content">Contenus les plus demandés</string>
+    <string name="stats_range_week">7 derniers jours</string>
+    <string name="stats_range_all">Depuis le début</string>
+    <string name="stats_top_downloaded">Les plus téléchargés</string>
+    <string name="stats_top_viewed">Les plus consultés</string>
+    <string name="stats_most_favorited">Les plus ajoutés aux favoris</string>
+    <string name="stats_categories">Activité par catégorie</string>
+    <string name="stats_share">%1$d %% de l\'activité</string>
+    <string name="stats_hashtags">Hashtags les plus téléchargés</string>
+
+    <string name="stats_section_engagement">Engagement</string>
+    <string name="stats_favorites_week">Favoris ajoutés (7 j)</string>
+    <string name="stats_ratings_week">Notes données (7 j)</string>
+    <string name="stats_average_rating">Note moyenne</string>
+    <string name="stats_new_files">Nouveaux fichiers (7 j)</string>
+    <string name="stats_cold_files">Jamais téléchargés</string>
+    <string name="stats_cold_caption">%1$d %% des fichiers</string>
+    <string name="stats_highest_rated">Les mieux notés (3 notes minimum)</string>
+
+    <string name="stats_section_community">Communauté</string>
+    <string name="stats_open_suggestions">Suggestions ouvertes</string>
+    <string name="stats_open_workshops">Projets ouverts</string>
+    <string name="stats_workshops_caption">À venir : %1$s · Fermés : %2$s</string>
+
+    <plurals name="stats_downloads_count">
+        <item quantity="one">%1$s téléchargement</item>
+        <item quantity="many">%1$s téléchargements</item>
+        <item quantity="other">%1$s téléchargements</item>
+    </plurals>
+    <plurals name="stats_views_count">
+        <item quantity="one">%1$s consultation</item>
+        <item quantity="many">%1$s consultations</item>
+        <item quantity="other">%1$s consultations</item>
+    </plurals>
+    <plurals name="stats_favorites_count">
+        <item quantity="one">%1$s favori</item>
+        <item quantity="many">%1$s favoris</item>
+        <item quantity="other">%1$s favoris</item>
+    </plurals>
+    <plurals name="stats_ratings_count">
+        <item quantity="one">%1$s note</item>
+        <item quantity="many">%1$s notes</item>
+        <item quantity="other">%1$s notes</item>
+    </plurals>
+    <plurals name="stats_new_students">
+        <item quantity="one">%1$s nouveau cette semaine</item>
+        <item quantity="many">%1$s nouveaux cette semaine</item>
+        <item quantity="other">%1$s nouveaux cette semaine</item>
+    </plurals>
+    <plurals name="stats_active_today">
+        <item quantity="one">%1$s actif aujourd\'hui</item>
+        <item quantity="many">%1$s actifs aujourd\'hui</item>
+        <item quantity="other">%1$s actifs aujourd\'hui</item>
+    </plurals>
+    <plurals name="stats_files_total">
+        <item quantity="one">%1$s fichier au total</item>
+        <item quantity="many">%1$s fichiers au total</item>
+        <item quantity="other">%1$s fichiers au total</item>
+    </plurals>
+    <plurals name="stats_unread">
+        <item quantity="one">%1$s non lue</item>
+        <item quantity="many">%1$s non lues</item>
+        <item quantity="other">%1$s non lues</item>
+    </plurals>
+</resources>

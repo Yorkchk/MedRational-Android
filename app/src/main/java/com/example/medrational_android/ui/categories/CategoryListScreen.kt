@@ -42,6 +42,7 @@ fun CategoryListScreen(
     onNavigateToNovelties: () -> Unit,
     onNavigateToWorkshops: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
     // Files uploaded since the last visit to What's new
     noveltyCount: Long = 0
 ) {
@@ -83,6 +84,7 @@ fun CategoryListScreen(
                         DrawerDestination.FAVORITES -> onNavigateToFavorites()
                         DrawerDestination.DOWNLOADS -> onNavigateToDownloads()
                         DrawerDestination.SUGGESTIONS -> onNavigateToSuggestions()
+                        DrawerDestination.STATISTICS -> onNavigateToStatistics()
                         DrawerDestination.PROFILE -> onNavigateToProfile()
                         DrawerDestination.SIGN_OUT -> showSignOutDialog = true
                     }
