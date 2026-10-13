@@ -62,6 +62,11 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - The app asks for the Android 13+ notification permission at startup. Tapping a push opens `workshops/{projectId}`. When signed out it opens `login` first, and the project opens after sign-in (`routeForPushTap`, `pendingPushProjectId` in `MedRationalApp`).
   - Push needs `app/google-services.json` from the Firebase console (not secret, committed). Without it the app builds with push off.
   - The topic, the channel (`workshop_reminders`) and the data key (`projectId`) must match the backend.
+- **Profile:** `/api/v1/users/me` (GET, PUT) takes the user from the JWT and is reached from the side menu when signed in. `ProfileViewModels.kt` holds its ViewModels.
+  - First name, last name and phone save without a code. The backend keeps `fullName` as "first last", and `TokenManager.saveUserName` updates the menu header.
+  - Password: `POST .../password/code` emails a code to the current address, then `PUT .../password {code, newPassword}`.
+  - Email: `POST .../email/code {newEmail}` emails a code to the new address, then `PUT .../email {code}` returns a new `AuthResponse`. The JWT subject is the email, so the app must save that token with `saveAuth`, because the old one stops working.
+  - Wrong or expired codes, and an email already in use, answer 400, never 401/403, so they don't sign the user out.
 - **Multipart Uploads:** Admin file creation uses `MultipartBody.Part` for binary files alongside `RequestBody` for metadata fields (`title`, `description`, `reasoningId`).
 
 ## Architecture & State Management
@@ -77,9 +82,9 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
   - State follows sealed hierarchies: `interface/sealed class *UiState { object Loading; data class Success(...); data class Error(val message: String); }`.
   - When instantiating newer ViewModels (`AuthViewModel`, `FavoriteViewModel`, `SearchViewModel`), pass dependencies via constructor (`TokenManager`, `MedRationalApi`) using `viewModel { ... }` factories. Older ViewModels (`CategoryViewModel`, `ReasoningViewModel`) access `ApiClient.api` directly and are activity-scoped in `MainActivity`.
 - **Navigation:** Controlled by a single `NavHost` inside `MainActivity.MedRationalApp()`.
-  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`, `suggestions`, `suggestions/new`, `suggestions/{suggestionId}`, `novelties`, `workshops`, `workshops/new`, `workshops/{workshopId}`, `workshops/{workshopId}/edit`.
+  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`, `suggestions`, `suggestions/new`, `suggestions/{suggestionId}`, `novelties`, `workshops`, `workshops/new`, `workshops/{workshopId}`, `workshops/{workshopId}/edit`, `profile`, `profile/email`, `profile/password`.
   - Startup routing: checks `TokenManager.hasToken()`. If valid, routes directly to `categories`; otherwise routes to `welcome`.
-  - Secondary sections (Projects, Favorites, Recent downloads, Suggestions, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
+  - Secondary sections (Projects, Favorites, Recent downloads, Suggestions, Profile, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
 
 ## Core Workflows
 

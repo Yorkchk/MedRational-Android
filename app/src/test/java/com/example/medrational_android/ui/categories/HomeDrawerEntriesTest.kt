@@ -23,6 +23,7 @@ class HomeDrawerEntriesTest {
                 DrawerDestination.FAVORITES,
                 DrawerDestination.DOWNLOADS,
                 DrawerDestination.SUGGESTIONS,
+                DrawerDestination.PROFILE,
                 DrawerDestination.SIGN_OUT
             ),
             destinations(isAdmin = false, isLoggedIn = true)
@@ -48,6 +49,8 @@ class HomeDrawerEntriesTest {
         // The workshops API rejects anonymous calls
         assertFalse(DrawerDestination.WORKSHOPS in entries)
         assertFalse(DrawerDestination.SUGGESTIONS in entries)
+        // The profile is the signed-in account
+        assertFalse(DrawerDestination.PROFILE in entries)
         assertFalse(DrawerDestination.SIGN_OUT in entries)
         assertEquals(DrawerDestination.HOME, entries.first())
     }
