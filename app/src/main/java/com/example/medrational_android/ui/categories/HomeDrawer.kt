@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.HorizontalDivider
@@ -31,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, SIGN_OUT }
+enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, PROFILE, SIGN_OUT }
 
 data class DrawerEntry(val destination: DrawerDestination, val label: String)
 
@@ -50,6 +51,7 @@ fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> 
     // Suggestions are tied to an account, so they need a signed-in user
     if (isLoggedIn) {
         add(DrawerEntry(DrawerDestination.SUGGESTIONS, if (isAdmin) "Suggestions inbox" else "Suggestions"))
+        add(DrawerEntry(DrawerDestination.PROFILE, "Profile"))
         add(DrawerEntry(DrawerDestination.SIGN_OUT, "Sign out"))
     }
 }
@@ -62,6 +64,7 @@ private fun DrawerDestination.icon(): ImageVector = when (this) {
     DrawerDestination.FAVORITES -> Icons.Default.Favorite
     DrawerDestination.DOWNLOADS -> Icons.Default.History
     DrawerDestination.SUGGESTIONS -> Icons.Default.Lightbulb
+    DrawerDestination.PROFILE -> Icons.Default.Person
     DrawerDestination.SIGN_OUT -> Icons.AutoMirrored.Filled.Logout
 }
 
