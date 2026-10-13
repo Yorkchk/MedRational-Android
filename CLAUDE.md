@@ -67,6 +67,10 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - Password: `POST .../password/code` emails a code to the current address, then `PUT .../password {code, newPassword}`.
   - Email: `POST .../email/code {newEmail}` emails a code to the new address, then `PUT .../email {code}` returns a new `AuthResponse`. The JWT subject is the email, so the app must save that token with `saveAuth`, because the old one stops working.
   - Wrong or expired codes, and an email already in use, answer 400, never 401/403, so they don't sign the user out.
+- **Statistics (admin):** `StatisticsScreen` (`ui/statistics/`) shows `GET /api/v1/admin/analytics/dashboard` in one call. It's admin only, so the side menu lists it for admins only, because a 403 logs the user out.
+  - "Week" means the last 7 days, today included, and students are non-admin accounts. The backend computes every figure; the app only formats them, with pure helpers in `StatisticsMath.kt` (`weekDelta`, `percentOf`, `chartCeiling`).
+  - Charts are drawn with Compose `Canvas` (`Charts.kt`); there is no chart library.
+  - `FileDetailViewModel` calls `POST /api/v1/files/{id}/views` once per opened file, for signed-in non-admins only (`recordViews`), and ignores failures. Active students come from the backend's own per-day tracking of authenticated requests, so the app doesn't record activity.
 - **Multipart Uploads:** Admin file creation uses `MultipartBody.Part` for binary files alongside `RequestBody` for metadata fields (`title`, `description`, `reasoningId`).
 
 ## Architecture & State Management
@@ -82,9 +86,9 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
   - State follows sealed hierarchies: `interface/sealed class *UiState { object Loading; data class Success(...); data class Error(val message: String); }`.
   - When instantiating newer ViewModels (`AuthViewModel`, `FavoriteViewModel`, `SearchViewModel`), pass dependencies via constructor (`TokenManager`, `MedRationalApi`) using `viewModel { ... }` factories. Older ViewModels (`CategoryViewModel`, `ReasoningViewModel`) access `ApiClient.api` directly and are activity-scoped in `MainActivity`.
 - **Navigation:** Controlled by a single `NavHost` inside `MainActivity.MedRationalApp()`.
-  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`, `suggestions`, `suggestions/new`, `suggestions/{suggestionId}`, `novelties`, `workshops`, `workshops/new`, `workshops/{workshopId}`, `workshops/{workshopId}/edit`, `profile`, `profile/email`, `profile/password`.
+  - Routes: `welcome`, `login`, `signup`, `forgot_password`, `categories`, `favorites`, `downloads`, `search`, `reasonings/{categoryId}/{categoryName}`, `file/{reasoningId}/{fileId}`, `suggestions`, `suggestions/new`, `suggestions/{suggestionId}`, `novelties`, `workshops`, `workshops/new`, `workshops/{workshopId}`, `workshops/{workshopId}/edit`, `profile`, `profile/email`, `profile/password`, `statistics`.
   - Startup routing: checks `TokenManager.hasToken()`. If valid, routes directly to `categories`; otherwise routes to `welcome`.
-  - Secondary sections (Projects, Favorites, Recent downloads, Suggestions, Profile, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
+  - Secondary sections (Projects, Favorites, Recent downloads, Suggestions, Statistics, Profile, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
 
 ## Localization (French / English)
 

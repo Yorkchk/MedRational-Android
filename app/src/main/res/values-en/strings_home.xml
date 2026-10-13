@@ -21,5 +21,6 @@
     <string name="drawer_suggestions_inbox">Suggestions inbox</string>
     <string name="drawer_suggestions">Suggestions</string>
     <string name="drawer_profile">Profile</string>
+    <string name="drawer_statistics">Statistics</string>
     <string name="drawer_admin">Admin</string>
 </resources>
