@@ -44,13 +44,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.SuggestionSummary
 import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.SuggestionListUiState
 import com.example.medrational_android.viewmodel.SuggestionListViewModel
 
@@ -75,15 +80,15 @@ fun SuggestionListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAdmin) "Suggestions inbox" else "My suggestions", fontWeight = FontWeight.Bold) },
+                title = { Text(if (isAdmin) stringResource(R.string.drawer_suggestions_inbox) else stringResource(R.string.suggestion_my_suggestions), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::load) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 }
             )
@@ -93,7 +98,7 @@ fun SuggestionListScreen(
                 ExtendedFloatingActionButton(
                     onClick = onNewSuggestionClick,
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("New suggestion") }
+                    text = { Text(stringResource(R.string.suggestion_new)) }
                 )
             }
         }
@@ -107,12 +112,12 @@ fun SuggestionListScreen(
                 Tab(
                     selected = tab == SuggestionStatus.PENDING,
                     onClick = { viewModel.selectTab(SuggestionStatus.PENDING) },
-                    text = { Text("Pending") }
+                    text = { Text(stringResource(R.string.suggestion_tab_pending)) }
                 )
                 Tab(
                     selected = tab == SuggestionStatus.CLOSED,
                     onClick = { viewModel.selectTab(SuggestionStatus.CLOSED) },
-                    text = { Text("Archived") }
+                    text = { Text(stringResource(R.string.suggestion_tab_archived)) }
                 )
             }
             Box(modifier = Modifier.fillMaxSize()) {
@@ -122,9 +127,9 @@ fun SuggestionListScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text("Retry") }
+                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
                     }
                     is SuggestionListUiState.Success -> if (state.suggestions.isEmpty()) {
                         EmptySuggestions(
@@ -185,11 +190,10 @@ private fun SuggestionCard(
                     )
                 }
                 val replies = when (suggestion.messageCount) {
-                    0 -> "No replies yet"
-                    1 -> "1 reply"
-                    else -> "${suggestion.messageCount} replies"
+                    0 -> stringResource(R.string.suggestion_no_replies)
+                    else -> pluralStringResource(R.plurals.suggestion_reply_count, suggestion.messageCount, suggestion.messageCount)
                 }
-                val activity = suggestion.lastActivityAt?.let(::formatIsoDateTime)
+                val activity = suggestion.lastActivityAt?.let { formatIsoDateTime(it, appLocale()) }
                 Text(
                     text = listOfNotNull(replies, activity).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
@@ -220,9 +224,9 @@ private fun EmptySuggestions(archived: Boolean, isAdmin: Boolean, modifier: Modi
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = when {
-                archived -> "No archived suggestions."
-                isAdmin -> "No pending suggestions."
-                else -> "No suggestions yet."
+                archived -> stringResource(R.string.suggestion_empty_archived)
+                isAdmin -> stringResource(R.string.suggestion_empty_pending)
+                else -> stringResource(R.string.suggestion_empty)
             },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium
@@ -230,9 +234,9 @@ private fun EmptySuggestions(archived: Boolean, isAdmin: Boolean, modifier: Modi
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = when {
-                archived -> "Closed suggestions are kept here."
-                isAdmin -> "Suggestions sent by users will appear here."
-                else -> "Have an idea or found something missing? Send a suggestion to the admins."
+                archived -> stringResource(R.string.suggestion_empty_archived_hint)
+                isAdmin -> stringResource(R.string.suggestion_empty_admin_hint)
+                else -> stringResource(R.string.suggestion_empty_user_hint)
             },
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,

@@ -54,10 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.SuggestionAttachment
@@ -66,6 +68,8 @@ import com.example.medrational_android.data.model.SuggestionMessage
 import com.example.medrational_android.data.model.SuggestionSender
 import com.example.medrational_android.data.model.formatIsoDateTime
 import com.example.medrational_android.data.upload.PickedFile
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.SuggestionDetailUiState
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
 import kotlinx.coroutines.launch
@@ -90,7 +94,7 @@ fun SuggestionDetailScreen(
     }
     LaunchedEffect(message) {
         message?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             viewModel.onMessageShown()
         }
     }
@@ -98,7 +102,7 @@ fun SuggestionDetailScreen(
     // Attachments are private, so they stream through the API with the user's token
     val download: (path: String, attachment: SuggestionAttachment) -> Unit = { path, attachment ->
         downloader.downloadFile("${ApiClient.BASE_URL}api/v1/suggestions/$suggestionId/$path", attachment.fileName)
-        Toast.makeText(context, "Downloading ${attachment.fileName}...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.download_started, attachment.fileName), Toast.LENGTH_SHORT).show()
     }
 
     val success = uiState as? SuggestionDetailUiState.Success
@@ -108,23 +112,23 @@ fun SuggestionDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = success?.suggestion?.title ?: "Suggestion",
+                        text = success?.suggestion?.title ?: stringResource(R.string.suggestion_default_title),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                     if (isAdmin && success?.canPost == true) {
                         IconButton(onClick = { showCloseDialog = true }, enabled = !success.busy) {
-                            Icon(Icons.Default.Archive, contentDescription = "Close suggestion")
+                            Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.suggestion_close))
                         }
                     }
                 }
@@ -156,9 +160,9 @@ fun SuggestionDetailScreen(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    Text(state.message.asString(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { viewModel.load(suggestionId) }) { Text("Retry") }
+                    Button(onClick = { viewModel.load(suggestionId) }) { Text(stringResource(R.string.common_retry)) }
                 }
                 is SuggestionDetailUiState.Success -> Conversation(
                     suggestion = state.suggestion,
@@ -173,9 +177,9 @@ fun SuggestionDetailScreen(
     if (showCloseDialog) {
         AlertDialog(
             onDismissRequest = { showCloseDialog = false },
-            title = { Text("Close this suggestion?") },
+            title = { Text(stringResource(R.string.suggestion_close_confirm_title)) },
             text = {
-                Text("It will be archived and neither you nor the user will be able to add messages. This can't be undone.")
+                Text(stringResource(R.string.suggestion_close_confirm_body))
             },
             confirmButton = {
                 TextButton(
@@ -184,10 +188,10 @@ fun SuggestionDetailScreen(
                         viewModel.close()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Close suggestion") }
+                ) { Text(stringResource(R.string.suggestion_close)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCloseDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showCloseDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -239,10 +243,10 @@ private fun SuggestionHeader(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SuggestionStatusChip(status = suggestion.status)
-            val sent = suggestion.createdAt?.let(::formatIsoDateTime)
+            val sent = suggestion.createdAt?.let { formatIsoDateTime(it, appLocale()) }
             if (sent != null) {
                 Text(
-                    text = "  Sent $sent",
+                    text = "  " + stringResource(R.string.suggestion_sent_on, sent),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -266,7 +270,7 @@ private fun SuggestionHeader(
         }
         if (suggestion.messages.isEmpty()) {
             Text(
-                text = if (showSender) "No replies yet. Answer the user below." else "No replies yet. The admins will answer here.",
+                text = if (showSender) stringResource(R.string.suggestion_no_replies_admin) else stringResource(R.string.suggestion_no_replies_user),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -285,7 +289,7 @@ private fun SenderCard(sender: SuggestionSender) {
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                text = "Sent by",
+                text = stringResource(R.string.suggestion_sent_by),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -321,7 +325,7 @@ private fun MessageBubble(
         ) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = if (mine) "You" else message.authorName ?: if (message.fromAdmin) "Admin" else "User",
+                    text = if (mine) stringResource(R.string.suggestion_author_you) else message.authorName ?: if (message.fromAdmin) stringResource(R.string.suggestion_author_admin) else stringResource(R.string.suggestion_author_user),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -329,7 +333,7 @@ private fun MessageBubble(
                 message.attachment?.let { attachment ->
                     AttachmentChip(attachment = attachment, onClick = { onAttachmentClick(attachment) })
                 }
-                message.createdAt?.let(::formatIsoDateTime)?.let {
+                message.createdAt?.let { formatIsoDateTime(it, appLocale()) }?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.labelSmall,
@@ -364,13 +368,13 @@ private fun Composer(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = pickAttachment, enabled = !busy && attachment == null) {
-                    Icon(Icons.Default.AttachFile, contentDescription = "Attach a file (max 10 MB)")
+                    Icon(Icons.Default.AttachFile, contentDescription = stringResource(R.string.suggestion_attach_max))
                 }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Write a message") },
+                    placeholder = { Text(stringResource(R.string.suggestion_write_message)) },
                     enabled = !busy,
                     maxLines = 5
                 )
@@ -390,7 +394,7 @@ private fun Composer(
                     if (busy) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.common_send))
                     }
                 }
             }
@@ -410,7 +414,7 @@ private fun ClosedBanner() {
         ) {
             Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                text = "  This suggestion was closed and archived.",
+                text = "  " + stringResource(R.string.suggestion_archived_banner),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

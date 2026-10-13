@@ -28,8 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.Hashtag
 import com.example.medrational_android.data.model.HashtagUsage
 import com.example.medrational_android.ui.components.HashtagPickerDialog
@@ -65,7 +67,7 @@ fun HashtagSection(
 
     Column(modifier = modifier) {
         Text(
-            text = "Hashtags",
+            text = stringResource(R.string.hashtags_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold
         )
@@ -87,7 +89,7 @@ fun HashtagSection(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Remove #${hashtag.name}",
+                                contentDescription = stringResource(R.string.hashtags_remove_named, hashtag.name),
                                 modifier = Modifier
                                     .size(InputChipDefaults.IconSize)
                                     .clickable(enabled = !success.busy) { removingId = hashtag.id }
@@ -105,7 +107,7 @@ fun HashtagSection(
                         showAddDialog = true
                     },
                     enabled = !success.busy,
-                    label = { Text("Add") },
+                    label = { Text(stringResource(R.string.hashtags_add)) },
                     leadingIcon = {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
                     }
@@ -118,11 +120,11 @@ fun HashtagSection(
 
     if (showAddDialog) {
         HashtagPickerDialog(
-            title = "Add hashtags",
-            confirmLabel = "Add",
+            title = stringResource(R.string.hashtags_add_title),
+            confirmLabel = stringResource(R.string.hashtags_add),
             catalog = catalog,
             exclude = onFile,
-            supportingText = "Separate several tags with spaces or commas",
+            supportingText = stringResource(R.string.hashtags_add_hint),
             onConfirm = { names ->
                 onAddHashtags(names.joinToString(" "))
                 showAddDialog = false
@@ -133,14 +135,14 @@ fun HashtagSection(
 
     editing?.let { hashtag ->
         HashtagPickerDialog(
-            title = "Rename #${hashtag.name}",
-            confirmLabel = "Save",
+            title = stringResource(R.string.hashtags_rename_title, hashtag.name),
+            confirmLabel = stringResource(R.string.common_save),
             catalog = catalog,
             exclude = onFile,
             initialSelected = listOf(hashtag.name),
             singleTag = true,
             // Picking an existing tag merges this one into it on this file
-            supportingText = "Renames the tag on this file only",
+            supportingText = stringResource(R.string.hashtags_rename_hint),
             isValid = { it.size == 1 && it.first() != hashtag.name },
             onConfirm = { names ->
                 onRenameHashtag(hashtag, names.first())
@@ -153,18 +155,18 @@ fun HashtagSection(
     removing?.let { hashtag ->
         AlertDialog(
             onDismissRequest = { removingId = null },
-            title = { Text("Remove #${hashtag.name}?") },
-            text = { Text("It will be removed from this file, and deleted entirely if no other file uses it.") },
+            title = { Text(stringResource(R.string.hashtags_remove_confirm_title, hashtag.name)) },
+            text = { Text(stringResource(R.string.hashtags_remove_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     onRemoveHashtag(hashtag)
                     removingId = null
                 }) {
-                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.hashtags_remove), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { removingId = null }) { Text("Cancel") }
+                TextButton(onClick = { removingId = null }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }

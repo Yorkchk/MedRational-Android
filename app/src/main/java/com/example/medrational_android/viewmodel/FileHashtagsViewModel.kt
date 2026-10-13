@@ -2,9 +2,11 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.Hashtag
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,9 +23,9 @@ sealed interface HashtagsUiState {
         // An add or rename is in flight; admin controls are disabled meanwhile
         val busy: Boolean = false,
         // One-shot feedback for a failed action, cleared by onMessageShown()
-        val message: String? = null
+        val message: UiText? = null
     ) : HashtagsUiState
-    data class Error(val message: String) : HashtagsUiState
+    data class Error(val message: UiText) : HashtagsUiState
 }
 
 /**
@@ -48,12 +50,12 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
                 if (response.isSuccessful && body != null) {
                     HashtagsUiState.Success(body.sortedByName())
                 } else {
-                    HashtagsUiState.Error("Couldn't load hashtags (HTTP ${response.code()}).")
+                    HashtagsUiState.Error(UiText.Res(R.string.hashtags_error_load, listOf(response.code())))
                 }
             } catch (e: IOException) {
-                HashtagsUiState.Error("Network error while loading hashtags.")
+                HashtagsUiState.Error(UiText.Res(R.string.hashtags_error_load_network))
             } catch (e: HttpException) {
-                HashtagsUiState.Error("Couldn't load hashtags (HTTP ${e.code()}).")
+                HashtagsUiState.Error(UiText.Res(R.string.hashtags_error_load, listOf(e.code())))
             }
         }
     }
@@ -90,7 +92,7 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
             }
             val error = detach(fileId, hashtag)
             if (error != null) {
-                finishWithMessage("Added #$name but couldn't remove #${hashtag.name}. $error")
+                finishWithMessage(UiText.Res(R.string.hashtags_rename_partial, listOf(name, hashtag.name, error)))
             } else {
                 _uiState.update { state ->
                     if (state is HashtagsUiState.Success) {
@@ -116,7 +118,7 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
                 if (state is HashtagsUiState.Success) {
                     state.copy(
                         hashtags = (state.hashtags + hashtag).distinctBy { it.id }.sortedByName(),
-                        message = "Couldn't remove #${hashtag.name}. $error"
+                        message = UiText.Res(R.string.hashtags_remove_failed, listOf(hashtag.name, error))
                     )
                 } else {
                     state
@@ -133,7 +135,7 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
 
     // Replaces the list with the backend's view of the file on success; returns an error message otherwise.
     // Leaves busy set so a rename stays locked until its detach finishes.
-    private suspend fun attach(fileId: Long, names: List<String>): String? = try {
+    private suspend fun attach(fileId: Long, names: List<String>): UiText? = try {
         val response = api.attachHashtags(fileId, AttachHashtagsRequest(names))
         val body = response.body()
         if (response.isSuccessful && body != null) {
@@ -142,21 +144,21 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
             }
             null
         } else {
-            "Couldn't save hashtags (HTTP ${response.code()})."
+            UiText.Res(R.string.hashtags_error_save, listOf(response.code()))
         }
     } catch (e: IOException) {
-        "Network error. Check your connection and try again."
+        UiText.Res(R.string.error_network)
     } catch (e: HttpException) {
-        "Couldn't save hashtags (HTTP ${e.code()})."
+        UiText.Res(R.string.hashtags_error_save, listOf(e.code()))
     }
 
-    private suspend fun detach(fileId: Long, hashtag: Hashtag): String? = try {
+    private suspend fun detach(fileId: Long, hashtag: Hashtag): UiText? = try {
         val response = api.detachHashtag(fileId, hashtag.id)
-        if (response.isSuccessful) null else "HTTP ${response.code()}."
+        if (response.isSuccessful) null else UiText.Res(R.string.error_http_code, listOf(response.code()))
     } catch (e: IOException) {
-        "Network error. Check your connection and try again."
+        UiText.Res(R.string.error_network)
     } catch (e: HttpException) {
-        "HTTP ${e.code()}."
+        UiText.Res(R.string.error_http_code, listOf(e.code()))
     }
 
     private fun setBusy(busy: Boolean) {
@@ -165,7 +167,7 @@ class FileHashtagsViewModel(private val api: MedRationalApi) : ViewModel() {
         }
     }
 
-    private fun finishWithMessage(message: String) {
+    private fun finishWithMessage(message: UiText) {
         _uiState.update { state ->
             if (state is HashtagsUiState.Success) state.copy(busy = false, message = message) else state
         }

@@ -2,11 +2,13 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.WorkshopAttachment
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.preview.saveToCache
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +51,7 @@ class WorkshopAttachmentPreviewsViewModel(
     fun onPreviewCorrupted(attachmentId: Long) {
         val preview = _previews.value[attachmentId] as? PreviewState.Pdf ?: return
         preview.file.delete()
-        setPreview(attachmentId, PreviewState.Unavailable("The preview couldn't be opened."))
+        setPreview(attachmentId, PreviewState.Unavailable(UiText.Res(R.string.preview_error_corrupted)))
     }
 
     private fun isImage(attachment: WorkshopAttachment) = isImageFile(attachment.fileName, null)
@@ -73,13 +75,13 @@ class WorkshopAttachmentPreviewsViewModel(
                 when {
                     response.isSuccessful && body != null -> PreviewState.Pdf(saveToCache(body, cached, ioDispatcher))
                     response.code() == 415 -> PreviewState.NotSupported
-                    response.code() == 503 -> PreviewState.Unavailable("The preview can't be generated right now.")
-                    else -> PreviewState.Unavailable("Preview failed to load (HTTP ${response.code()}).")
+                    response.code() == 503 -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_busy))
+                    else -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(response.code())))
                 }
             } catch (e: IOException) {
-                PreviewState.Unavailable("Network error while loading the preview.")
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_network))
             } catch (e: HttpException) {
-                PreviewState.Unavailable("Preview failed to load (HTTP ${e.code()}).")
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(e.code())))
             }
             setPreview(attachmentId, preview)
         }

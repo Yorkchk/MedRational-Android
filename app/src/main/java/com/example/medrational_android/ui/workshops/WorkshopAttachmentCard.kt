@@ -43,16 +43,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.WorkshopAttachment
 import com.example.medrational_android.data.model.fileExtension
 import com.example.medrational_android.data.preview.PdfDocumentRenderer
 import com.example.medrational_android.ui.files.FullScreenViewer
 import com.example.medrational_android.ui.files.PdfPage
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.UiText
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.PreviewState
 import java.util.Locale
 
@@ -148,13 +152,13 @@ fun WorkshopAttachmentCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = attachmentMeta(attachment.fileName, preview, renderer?.pageCount, imageFailed),
+                    text = attachmentMeta(attachment.fileName, preview, renderer?.pageCount, imageFailed).asString(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (preview is PreviewState.Unavailable) {
                     TextButton(onClick = onRetryPreviewClick, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                        Text("Retry preview")
+                        Text(stringResource(R.string.workshop_retry_preview))
                     }
                 } else {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -166,12 +170,12 @@ fun WorkshopAttachmentCard(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Download")
+                        Text(stringResource(R.string.common_download))
                     }
                     if (onDeleteClick != null) {
                         Spacer(modifier = Modifier.weight(1f))
                         IconButton(onClick = onDeleteClick, enabled = deleteEnabled) {
-                            Icon(Icons.Default.Delete, contentDescription = "Remove ${attachment.fileName}")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.attachment_remove_named, attachment.fileName))
                         }
                     }
                 }
@@ -210,15 +214,19 @@ fun WorkshopAttachmentCard(
 }
 
 // "PDF · 3 pages", "DOCX · 2 pages", "Image", "ZIP · No preview"
-internal fun attachmentMeta(fileName: String, preview: PreviewState?, pageCount: Int?, imageFailed: Boolean): String {
+internal fun attachmentMeta(fileName: String, preview: PreviewState?, pageCount: Int?, imageFailed: Boolean): UiText {
     val type = fileExtension(fileName).uppercase(Locale.ROOT)
     val detail = when {
-        preview is PreviewState.Image -> return if (imageFailed) "Image · Can't be shown" else "Image"
-        pageCount != null -> if (pageCount == 1) "1 page" else "$pageCount pages"
-        preview == null || preview == PreviewState.Loading -> "Preparing preview…"
-        preview is PreviewState.Unavailable -> "Preview unavailable"
-        preview == PreviewState.NotSupported -> "No preview"
+        preview is PreviewState.Image -> return UiText.Res(if (imageFailed) R.string.attachment_image_failed else R.string.attachment_image)
+        pageCount != null -> UiText.Plural(R.plurals.attachment_pages, pageCount)
+        preview == null || preview == PreviewState.Loading -> UiText.Res(R.string.preview_preparing)
+        preview is PreviewState.Unavailable -> UiText.Res(R.string.preview_unavailable)
+        preview == PreviewState.NotSupported -> UiText.Res(R.string.attachment_no_preview)
         else -> null
     }
-    return listOfNotNull(type.ifEmpty { null }, detail).joinToString(" · ")
+    return when {
+        detail == null -> UiText.Res(R.string.attachment_type, listOf(type))
+        type.isEmpty() -> detail
+        else -> UiText.Res(R.string.attachment_meta, listOf(type, detail))
+    }
 }

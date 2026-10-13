@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="favorites_error_session">User session not found. Please log in again.</string>
+    <string name="favorites_error_load">Couldn\'t load your favorites (HTTP %1$d).</string>
+    <string name="search_error">Search failed (HTTP %1$d).</string>
+    <string name="novelties_error_load">Couldn\'t load what\'s new (HTTP %1$d).</string>
+    <string name="downloads_error_load">Couldn\'t load your downloads (HTTP %1$d).</string>
+    <string name="favorites_title">My saved files</string>
+    <string name="favorites_empty">No saved files yet.</string>
+    <string name="favorites_empty_hint">Tap the heart icon on any clinical study file to bookmark it here.</string>
+    <string name="favorites_details">Details</string>
+    <string name="favorites_removed">Removed from favorites</string>
+    <string name="file_untitled">Untitled file</string>
+    <string name="favorites_general">General</string>
+    <string name="downloads_title">Recent downloads</string>
+    <string name="downloads_downloaded_on">Downloaded %1$s</string>
+    <string name="downloads_empty">No downloads yet.</string>
+    <string name="downloads_empty_hint">Files you download will appear here so you can open them again quickly.</string>
+    <string name="search_title">Discover &amp; search</string>
+    <string name="search_placeholder">Search files by category, reasoning</string>
+    <string name="search_all_categories">All categories</string>
+    <string name="search_idle">Type a query or pick a category above to find files.</string>
+    <string name="search_no_results">No matching files found.</string>
+    <string name="novelties_title">What\'s new</string>
+    <string name="novelties_caught_up_latest">You\'re all caught up. These are the latest uploads.</string>
+    <string name="novelties_load_more_failed">Couldn\'t load more. Retry</string>
+    <string name="novelties_new_badge">NEW</string>
+    <string name="novelties_uploaded_on">Uploaded %1$s</string>
+    <string name="novelties_caught_up">You\'re all caught up.</string>
+    <string name="novelties_empty_hint">Newly uploaded files will appear here.</string>
+    <plurals name="novelties_new_count">
+        <item quantity="one">%d new file since your last visit</item>
+        <item quantity="other">%d new files since your last visit</item>
+    </plurals>
+</resources>

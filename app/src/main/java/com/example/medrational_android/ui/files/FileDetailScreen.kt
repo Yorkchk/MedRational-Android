@@ -63,11 +63,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
@@ -77,6 +80,8 @@ import com.example.medrational_android.data.model.fileExtension
 import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.fileNameWithoutExtension
 import com.example.medrational_android.data.preview.PdfDocumentRenderer
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.FileDetailUiState
 import com.example.medrational_android.viewmodel.FileDetailViewModel
@@ -127,7 +132,7 @@ fun FileDetailScreen(
     val ratingMessage = (ratingState as? FileRatingUiState.Success)?.message
     LaunchedEffect(ratingMessage) {
         if (ratingMessage != null) {
-            Toast.makeText(context, ratingMessage, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, ratingMessage.asString(context), Toast.LENGTH_LONG).show()
             ratingViewModel.onMessageShown()
         }
     }
@@ -137,7 +142,7 @@ fun FileDetailScreen(
     val hashtagMessage = loadedHashtags?.message
     LaunchedEffect(hashtagMessage) {
         if (hashtagMessage != null) {
-            Toast.makeText(context, hashtagMessage, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, hashtagMessage.asString(context), Toast.LENGTH_LONG).show()
             hashtagsViewModel.onMessageShown()
         }
     }
@@ -149,7 +154,7 @@ fun FileDetailScreen(
 
     val onDownload: (StudyFile) -> Unit = { file ->
         downloader.downloadFile("${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}", file.fileName)
-        Toast.makeText(context, "Downloading ${file.fileName}...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
@@ -167,7 +172,7 @@ fun FileDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
@@ -176,12 +181,12 @@ fun FileDetailScreen(
                         IconButton(onClick = { favoriteViewModel.toggleFavorite(success.file.id) }) {
                             Icon(
                                 imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = if (isFavorited) "Remove from favorites" else "Add to favorites",
+                                contentDescription = if (isFavorited) stringResource(R.string.favorite_remove) else stringResource(R.string.favorite_add),
                                 tint = if (isFavorited) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         IconButton(onClick = { onDownload(success.file) }) {
-                            Icon(Icons.Default.Download, contentDescription = "Download")
+                            Icon(Icons.Default.Download, contentDescription = stringResource(R.string.common_download))
                         }
                     }
                 }
@@ -200,9 +205,9 @@ fun FileDetailScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        Text(text = state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.load(reasoningId, fileId) }) { Text("Retry") }
+                        Button(onClick = { viewModel.load(reasoningId, fileId) }) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is FileDetailUiState.Success -> FileDetailContent(
@@ -313,11 +318,11 @@ private fun BoxScope.FileDetailContent(
                 // e.g. HEIC before Android 9 or AVIF before Android 12, which the OS can't decode
                 item(key = "image-failed") {
                     PreviewMessage(
-                        title = "Preview unavailable",
-                        body = "This image couldn't be displayed. Download it to open it in another app.",
+                        title = stringResource(R.string.preview_unavailable),
+                        body = stringResource(R.string.preview_image_failed),
                         modifier = Modifier.padding(horizontal = 16.dp),
                         leading = { Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
-                        action = { Button(onClick = onDownload) { Text("Download") } }
+                        action = { Button(onClick = onDownload) { Text(stringResource(R.string.common_download)) } }
                     )
                 }
             } else {
@@ -340,8 +345,8 @@ private fun BoxScope.FileDetailContent(
             }
             PreviewState.Loading -> item(key = "preview-loading") {
                 PreviewMessage(
-                    title = "Preparing preview…",
-                    body = "Office documents can take a few seconds the first time.",
+                    title = stringResource(R.string.preview_preparing),
+                    body = stringResource(R.string.preview_preparing_hint),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     leading = { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
                 )
@@ -349,23 +354,23 @@ private fun BoxScope.FileDetailContent(
             PreviewState.NotSupported -> item(key = "preview-unsupported") {
                 val extension = fileExtension(state.file.fileName)
                 PreviewMessage(
-                    title = if (extension.isNotEmpty()) "No preview for .$extension files" else "No preview for this file",
-                    body = "Previews are available for PDF, Word, PowerPoint, Excel and image files. Download the file to open it.",
+                    title = if (extension.isNotEmpty()) stringResource(R.string.preview_none_for_extension, extension) else stringResource(R.string.preview_none),
+                    body = stringResource(R.string.preview_supported_types),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     leading = { Icon(Icons.Default.VisibilityOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
-                    action = { Button(onClick = onDownload) { Text("Download") } }
+                    action = { Button(onClick = onDownload) { Text(stringResource(R.string.common_download)) } }
                 )
             }
             is PreviewState.Unavailable -> item(key = "preview-unavailable") {
                 PreviewMessage(
-                    title = "Preview unavailable",
-                    body = preview.message,
+                    title = stringResource(R.string.preview_unavailable),
+                    body = preview.message.asString(),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     leading = { Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
                     action = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = onDownload) { Text("Download") }
-                            Button(onClick = onRetryPreview) { Text("Retry") }
+                            OutlinedButton(onClick = onDownload) { Text(stringResource(R.string.common_download)) }
+                            Button(onClick = onRetryPreview) { Text(stringResource(R.string.common_retry)) }
                         }
                     }
                 )
@@ -414,7 +419,7 @@ private fun FileHeader(file: StudyFile, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
-        val meta = fileMetaLine(file.fileName, file.fileType, file.fileSizeBytes, file.uploadedAt)
+        val meta = fileMetaLine(file.fileName, file.fileType, file.fileSizeBytes, file.uploadedAt, appLocale())
         if (meta.isNotEmpty()) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -439,7 +444,7 @@ private fun ReasoningCard(reasoning: Reasoning, modifier: Modifier = Modifier) {
     ) {
         Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 4.dp)) {
             Text(
-                text = "From reasoning",
+                text = stringResource(R.string.file_from_reasoning),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -460,7 +465,7 @@ private fun ReasoningCard(reasoning: Reasoning, modifier: Modifier = Modifier) {
             }
             if (overflows || expanded) {
                 TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Show less" else "Show more")
+                    Text(if (expanded) stringResource(R.string.show_less) else stringResource(R.string.show_more))
                 }
             } else {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -478,16 +483,15 @@ private fun PreviewSectionHeader(
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = when (pageCount) {
-                null -> "Preview"
-                1 -> "Preview · 1 page"
-                else -> "Preview · $pageCount pages"
+                null -> stringResource(R.string.preview_title)
+                else -> pluralStringResource(R.plurals.preview_title_pages, pageCount, pageCount)
             },
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f)
         )
         IconButton(onClick = onFullScreen) {
-            Icon(Icons.Default.Fullscreen, contentDescription = "Open full screen")
+            Icon(Icons.Default.Fullscreen, contentDescription = stringResource(R.string.preview_open_fullscreen))
         }
     }
 }

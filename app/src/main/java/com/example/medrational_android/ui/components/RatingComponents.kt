@@ -14,10 +14,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.ui.theme.RatingStar
 import java.util.Locale
@@ -25,7 +28,8 @@ import java.util.Locale
 // "4.3" with one decimal whatever the device locale, to match the backend's rounding
 fun formatAverage(avgRating: Double): String = String.format(Locale.US, "%.1f", avgRating)
 
-fun ratingCountLabel(totalRatings: Int): String = if (totalRatings == 1) "1 rating" else "$totalRatings ratings"
+@Composable
+fun ratingCountLabel(totalRatings: Int): String = pluralStringResource(R.plurals.rating_count, totalRatings, totalRatings)
 
 /** Compact "★ 4.3 (12)" for list rows; "No ratings yet" until someone rates the file. */
 @Composable
@@ -34,8 +38,8 @@ fun RatingBadge(
     totalRatings: Int,
     modifier: Modifier = Modifier
 ) {
-    val description = if (totalRatings == 0) "No ratings yet"
-    else "Rated ${formatAverage(avgRating)} out of 5, ${ratingCountLabel(totalRatings)}"
+    val description = if (totalRatings == 0) stringResource(R.string.rating_none)
+    else stringResource(R.string.rating_description, formatAverage(avgRating), ratingCountLabel(totalRatings))
     Row(
         modifier = modifier.semantics(mergeDescendants = true) { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
@@ -49,7 +53,7 @@ fun RatingBadge(
                 modifier = Modifier.size(14.dp)
             )
             Text(
-                text = "No ratings yet",
+                text = stringResource(R.string.rating_none),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -127,7 +131,7 @@ fun StarRatingInput(
             IconButton(onClick = { onRate(star) }, enabled = enabled) {
                 Icon(
                     imageVector = if (filled) Icons.Filled.Star else Icons.Filled.StarBorder,
-                    contentDescription = if (star == 1) "Rate 1 star" else "Rate $star stars",
+                    contentDescription = pluralStringResource(R.plurals.rating_rate_stars, star, star),
                     tint = if (filled) RatingStar else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(32.dp)
                 )

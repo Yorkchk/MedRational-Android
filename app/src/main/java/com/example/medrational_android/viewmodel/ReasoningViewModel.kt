@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.VisibleForTesting
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
@@ -14,6 +15,7 @@ import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.upload.describePickedFile
 import com.example.medrational_android.data.upload.toPart
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +27,7 @@ import java.io.IOException
 sealed interface ReasoningUiState {
     object Loading : ReasoningUiState
     data class Success(val reasonings: List<Reasoning>) : ReasoningUiState
-    data class Error(val message: String) : ReasoningUiState
+    data class Error(val message: UiText) : ReasoningUiState
 }
 
 // Every parameter has a default, so the no-arg constructor used by viewModel() in MainActivity still exists
@@ -38,8 +40,8 @@ class ReasoningViewModel(
     val uiState: StateFlow<ReasoningUiState> = _uiState.asStateFlow()
 
     // One-shot upload feedback, cleared by onMessageShown()
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     private var currentCategoryId: Long = 0L
 
@@ -54,10 +56,10 @@ class ReasoningViewModel(
                     ratingStore.seed(reasonings.flatMap { it.files.orEmpty() }.map { FileRatingSummary(it.id, it.avgRating, it.totalRatings) })
                     _uiState.value = ReasoningUiState.Success(reasonings)
                 } else {
-                    _uiState.value = ReasoningUiState.Error("Failed to fetch reasonings")
+                    _uiState.value = ReasoningUiState.Error(UiText.Res(R.string.reasonings_error_load, listOf(response.code())))
                 }
             } catch (e: Exception) {
-                _uiState.value = ReasoningUiState.Error(e.localizedMessage ?: "Unknown error")
+                _uiState.value = ReasoningUiState.Error(UiText.Res(R.string.error_network))
             }
         }
     }
@@ -106,11 +108,11 @@ class ReasoningViewModel(
             val part = try {
                 describePickedFile(context, uri).toPart(context, "file")
             } catch (e: IOException) {
-                _message.value = "Couldn't read the selected file."
+                _message.value = UiText.Res(R.string.upload_error_read_file)
                 return@launch
             } catch (e: SecurityException) {
                 // The picker's permission on the Uri can be revoked before we read it
-                _message.value = "Couldn't read the selected file."
+                _message.value = UiText.Res(R.string.upload_error_read_file)
                 return@launch
             }
             uploadAndTag(reasoningId, part, tags)
@@ -129,12 +131,12 @@ class ReasoningViewModel(
             null
         }
         if (uploaded == null) {
-            _message.value = "Upload failed. Check your connection and try again."
+            _message.value = UiText.Res(R.string.upload_error_failed)
             return
         }
 
         _message.value = if (tags.isEmpty()) {
-            "Uploaded ${uploaded.fileName}"
+            UiText.Res(R.string.upload_done, listOf(uploaded.fileName))
         } else {
             val tagged = try {
                 api.attachHashtags(uploaded.id, AttachHashtagsRequest(tags)).isSuccessful
@@ -144,9 +146,9 @@ class ReasoningViewModel(
                 false
             }
             if (tagged) {
-                "Uploaded and tagged ${uploaded.fileName}"
+                UiText.Res(R.string.upload_done_tagged, listOf(uploaded.fileName))
             } else {
-                "Uploaded ${uploaded.fileName}, but its hashtags couldn't be saved."
+                UiText.Res(R.string.upload_done_tags_failed, listOf(uploaded.fileName))
             }
         }
         loadReasoningsForCategory(currentCategoryId)

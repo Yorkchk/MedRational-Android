@@ -5,8 +5,10 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.example.medrational_android.R
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
+import java.util.IllegalFormatException
 
 /**
  * Workshop reminders arrive as Firebase Cloud Messaging pushes. The backend scheduler publishes
@@ -44,8 +46,10 @@ object WorkshopPush {
     /** The channel pushes are shown on; it must exist before the first push arrives. */
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(CHANNEL_ID, "Workshop reminders", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "When a workshop's registration opens and closes, with a reminder 10 minutes before each"
+        // Called at every start, so the name follows the app's language
+        val name = context.getString(R.string.push_channel_name)
+        val channel = NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_HIGH).apply {
+            description = context.getString(R.string.push_channel_description)
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
@@ -63,3 +67,17 @@ fun workshopRoute(projectId: Long): String = "workshops/$projectId"
  */
 fun routeForPushTap(projectId: Long, isLoggedIn: Boolean): String =
     if (isLoggedIn) workshopRoute(projectId) else "login"
+
+/**
+ * A push's title or body in the app's language: the app string named [key] (sent by the backend
+ * as title_loc_key/body_loc_key) filled with [args], or [fallback], the backend's English text, when
+ * there is no key or the app doesn't know it. [template] looks a string up by name.
+ */
+fun localizedPushText(key: String?, args: List<String>, fallback: String?, template: (String) -> String?): String? {
+    val format = key?.let(template) ?: return fallback
+    return try {
+        String.format(format, *args.toTypedArray())
+    } catch (e: IllegalFormatException) {
+        fallback
+    }
+}

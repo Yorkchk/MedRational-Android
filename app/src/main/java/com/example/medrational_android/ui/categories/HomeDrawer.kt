@@ -1,5 +1,6 @@
 package com.example.medrational_android.ui.categories
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -28,31 +29,33 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 
 enum class DrawerDestination { HOME, SEARCH, NOVELTIES, WORKSHOPS, FAVORITES, DOWNLOADS, SUGGESTIONS, PROFILE, SIGN_OUT }
 
-data class DrawerEntry(val destination: DrawerDestination, val label: String)
+data class DrawerEntry(val destination: DrawerDestination, @StringRes val label: Int)
 
 /** Entries of the home screen's side menu, top to bottom. Sign out is always last. */
 fun homeDrawerEntries(isAdmin: Boolean, isLoggedIn: Boolean): List<DrawerEntry> = buildList {
-    add(DrawerEntry(DrawerDestination.HOME, "Home"))
-    add(DrawerEntry(DrawerDestination.SEARCH, "Search"))
+    add(DrawerEntry(DrawerDestination.HOME, R.string.drawer_home))
+    add(DrawerEntry(DrawerDestination.SEARCH, R.string.drawer_search))
     // What's new is relative to the account's last visit, so it needs a signed-in user
     if (isLoggedIn) {
-        add(DrawerEntry(DrawerDestination.NOVELTIES, "What's new"))
+        add(DrawerEntry(DrawerDestination.NOVELTIES, R.string.drawer_novelties))
         // The workshops API needs a signed-in user
-        add(DrawerEntry(DrawerDestination.WORKSHOPS, "Projects"))
+        add(DrawerEntry(DrawerDestination.WORKSHOPS, R.string.drawer_projects))
     }
-    add(DrawerEntry(DrawerDestination.FAVORITES, "Favorites"))
-    add(DrawerEntry(DrawerDestination.DOWNLOADS, "Recent downloads"))
+    add(DrawerEntry(DrawerDestination.FAVORITES, R.string.drawer_favorites))
+    add(DrawerEntry(DrawerDestination.DOWNLOADS, R.string.drawer_downloads))
     // Suggestions are tied to an account, so they need a signed-in user
     if (isLoggedIn) {
-        add(DrawerEntry(DrawerDestination.SUGGESTIONS, if (isAdmin) "Suggestions inbox" else "Suggestions"))
-        add(DrawerEntry(DrawerDestination.PROFILE, "Profile"))
-        add(DrawerEntry(DrawerDestination.SIGN_OUT, "Sign out"))
+        add(DrawerEntry(DrawerDestination.SUGGESTIONS, if (isAdmin) R.string.drawer_suggestions_inbox else R.string.drawer_suggestions))
+        add(DrawerEntry(DrawerDestination.PROFILE, R.string.drawer_profile))
+        add(DrawerEntry(DrawerDestination.SIGN_OUT, R.string.home_sign_out))
     }
 }
 
@@ -90,7 +93,7 @@ fun HomeDrawerContent(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
                 }
                 NavigationDrawerItem(
-                    label = { Text(entry.label) },
+                    label = { Text(stringResource(entry.label)) },
                     icon = { Icon(entry.destination.icon(), contentDescription = null) },
                     badge = if (entry.destination == DrawerDestination.NOVELTIES && noveltyCount > 0) {
                         { Badge { Text(formatBadgeCount(noveltyCount)) } }
@@ -150,7 +153,7 @@ private fun DrawerHeader(userName: String?, email: String?, isAdmin: Boolean) {
         }
         if (isAdmin) {
             Spacer(modifier = Modifier.height(8.dp))
-            SuggestionChip(onClick = {}, label = { Text("Admin") })
+            SuggestionChip(onClick = {}, label = { Text(stringResource(R.string.drawer_admin)) })
         }
     }
 }

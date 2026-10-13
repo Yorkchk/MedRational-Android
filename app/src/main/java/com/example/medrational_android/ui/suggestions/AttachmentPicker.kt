@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import com.example.medrational_android.R
 import com.example.medrational_android.data.upload.PickedFile
 import com.example.medrational_android.data.upload.describePickedFile
 import com.example.medrational_android.data.upload.exceedsLimit
@@ -35,8 +36,8 @@ fun rememberAttachmentPicker(onPicked: (PickedFile) -> Unit): () -> Unit {
                 null
             }
             when {
-                picked == null -> toast(context, "Couldn't read the selected file.")
-                picked.exceedsLimit() -> toast(context, "Files must be 10 MB or smaller.")
+                picked == null -> toast(context, context.getString(R.string.attachment_error_read))
+                picked.exceedsLimit() -> toast(context, context.getString(R.string.error_file_too_large))
                 else -> onPicked(picked)
             }
         }
@@ -53,10 +54,10 @@ suspend fun readAttachment(context: Context, file: PickedFile?): Result<Multipar
     return try {
         Result.success(file.toPart(context, "file"))
     } catch (e: IOException) {
-        toast(context, "Couldn't read ${file.name}.")
+        toast(context, context.getString(R.string.attachment_error_read_named, file.name))
         Result.failure(e)
     } catch (e: SecurityException) {
-        toast(context, "Couldn't read ${file.name}.")
+        toast(context, context.getString(R.string.attachment_error_read_named, file.name))
         Result.failure(e)
     }
 }

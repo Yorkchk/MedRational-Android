@@ -30,10 +30,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.ui.components.OtpCodeField
+import com.example.medrational_android.ui.text.UiText
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.ChangeEmailUiState
 import com.example.medrational_android.viewmodel.ChangeEmailViewModel
 
@@ -56,10 +60,10 @@ fun ChangeEmailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Change email", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.profile_change_email), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -77,7 +81,7 @@ fun ChangeEmailScreen(
                 is ChangeEmailUiState.EnterEmail -> {
                     if (currentEmail != null) {
                         Text(
-                            "Current email: $currentEmail",
+                            stringResource(R.string.profile_current_email, currentEmail),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -85,20 +89,20 @@ fun ChangeEmailScreen(
                     OutlinedTextField(
                         value = newEmail,
                         onValueChange = { newEmail = it },
-                        label = { Text("New email") },
+                        label = { Text(stringResource(R.string.profile_new_email)) },
                         singleLine = true,
                         enabled = !state.isSending,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        "We'll send a 6-digit code to the new address to confirm it's yours.",
+                        stringResource(R.string.profile_new_email_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     state.error?.let { ErrorText(it) }
                     BusyButton(
-                        text = "Send code",
+                        text = stringResource(R.string.profile_send_code),
                         isBusy = state.isSending,
                         enabled = newEmail.isNotBlank(),
                         onClick = {
@@ -108,7 +112,7 @@ fun ChangeEmailScreen(
                     )
                 }
                 is ChangeEmailUiState.EnterCode -> {
-                    Text("We sent a code to ${state.newEmail}.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.profile_code_sent_to, state.newEmail), style = MaterialTheme.typography.bodyLarge)
                     OtpCodeField(
                         value = code,
                         onValueChange = { code = it },
@@ -116,17 +120,17 @@ fun ChangeEmailScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     state.notice?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(it.asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     state.error?.let { ErrorText(it) }
                     BusyButton(
-                        text = "Confirm new email",
+                        text = stringResource(R.string.profile_confirm_new_email),
                         isBusy = state.isBusy,
                         enabled = code.length == 6,
                         onClick = { viewModel.confirm(code) }
                     )
-                    TextButton(onClick = viewModel::resendCode, enabled = !state.isBusy) { Text("Resend code") }
-                    TextButton(onClick = viewModel::editEmail, enabled = !state.isBusy) { Text("Use a different email") }
+                    TextButton(onClick = viewModel::resendCode, enabled = !state.isBusy) { Text(stringResource(R.string.profile_resend_code)) }
+                    TextButton(onClick = viewModel::editEmail, enabled = !state.isBusy) { Text(stringResource(R.string.profile_use_different_email)) }
                 }
                 // Navigating away
                 is ChangeEmailUiState.Done -> Unit
@@ -136,9 +140,9 @@ fun ChangeEmailScreen(
 }
 
 @Composable
-internal fun ErrorText(message: String, modifier: Modifier = Modifier) {
+internal fun ErrorText(message: UiText, modifier: Modifier = Modifier) {
     Text(
-        text = message,
+        text = message.asString(),
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodyMedium,
         modifier = modifier

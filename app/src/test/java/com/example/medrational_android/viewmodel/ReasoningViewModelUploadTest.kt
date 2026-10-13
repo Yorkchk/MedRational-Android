@@ -1,9 +1,11 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.ui.text.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -48,7 +50,7 @@ class ReasoningViewModelUploadTest {
         viewModel.uploadAndTag(REASONING_ID, part, listOf("ecg", "cardio"))
 
         coVerify(exactly = 1) { api.attachHashtags(FILE_ID, AttachHashtagsRequest(listOf("ecg", "cardio"))) }
-        assertEquals("Uploaded and tagged ecg.pdf", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.upload_done_tagged, listOf("ecg.pdf")), viewModel.message.value)
     }
 
     @Test
@@ -59,7 +61,7 @@ class ReasoningViewModelUploadTest {
         viewModel.uploadAndTag(REASONING_ID, part, emptyList())
 
         coVerify(exactly = 0) { api.attachHashtags(any(), any()) }
-        assertEquals("Uploaded ecg.pdf", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.upload_done, listOf("ecg.pdf")), viewModel.message.value)
     }
 
     @Test
@@ -70,7 +72,7 @@ class ReasoningViewModelUploadTest {
         viewModel.uploadAndTag(REASONING_ID, part, listOf("ecg"))
 
         coVerify(exactly = 0) { api.attachHashtags(any(), any()) }
-        assertEquals("Upload failed. Check your connection and try again.", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.upload_error_failed), viewModel.message.value)
     }
 
     @Test
@@ -81,7 +83,7 @@ class ReasoningViewModelUploadTest {
 
         viewModel.uploadAndTag(REASONING_ID, part, listOf("ecg"))
 
-        assertEquals("Uploaded ecg.pdf, but its hashtags couldn't be saved.", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.upload_done_tags_failed, listOf("ecg.pdf")), viewModel.message.value)
         coVerify { api.getReasoningsByCategory(any()) }
     }
 

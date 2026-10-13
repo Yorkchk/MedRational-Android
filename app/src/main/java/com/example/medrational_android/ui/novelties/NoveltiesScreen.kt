@@ -41,10 +41,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.NoveltyItem
 import com.example.medrational_android.data.model.fileMetaLine
@@ -52,6 +55,8 @@ import com.example.medrational_android.data.model.formatIsoDateTime
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.NoveltiesUiState
 import com.example.medrational_android.viewmodel.NoveltiesViewModel
 
@@ -70,10 +75,10 @@ fun NoveltiesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("What's new", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.novelties_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -91,9 +96,9 @@ fun NoveltiesScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::retry) { Text("Retry") }
+                        Button(onClick = viewModel::retry) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is NoveltiesUiState.Success -> {
@@ -142,9 +147,8 @@ private fun NoveltiesList(
         item(key = "header") {
             Text(
                 text = when (state.newCount) {
-                    0L -> "You're all caught up. These are the latest uploads."
-                    1L -> "1 new file since your last visit"
-                    else -> "${state.newCount} new files since your last visit"
+                    0L -> stringResource(R.string.novelties_caught_up_latest)
+                    else -> pluralStringResource(R.plurals.novelties_new_count, state.newCount.toInt(), state.newCount.toInt())
                 },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
@@ -169,7 +173,7 @@ private fun NoveltiesList(
                     if (state.loadingMore) {
                         CircularProgressIndicator(modifier = Modifier.size(28.dp))
                     } else {
-                        TextButton(onClick = onLoadMore) { Text("Couldn't load more. Retry") }
+                        TextButton(onClick = onLoadMore) { Text(stringResource(R.string.novelties_load_more_failed)) }
                     }
                 }
             }
@@ -210,7 +214,7 @@ private fun NoveltyCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = item.fileName ?: "Untitled file",
+                        text = item.fileName ?: stringResource(R.string.file_untitled),
                         fontWeight = if (item.isNew) FontWeight.Bold else FontWeight.Normal,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
@@ -220,7 +224,7 @@ private fun NoveltyCard(
                     if (item.isNew) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Badge(containerColor = colors.primary, contentColor = colors.onPrimary) {
-                            Text("NEW")
+                            Text(stringResource(R.string.novelties_new_badge))
                         }
                     }
                 }
@@ -235,15 +239,15 @@ private fun NoveltyCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                item.uploadedAt?.let(::formatIsoDateTime)?.let { date ->
+                item.uploadedAt?.let { formatIsoDateTime(it, appLocale()) }?.let { date ->
                     Text(
-                        text = "Uploaded $date",
+                        text = stringResource(R.string.novelties_uploaded_on, date),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
                 }
                 // Type and size only; the upload date is shown above with its time
-                val meta = fileMetaLine(item.fileName, item.fileType, item.fileSizeBytes, uploadedAt = null)
+                val meta = fileMetaLine(item.fileName, item.fileType, item.fileSizeBytes, uploadedAt = null, locale = appLocale())
                 if (meta.isNotEmpty()) {
                     Text(
                         text = meta,
@@ -275,10 +279,10 @@ private fun EmptyNovelties(modifier: Modifier = Modifier) {
             tint = MaterialTheme.colorScheme.outline
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text("You're all caught up.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.novelties_caught_up), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Newly uploaded files will appear here.",
+            stringResource(R.string.novelties_empty_hint),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center

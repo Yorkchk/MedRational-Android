@@ -1,10 +1,15 @@
 package com.example.medrational_android.data.push
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
+import android.os.LocaleList
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -20,8 +25,18 @@ import com.google.firebase.messaging.RemoteMessage
 class MedRationalMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
-        val title = message.notification?.title ?: return
-        val body = message.notification?.body.orEmpty()
+        val push = message.notification ?: return
+        // The backend's English text is only a fallback for an app that doesn't know the key
+        val strings = appLanguageContext()
+        // The backend names the string, so it can only be looked up by name
+        @SuppressLint("DiscouragedApi")
+        val template = { name: String ->
+            strings.resources.getIdentifier(name, "string", packageName).takeIf { it != 0 }?.let(strings::getString)
+        }
+        val title = localizedPushText(push.titleLocalizationKey, push.titleLocalizationArgs.orEmpty().toList(), push.title, template)
+            ?: return
+        val body = localizedPushText(push.bodyLocalizationKey, push.bodyLocalizationArgs.orEmpty().toList(), push.body, template)
+            .orEmpty()
         val projectId = projectIdFromPush(message.data)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -50,6 +65,15 @@ class MedRationalMessagingService : FirebaseMessagingService() {
             .setContentIntent(open)
             .build()
         NotificationManagerCompat.from(this).notify(message.messageId.hashCode(), notification)
+    }
+
+    // Android 13+ gives services the language picked in the profile; older versions only give it to
+    // activities, so it's applied here (the app is open, as this only runs in the foreground)
+    private fun appLanguageContext(): Context {
+        val locales = AppCompatDelegate.getApplicationLocales()
+        if (locales.isEmpty || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return this
+        val config = Configuration(resources.configuration).apply { setLocales(LocaleList.forLanguageTags(locales.toLanguageTags())) }
+        return createConfigurationContext(config)
     }
 
     // Topic subscriptions follow token changes on their own, so there's nothing to send anywhere

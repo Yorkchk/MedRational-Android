@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -33,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,10 +53,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
+import com.example.medrational_android.data.locale.AppLanguage
 import com.example.medrational_android.data.model.UserProfile
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.ProfileSaveState
 import com.example.medrational_android.viewmodel.ProfileUiState
 import com.example.medrational_android.viewmodel.ProfileViewModel
@@ -76,27 +84,28 @@ fun ProfileScreen(
         viewModel.load()
     }
 
+    val profileUpdated = stringResource(R.string.profile_updated)
     LaunchedEffect(saveState) {
         if (saveState is ProfileSaveState.Saved) {
             isEditing = false
             viewModel.clearSaveState()
-            snackbarHostState.showSnackbar("Profile updated")
+            snackbarHostState.showSnackbar(profileUpdated)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.profile_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     if (uiState is ProfileUiState.Success && !isEditing) {
                         IconButton(onClick = { isEditing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit profile")
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.profile_edit))
                         }
                     }
                 }
@@ -116,9 +125,9 @@ fun ProfileScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text("Retry") }
+                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is ProfileUiState.Success -> {
@@ -146,6 +155,7 @@ fun ProfileScreen(
                             onChangeEmailClick = onChangeEmailClick,
                             onChangePasswordClick = onChangePasswordClick
                         )
+                        LanguageCard()
                     }
                 }
             }
@@ -161,12 +171,12 @@ private fun ProfileInfoCard(profile: UserProfile, modifier: Modifier = Modifier)
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ProfileField(label = "First name", value = profile.firstName)
-            ProfileField(label = "Last name", value = profile.lastName)
-            ProfileField(label = "Email", value = profile.email)
-            ProfileField(label = "Phone", value = profile.phoneNumber)
+            ProfileField(label = stringResource(R.string.profile_first_name), value = profile.firstName)
+            ProfileField(label = stringResource(R.string.profile_last_name), value = profile.lastName)
+            ProfileField(label = stringResource(R.string.profile_email), value = profile.email)
+            ProfileField(label = stringResource(R.string.profile_phone), value = profile.phoneNumber)
             if (profile.role.contains("ADMIN", ignoreCase = true)) {
-                SuggestionChip(onClick = {}, label = { Text("Admin") })
+                SuggestionChip(onClick = {}, label = { Text(stringResource(R.string.profile_admin)) })
             }
         }
     }
@@ -177,7 +187,7 @@ private fun ProfileField(label: String, value: String?, modifier: Modifier = Mod
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
-            text = value?.takeIf { it.isNotBlank() } ?: "Not set",
+            text = value?.takeIf { it.isNotBlank() } ?: stringResource(R.string.profile_not_set),
             style = MaterialTheme.typography.bodyLarge,
             color = if (value.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
@@ -206,36 +216,36 @@ private fun EditProfileCard(
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { if (it.length <= 50) firstName = it },
-                label = { Text("First name") },
+                label = { Text(stringResource(R.string.profile_first_name)) },
                 singleLine = true,
                 enabled = !isSaving,
-                supportingText = { Text("${firstName.length}/50") },
+                supportingText = { Text(stringResource(R.string.common_char_count, firstName.length, 50)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = lastName,
                 onValueChange = { if (it.length <= 50) lastName = it },
-                label = { Text("Last name") },
+                label = { Text(stringResource(R.string.profile_last_name)) },
                 singleLine = true,
                 enabled = !isSaving,
-                supportingText = { Text("${lastName.length}/50") },
+                supportingText = { Text(stringResource(R.string.common_char_count, lastName.length, 50)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = phone,
                 onValueChange = { if (it.length <= 10 && it.all { c -> c.isDigit() }) phone = it },
-                label = { Text("Phone (10 digits)") },
+                label = { Text(stringResource(R.string.profile_phone_10_digits)) },
                 singleLine = true,
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
             )
             if (saveState is ProfileSaveState.Error) {
-                Text(saveState.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Text(saveState.message.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onCancel, enabled = !isSaving, modifier = Modifier.weight(1f)) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
                 Button(
                     onClick = { onSave(firstName, lastName, phone) },
@@ -249,7 +259,7 @@ private fun EditProfileCard(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Save")
+                        Text(stringResource(R.string.common_save))
                     }
                 }
             }
@@ -271,15 +281,15 @@ private fun SecurityCard(
         Column {
             SecurityRow(
                 icon = Icons.Default.Email,
-                title = "Change email",
-                subtitle = "We'll send a code to the new address",
+                title = stringResource(R.string.profile_change_email),
+                subtitle = stringResource(R.string.profile_change_email_hint),
                 onClick = onChangeEmailClick
             )
             HorizontalDivider()
             SecurityRow(
                 icon = Icons.Default.Lock,
-                title = "Change password",
-                subtitle = "We'll send a code to your email",
+                title = stringResource(R.string.profile_change_password),
+                subtitle = stringResource(R.string.profile_change_password_hint),
                 onClick = onChangePasswordClick
             )
         }
@@ -312,5 +322,51 @@ private fun SecurityRow(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/** French or English for the app's own text. Picking one recreates the screen in that language. */
+@Composable
+private fun LanguageCard(modifier: Modifier = Modifier) {
+    val current = remember { AppLanguage.current() }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.profile_language), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.profile_language_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            AppLanguage.entries.forEach { language ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = language == current,
+                            onClick = { if (language != current) AppLanguage.set(language) },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = language == current, onClick = null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(language.nativeName, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
     }
 }

@@ -2,10 +2,12 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.SuggestionDetail
 import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.SuggestionSummary
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,16 +21,16 @@ import retrofit2.HttpException
 import java.io.IOException
 
 const val MAX_SUGGESTION_TITLE_LENGTH = 150
-private const val NETWORK_ERROR = "Network error. Check your connection and try again."
+private val NETWORK_ERROR = UiText.Res(R.string.error_network)
 
 // Turns the backend's suggestion error codes into something a user can act on
-internal fun suggestionErrorMessage(code: Int): String = when (code) {
-    409 -> "This suggestion was closed and archived, so no more messages can be added."
-    413 -> "Files must be 10 MB or smaller."
-    415 -> "This file type isn't supported. Use PDF, images, Office documents, TXT or CSV."
-    400 -> "Please fill in every field."
-    404 -> "This suggestion no longer exists."
-    else -> "Something went wrong (HTTP $code). Please try again."
+internal fun suggestionErrorMessage(code: Int): UiText = when (code) {
+    409 -> UiText.Res(R.string.suggestion_error_closed)
+    413 -> UiText.Res(R.string.error_file_too_large)
+    415 -> UiText.Res(R.string.suggestion_error_file_type)
+    400 -> UiText.Res(R.string.suggestion_error_fields)
+    404 -> UiText.Res(R.string.suggestion_error_gone)
+    else -> UiText.Res(R.string.error_generic_http, listOf(code))
 }
 
 private fun String.toTextPart(): RequestBody = toRequestBody("text/plain".toMediaType())
@@ -38,7 +40,7 @@ private fun String.toTextPart(): RequestBody = toRequestBody("text/plain".toMedi
 sealed interface SuggestionListUiState {
     data object Loading : SuggestionListUiState
     data class Success(val suggestions: List<SuggestionSummary>) : SuggestionListUiState
-    data class Error(val message: String) : SuggestionListUiState
+    data class Error(val message: UiText) : SuggestionListUiState
 }
 
 /** Admins see the inbox of every user's suggestions; users see their own. Tabs: PENDING and CLOSED (archived). */
@@ -88,7 +90,7 @@ sealed interface NewSuggestionUiState {
     data object Idle : NewSuggestionUiState
     data object Sending : NewSuggestionUiState
     data class Sent(val suggestionId: Long) : NewSuggestionUiState
-    data class Error(val message: String) : NewSuggestionUiState
+    data class Error(val message: UiText) : NewSuggestionUiState
 }
 
 class NewSuggestionViewModel(private val api: MedRationalApi) : ViewModel() {
@@ -140,7 +142,7 @@ sealed interface SuggestionDetailUiState {
     ) : SuggestionDetailUiState {
         val canPost: Boolean get() = suggestion.status == SuggestionStatus.PENDING
     }
-    data class Error(val message: String) : SuggestionDetailUiState
+    data class Error(val message: UiText) : SuggestionDetailUiState
 }
 
 class SuggestionDetailViewModel(private val api: MedRationalApi) : ViewModel() {
@@ -149,8 +151,8 @@ class SuggestionDetailViewModel(private val api: MedRationalApi) : ViewModel() {
     val uiState: StateFlow<SuggestionDetailUiState> = _uiState.asStateFlow()
 
     // One-shot feedback for a failed action, cleared by onMessageShown()
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     private var suggestionId: Long? = null
 
@@ -254,7 +256,7 @@ class SuggestionDetailViewModel(private val api: MedRationalApi) : ViewModel() {
         SuggestionDetailUiState.Error(suggestionErrorMessage(e.code()))
     }
 
-    private fun fail(message: String) {
+    private fun fail(message: UiText) {
         _message.value = message
         _uiState.update { state ->
             if (state is SuggestionDetailUiState.Success) state.copy(busy = false) else state

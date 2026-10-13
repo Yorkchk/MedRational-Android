@@ -14,14 +14,18 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.SuggestionAttachment
 import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.formatFileSize
 import com.example.medrational_android.data.upload.PickedFile
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.appLocale
 
-private fun sizeLabel(bytes: Long?): String = bytes?.takeIf { it > 0 }?.let { " · ${formatFileSize(it)}" }.orEmpty()
+@Composable
+private fun sizeLabel(bytes: Long?): String = bytes?.takeIf { it > 0 }?.let { " · ${formatFileSize(it, appLocale())}" }.orEmpty()
 
 /** A file already sent with a suggestion or reply; tapping downloads it. */
 @Composable
@@ -74,7 +78,7 @@ fun PickedFileChip(
         trailingIcon = {
             Icon(
                 Icons.Default.Close,
-                contentDescription = "Remove ${file.name}",
+                contentDescription = stringResource(R.string.attachment_remove_named, file.name),
                 modifier = Modifier.size(InputChipDefaults.IconSize)
             )
         }
@@ -87,7 +91,7 @@ fun SuggestionStatusChip(status: SuggestionStatus, modifier: Modifier = Modifier
     SuggestionChip(
         onClick = {},
         modifier = modifier,
-        label = { Text(if (closed) "Closed" else "Pending") },
+        label = { Text(if (closed) stringResource(R.string.suggestion_status_closed) else stringResource(R.string.suggestion_status_pending)) },
         colors = SuggestionChipDefaults.suggestionChipColors(
             containerColor = if (closed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.tertiaryContainer,
             labelColor = if (closed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onTertiaryContainer

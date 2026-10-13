@@ -2,12 +2,14 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.preview.saveToCache
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,7 +29,7 @@ sealed interface FileDetailUiState {
         val reasoning: Reasoning,
         val preview: PreviewState
     ) : FileDetailUiState
-    data class Error(val message: String) : FileDetailUiState
+    data class Error(val message: UiText) : FileDetailUiState
 }
 
 sealed interface PreviewState {
@@ -35,7 +37,7 @@ sealed interface PreviewState {
     data class Pdf(val file: File) : PreviewState
     data class Image(val url: String) : PreviewState
     data object NotSupported : PreviewState
-    data class Unavailable(val message: String) : PreviewState
+    data class Unavailable(val message: UiText) : PreviewState
 }
 
 class FileDetailViewModel(
@@ -57,12 +59,12 @@ class FileDetailViewModel(
                 val response = api.getReasoning(reasoningId)
                 val reasoning = response.body()
                 if (!response.isSuccessful || reasoning == null) {
-                    _uiState.value = FileDetailUiState.Error("Couldn't load this file (HTTP ${response.code()}).")
+                    _uiState.value = FileDetailUiState.Error(UiText.Res(R.string.file_error_load, listOf(response.code())))
                     return@launch
                 }
                 val file = reasoning.files.orEmpty().firstOrNull { it.id == fileId }
                 if (file == null) {
-                    _uiState.value = FileDetailUiState.Error("This file no longer exists.")
+                    _uiState.value = FileDetailUiState.Error(UiText.Res(R.string.file_error_gone))
                     return@launch
                 }
                 _uiState.value = FileDetailUiState.Success(file, reasoning, initialPreview(file))
@@ -70,9 +72,9 @@ class FileDetailViewModel(
                     loadPdfPreview(file.id)
                 }
             } catch (e: IOException) {
-                _uiState.value = FileDetailUiState.Error("Network error. Check your connection and try again.")
+                _uiState.value = FileDetailUiState.Error(UiText.Res(R.string.error_network))
             } catch (e: HttpException) {
-                _uiState.value = FileDetailUiState.Error("Couldn't load this file (HTTP ${e.code()}).")
+                _uiState.value = FileDetailUiState.Error(UiText.Res(R.string.file_error_load, listOf(e.code())))
             }
         }
     }
@@ -89,7 +91,7 @@ class FileDetailViewModel(
         val state = _uiState.value as? FileDetailUiState.Success ?: return
         val preview = state.preview as? PreviewState.Pdf ?: return
         preview.file.delete()
-        setPreview(PreviewState.Unavailable("The preview couldn't be opened."))
+        setPreview(PreviewState.Unavailable(UiText.Res(R.string.preview_error_corrupted)))
     }
 
     private fun initialPreview(file: StudyFile): PreviewState = when {
@@ -112,13 +114,13 @@ class FileDetailViewModel(
                 when {
                     response.isSuccessful && body != null -> PreviewState.Pdf(saveToCache(body, cached, ioDispatcher))
                     response.code() == 415 -> PreviewState.NotSupported
-                    response.code() == 503 -> PreviewState.Unavailable("The preview can't be generated right now.")
-                    else -> PreviewState.Unavailable("Preview failed to load (HTTP ${response.code()}).")
+                    response.code() == 503 -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_busy))
+                    else -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(response.code())))
                 }
             } catch (e: IOException) {
-                PreviewState.Unavailable("Network error while loading the preview.")
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_network))
             } catch (e: HttpException) {
-                PreviewState.Unavailable("Preview failed to load (HTTP ${e.code()}).")
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(e.code())))
             }
             setPreview(preview)
         }
