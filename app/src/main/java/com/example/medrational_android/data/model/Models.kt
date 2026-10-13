@@ -189,8 +189,37 @@ data class UserRegisterRequest(
     val fullName: String,
     val email: String,
     val password: String,
-    val phoneNumber: String? = null
+    val phoneNumber: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null
 )
+
+// The signed-in user's own account (GET/PUT /api/v1/users/me). Role is ROLE_USER or ROLE_ADMIN
+data class UserProfile(
+    val id: Long,
+    val email: String,
+    val firstName: String?,
+    val lastName: String?,
+    val fullName: String?,
+    val phoneNumber: String?,
+    val role: String,
+    val createdAt: String?
+)
+
+// Names and phone change without a code; a null or blank phone removes it
+data class UpdateProfileRequest(
+    val firstName: String,
+    val lastName: String,
+    val phoneNumber: String?
+)
+
+// The code goes to the new address
+data class RequestEmailChangeRequest(val newEmail: String)
+
+data class ConfirmCodeRequest(val code: String)
+
+// The code goes to the current address
+data class ChangePasswordRequest(val code: String, val newPassword: String)
 
 // User OTP verification request
 data class UserVerifyOtpRequest(

@@ -114,7 +114,9 @@ class AuthViewModel(
                         fullName = fullName,
                         email = email.trim(),
                         password = password,
-                        phoneNumber = phone.trim()
+                        phoneNumber = phone.trim(),
+                        firstName = firstName.trim(),
+                        lastName = lastName.trim()
                     )
                 )
                 if (response.isSuccessful && response.body() != null) {
