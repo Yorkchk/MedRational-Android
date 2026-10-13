@@ -11,11 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.AuthUiState
 import com.example.medrational_android.viewmodel.AuthViewModel
 
@@ -53,12 +56,12 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isOtpStep) "Verify Login OTP" else "Log In") },
+                title = { Text(if (isOtpStep) stringResource(R.string.login_verify_title) else stringResource(R.string.auth_log_in)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (isOtpStep) viewModel.resetState() else onBackClick()
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -74,13 +77,13 @@ fun LoginScreen(
         ) {
             if (!isOtpStep) {
                 Text(
-                    text = "Welcome Back",
+                    text = stringResource(R.string.login_welcome_back),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Enter your credentials to receive an authentication code.",
+                    text = stringResource(R.string.login_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -89,7 +92,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email Address") },
+                    label = { Text(stringResource(R.string.auth_email_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
@@ -99,14 +102,14 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.auth_password_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        val description = if (passwordVisible) "Hide password" else "Show password"
+                        val description = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password)
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(imageVector = icon, contentDescription = description)
                         }
@@ -123,19 +126,19 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Send Login Code")
+                        Text(stringResource(R.string.login_send_code))
                     }
                 }
             } else {
                 val currentEmail = (uiState as? AuthUiState.OtpSent)?.email ?: email
                 Text(
-                    text = "Enter 6-Digit Code",
+                    text = stringResource(R.string.login_enter_code),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "We sent a code to $currentEmail",
+                    text = stringResource(R.string.login_code_sent_to, currentEmail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -144,7 +147,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = otpCode,
                     onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpCode = it },
-                    label = { Text("OTP Code") },
+                    label = { Text(stringResource(R.string.login_otp_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -160,21 +163,21 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Verify & Continue")
+                        Text(stringResource(R.string.login_verify_continue))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 TextButton(onClick = { viewModel.resetState() }) {
-                    Text("Back to Login")
+                    Text(stringResource(R.string.login_back_to_login))
                 }
             }
 
             if (uiState is AuthUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (uiState as AuthUiState.Error).error,
+                    text = (uiState as AuthUiState.Error).error.asString(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -184,7 +187,7 @@ fun LoginScreen(
                 onClick = onNavigateToForgotPassword,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("Forgot password?")
+                Text(stringResource(R.string.login_forgot_password))
             }
         }
     }

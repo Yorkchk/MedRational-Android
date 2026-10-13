@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="download_description">Downloading study resource…</string>
+    <string name="download_success">%1$s downloaded successfully</string>
+    <string name="download_failed">Download failed: %1$s</string>
+    <string name="download_error_cannot_resume">Cannot resume transfer</string>
+    <string name="download_error_no_storage">No external storage device found</string>
+    <string name="download_error_file_exists">File already exists</string>
+    <string name="download_error_file">Storage permission or file system error</string>
+    <string name="download_error_http_data">HTTP data error</string>
+    <string name="download_error_space">Not enough storage space</string>
+    <string name="download_error_redirects">Too many redirects</string>
+    <string name="download_error_http_code">Unexpected server response</string>
+    <string name="download_error_code">Error %1$d</string>
+</resources>

@@ -1,5 +1,6 @@
 package com.example.medrational_android.ui.categories
 
+import com.example.medrational_android.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -32,13 +33,13 @@ class HomeDrawerEntriesTest {
 
     @Test
     fun `workshops are listed as Projects`() {
-        assertEquals("Projects", label(DrawerDestination.WORKSHOPS, isAdmin = false))
+        assertEquals(R.string.drawer_projects, label(DrawerDestination.WORKSHOPS, isAdmin = false))
     }
 
     @Test
     fun `admins see the suggestions inbox`() {
-        assertEquals("Suggestions inbox", label(DrawerDestination.SUGGESTIONS, isAdmin = true))
-        assertEquals("Suggestions", label(DrawerDestination.SUGGESTIONS, isAdmin = false))
+        assertEquals(R.string.drawer_suggestions_inbox, label(DrawerDestination.SUGGESTIONS, isAdmin = true))
+        assertEquals(R.string.drawer_suggestions, label(DrawerDestination.SUGGESTIONS, isAdmin = false))
     }
 
     @Test

@@ -7,10 +7,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,6 +31,7 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+import com.example.medrational_android.data.locale.AppLanguage
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.push.WorkshopPush
 import com.example.medrational_android.data.push.projectIdFromPush
@@ -76,13 +77,15 @@ import com.example.medrational_android.viewmodel.NewWorkshopViewModel
 import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
 import com.example.medrational_android.viewmodel.WorkshopListViewModel
 
-class MainActivity : ComponentActivity() {
+// AppCompatActivity applies the language picked in the profile (AppLanguage)
+class MainActivity : AppCompatActivity() {
 
     // Project of a tapped workshop push, opened once the app is showing; consumed by MedRationalApp
     private var pushProjectId by mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLanguage.ensureDefault()
         ApiClient.initialize(this)
         WorkshopPush.ensureChannel(this)
         // Every installed app gets workshop pushes, signed in or not
@@ -272,7 +275,7 @@ fun MedRationalApp(
                 viewModel = changeEmailViewModel,
                 currentEmail = remember { tokenManager.getEmail() },
                 onEmailChanged = {
-                    Toast.makeText(context, "Email updated", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.profile_email_updated, Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 },
                 onBackClick = { navController.popBackStack() }
@@ -286,7 +289,7 @@ fun MedRationalApp(
                 viewModel = changePasswordViewModel,
                 email = remember { tokenManager.getEmail() },
                 onPasswordChanged = {
-                    Toast.makeText(context, "Password changed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.profile_password_changed, Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 },
                 onBackClick = { navController.popBackStack() }

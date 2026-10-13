@@ -1,5 +1,6 @@
 package com.example.medrational_android.data.model
 
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -37,18 +38,30 @@ class FileTypesTest {
 
     @Test
     fun `file sizes use B, KB and MB`() {
-        assertEquals("512 B", formatFileSize(512))
-        assertEquals("2 KB", formatFileSize(2048))
-        assertEquals("2.5 MB", formatFileSize(2_621_440))
+        assertEquals("512 B", formatFileSize(512, Locale.ENGLISH))
+        assertEquals("2 KB", formatFileSize(2048, Locale.ENGLISH))
+        assertEquals("2.5 MB", formatFileSize(2_621_440, Locale.ENGLISH))
+    }
+
+    // French counts in octets and uses a decimal comma
+    @Test
+    fun `file sizes in French use o, Ko and Mo`() {
+        assertEquals("512 o", formatFileSize(512, Locale.FRENCH))
+        assertEquals("2 Ko", formatFileSize(2048, Locale.FRENCH))
+        assertEquals("2,5 Mo", formatFileSize(2_621_440, Locale.FRENCH))
     }
 
     @Test
     fun `meta line joins type, size and upload date`() {
         assertEquals(
             "DOCX · 2 KB · 12 Mar 2026",
-            fileMetaLine("notes.docx", null, 2048, "2026-03-12T10:15:30")
+            fileMetaLine("notes.docx", null, 2048, "2026-03-12T10:15:30", Locale.ENGLISH)
         )
-        assertEquals("PDF", fileMetaLine("a.pdf", "application/pdf", null, "not a date"))
-        assertEquals("ZIP", fileMetaLine("bundle", "application/zip", 0, null))
+        assertEquals("PDF", fileMetaLine("a.pdf", "application/pdf", null, "not a date", Locale.ENGLISH))
+        assertEquals("ZIP", fileMetaLine("bundle", "application/zip", 0, null, Locale.ENGLISH))
+        assertEquals(
+            "DOCX · 2 Ko · 12 mars 2026",
+            fileMetaLine("notes.docx", null, 2048, "2026-03-12T10:15:30", Locale.FRENCH)
+        )
     }
 }

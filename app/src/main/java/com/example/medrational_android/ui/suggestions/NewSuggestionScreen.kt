@@ -36,9 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.upload.PickedFile
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.MAX_SUGGESTION_TITLE_LENGTH
 import com.example.medrational_android.viewmodel.NewSuggestionUiState
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
@@ -67,7 +70,7 @@ fun NewSuggestionScreen(
         when (val state = uiState) {
             is NewSuggestionUiState.Sent -> onSent(state.suggestionId)
             is NewSuggestionUiState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, state.message.asString(context), Toast.LENGTH_LONG).show()
                 viewModel.onErrorShown()
             }
             else -> Unit
@@ -77,10 +80,10 @@ fun NewSuggestionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New suggestion", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.suggestion_new), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -96,7 +99,7 @@ fun NewSuggestionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Tell the admins what you'd like to see improved. They'll reply here.",
+                text = stringResource(R.string.suggestion_new_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -104,7 +107,7 @@ fun NewSuggestionScreen(
                 value = title,
                 onValueChange = { title = it.take(MAX_SUGGESTION_TITLE_LENGTH) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.suggestion_title_label)) },
                 singleLine = true,
                 enabled = !sending,
                 supportingText = { Text("${title.length} / $MAX_SUGGESTION_TITLE_LENGTH") }
@@ -115,7 +118,7 @@ fun NewSuggestionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 160.dp),
-                label = { Text("Description") },
+                label = { Text(stringResource(R.string.suggestion_description_label)) },
                 enabled = !sending,
                 minLines = 6
             )
@@ -126,7 +129,7 @@ fun NewSuggestionScreen(
             } else {
                 OutlinedButton(onClick = pickAttachment, enabled = !sending) {
                     Icon(Icons.Default.AttachFile, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("  Attach a file (optional, max 10 MB)")
+                    Text("  " + stringResource(R.string.suggestion_attach_optional))
                 }
             }
 
@@ -144,7 +147,7 @@ fun NewSuggestionScreen(
                 if (sending) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Send suggestion")
+                    Text(stringResource(R.string.suggestion_send))
                 }
             }
         }

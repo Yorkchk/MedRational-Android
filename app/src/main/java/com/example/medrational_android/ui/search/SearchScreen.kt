@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FileRatingSummary
@@ -30,6 +32,7 @@ import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.SearchUiState
 import com.example.medrational_android.viewmodel.SearchViewModel
 
@@ -53,10 +56,10 @@ fun SearchScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Discover & Search", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.search_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -71,12 +74,12 @@ fun SearchScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { searchViewModel.onQueryChanged(it) },
-                placeholder = { Text("Search files by category, reasoning") },
+                placeholder = { Text(stringResource(R.string.search_placeholder)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { searchViewModel.onQueryChanged("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                         }
                     }
                 },
@@ -97,7 +100,7 @@ fun SearchScreen(
                     FilterChip(
                         selected = selectedCategory == null,
                         onClick = { searchViewModel.onCategorySelected(null) },
-                        label = { Text("All Categories") }
+                        label = { Text(stringResource(R.string.search_all_categories)) }
                     )
                 }
                 items(categories) { category ->
@@ -124,16 +127,16 @@ fun SearchScreen(
                         ) {
                             Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outline)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Type a query or pick a category above to find files.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.search_idle), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     is SearchUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     is SearchUiState.Error -> {
-                        Text(state.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
                     }
                     is SearchUiState.Success -> {
                         if (state.files.isEmpty()) {
-                            Text("No matching files found.", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.search_no_results), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             LazyColumn(
                                 contentPadding = PaddingValues(16.dp),
@@ -219,7 +222,7 @@ fun SearchResultCard(
                 }
 
                 IconButton(onClick = onDownload) {
-                    Icon(Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Download, contentDescription = stringResource(R.string.common_download), tint = MaterialTheme.colorScheme.primary)
                 }
             }
 

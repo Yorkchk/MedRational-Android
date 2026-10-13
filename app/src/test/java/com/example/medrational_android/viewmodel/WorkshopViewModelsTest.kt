@@ -1,6 +1,7 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.CreateWorkshopProjectRequest
 import com.example.medrational_android.data.model.PageResponse
@@ -120,7 +121,7 @@ class WorkshopViewModelsTest {
         val viewModel = WorkshopDetailViewModel(api)
         viewModel.load(ID)
 
-        assertEquals(WorkshopDetailUiState.Error("This project no longer exists."), viewModel.uiState.value)
+        assertEquals("This project no longer exists.", en((viewModel.uiState.value as WorkshopDetailUiState.Error).message))
     }
 
     @Test
@@ -142,7 +143,7 @@ class WorkshopViewModelsTest {
         viewModel.changeStatus(ProjectStatus.OPEN)
 
         assertEquals(WorkshopDetailUiState.Success(project()), viewModel.uiState.value)
-        assertTrue(viewModel.message.value!!.startsWith("Network error"))
+        assertTrue(en(viewModel.message.value)!!.startsWith("Network error"))
     }
 
     @Test
@@ -163,7 +164,7 @@ class WorkshopViewModelsTest {
         viewModel.delete()
 
         assertEquals(WorkshopDetailUiState.Success(project()), viewModel.uiState.value)
-        assertEquals("Something went wrong (HTTP 500). Please try again.", viewModel.message.value)
+        assertEquals("Something went wrong (HTTP 500). Please try again.", en(viewModel.message.value))
     }
 
     @Test
@@ -185,7 +186,7 @@ class WorkshopViewModelsTest {
 
         viewModel.uploadAttachment(MultipartBody.Part.createFormData("file", "big.pdf", "x".toRequestBody()))
 
-        assertEquals("Files must be 10 MB or smaller.", viewModel.message.value)
+        assertEquals("Files must be 10 MB or smaller.", en(viewModel.message.value))
         assertEquals(WorkshopDetailUiState.Success(project()), viewModel.uiState.value)
     }
 
@@ -223,18 +224,18 @@ class WorkshopViewModelsTest {
 
     @Test
     fun `invalid forms are rejected with a reason`() {
-        assertEquals("Enter a title.", validateWorkshopForm(form().copy(title = " ")))
-        assertEquals("Enter the registration link.", validateWorkshopForm(form(formLink = "")))
+        assertEquals("Enter a title.", en(validateWorkshopForm(form().copy(title = " "))))
+        assertEquals("Enter the registration link.", en(validateWorkshopForm(form(formLink = ""))))
         assertEquals(
             "The registration link must start with http:// or https://.",
-            validateWorkshopForm(form(formLink = "forms.example.com"))
+            en(validateWorkshopForm(form(formLink = "forms.example.com")))
         )
         assertEquals(
             "Capacity must be a positive number, or left empty for no limit.",
-            validateWorkshopForm(form(capacity = "0"))
+            en(validateWorkshopForm(form(capacity = "0")))
         )
-        assertEquals("Pick when registration opens.", validateWorkshopForm(form(opensAt = null)))
-        assertEquals("Registration must close after it opens.", validateWorkshopForm(form(closesAt = opens)))
+        assertEquals("Pick when registration opens.", en(validateWorkshopForm(form(opensAt = null))))
+        assertEquals("Registration must close after it opens.", en(validateWorkshopForm(form(closesAt = opens))))
     }
 
     // A 7:53 picked on a 24-hour dial meant 07:53, hours in the past: the bug behind projects created CLOSED
@@ -245,8 +246,8 @@ class WorkshopViewModelsTest {
         viewModel.submit(form(opensAt = now - 12 * 60 * 60 * 1000, closesAt = now - 11 * 60 * 60 * 1000))
 
         assertEquals(
-            NewWorkshopUiState.Error("Registration must open in the future. Check the date and time."),
-            viewModel.uiState.value
+            "Registration must open in the future. Check the date and time.",
+            en((viewModel.uiState.value as NewWorkshopUiState.Error).message)
         )
         coVerify(exactly = 0) { api.createWorkshop(any(), any()) }
     }
@@ -262,7 +263,7 @@ class WorkshopViewModelsTest {
 
         viewModel.submit(form(closesAt = opens - 1))
 
-        assertEquals(NewWorkshopUiState.Error("Registration must close after it opens."), viewModel.uiState.value)
+        assertEquals("Registration must close after it opens.", en((viewModel.uiState.value as NewWorkshopUiState.Error).message))
         coVerify(exactly = 0) { api.createWorkshop(any(), any()) }
     }
 
@@ -453,7 +454,7 @@ class WorkshopViewModelsTest {
 
         viewModel.save(WorkshopForm("Title", "Text", LINK, "", opensAtMillis = closes, closesAtMillis = opens))
 
-        assertEquals("Registration must close after it opens.", viewModel.message.value)
+        assertEquals("Registration must close after it opens.", en(viewModel.message.value))
         assertTrue(viewModel.uiState.value is EditWorkshopUiState.Editing)
         coVerify(exactly = 0) { api.updateWorkshop(any(), any()) }
     }
@@ -466,7 +467,7 @@ class WorkshopViewModelsTest {
         viewModel.save(WorkshopForm("Title", "Text", LINK, "", opens, closes))
 
         assertEquals(EditWorkshopUiState.Editing(project(status = ProjectStatus.OPEN, formLink = LINK).toForm()), viewModel.uiState.value)
-        assertTrue(viewModel.message.value!!.startsWith("Network error"))
+        assertTrue(en(viewModel.message.value)!!.startsWith("Network error"))
     }
 
     @Test
@@ -476,7 +477,7 @@ class WorkshopViewModelsTest {
         val viewModel = EditWorkshopViewModel(api)
         viewModel.load(ID)
 
-        assertEquals(EditWorkshopUiState.LoadError("This project no longer exists."), viewModel.uiState.value)
+        assertEquals("This project no longer exists.", en((viewModel.uiState.value as EditWorkshopUiState.LoadError).message))
     }
 
     @Test

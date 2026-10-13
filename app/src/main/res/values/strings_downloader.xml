@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="download_description">Téléchargement de la ressource…</string>
+    <string name="download_success">%1$s téléchargé</string>
+    <string name="download_failed">Échec du téléchargement : %1$s</string>
+    <string name="download_error_cannot_resume">Impossible de reprendre le transfert</string>
+    <string name="download_error_no_storage">Aucun espace de stockage externe trouvé</string>
+    <string name="download_error_file_exists">Le fichier existe déjà</string>
+    <string name="download_error_file">Erreur d’autorisation ou de stockage</string>
+    <string name="download_error_http_data">Erreur de données HTTP</string>
+    <string name="download_error_space">Espace de stockage insuffisant</string>
+    <string name="download_error_redirects">Trop de redirections</string>
+    <string name="download_error_http_code">Réponse inattendue du serveur</string>
+    <string name="download_error_code">Erreur %1$d</string>
+</resources>

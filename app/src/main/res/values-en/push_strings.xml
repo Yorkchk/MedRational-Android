@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Workshop push notifications. The backend sends these keys (title_loc_key/body_loc_key) and the
+     project title as %1$s, and Android shows them in the app's language. The names must match
+     WorkshopNotificationServiceImpl.pushLocalizationKey in the backend. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <string name="push_opening_soon_fcfs_title">First-Come-First-Served Opening in 10 Min: %1$s</string>
+    <string name="push_opening_soon_fcfs_body">Spots are limited! Registration for \'%1$s\' opens in 10 minutes.</string>
+    <string name="push_opening_soon_motivation_title">Application Submissions Open in 10 Min: %1$s</string>
+    <string name="push_opening_soon_motivation_body">Applications for \'%1$s\' open in 10 minutes. Prepare your submission.</string>
+    <string name="push_opened_fcfs_title">Spots Available Now: %1$s</string>
+    <string name="push_opened_fcfs_body">First-come, first-served registration is officially OPEN for \'%1$s\'! Secure your spot.</string>
+    <string name="push_opened_motivation_title">Applications Are Open: %1$s</string>
+    <string name="push_opened_motivation_body">Submissions for \'%1$s\' are now open. Complete your motivation submission before the deadline.</string>
+    <string name="push_closing_soon_fcfs_title">Registration Closing in 10 Min: %1$s</string>
+    <string name="push_closing_soon_fcfs_body">Registration for \'%1$s\' is wrapping up and closes in 10 minutes.</string>
+    <string name="push_closing_soon_motivation_title">Deadline Alert: 10 Minutes Left for %1$s</string>
+    <string name="push_closing_soon_motivation_body">The application deadline for \'%1$s\' is in 10 minutes. Submit your motivation form now.</string>
+    <string name="push_closed_fcfs_title">Registration Closed: %1$s</string>
+    <string name="push_closed_fcfs_body">Registration for \'%1$s\' has ended.</string>
+    <string name="push_closed_motivation_title">Applications Closed: %1$s</string>
+    <string name="push_closed_motivation_body">Application period for \'%1$s\' is now closed. Submissions are under review.</string>
+</resources>

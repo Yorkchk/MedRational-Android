@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FavoriteResponse
@@ -28,6 +30,7 @@ import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.FavoriteUiState
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 
@@ -52,10 +55,10 @@ fun FavoritesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Saved Files", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.favorites_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -73,9 +76,9 @@ fun FavoritesScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadFavorites() }) { Text("Retry") }
+                        Button(onClick = { viewModel.loadFavorites() }) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is FavoriteUiState.Success -> {
@@ -92,13 +95,13 @@ fun FavoritesScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "No saved files yet.",
+                                stringResource(R.string.favorites_empty),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Tap the heart icon on any clinical study file to bookmark it here.",
+                                stringResource(R.string.favorites_empty_hint),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -117,18 +120,18 @@ fun FavoritesScreen(
                                         if (file.reasoningId != null) {
                                             onFileClick(file.reasoningId, file.id)
                                         } else if (file.categoryId != null) {
-                                            onNavigateToReasoning(file.categoryId, file.categoryName ?: "Details")
+                                            onNavigateToReasoning(file.categoryId, file.categoryName ?: context.getString(R.string.favorites_details))
                                         }
                                     },
                                     onRemoveFavorite = {
                                         viewModel.toggleFavorite(file.id)
-                                        Toast.makeText(context, "Removed from favorites", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, R.string.favorites_removed, Toast.LENGTH_SHORT).show()
                                     },
                                     onDownload = {
                                         val fileName = file.fileName ?: "file_${file.id}"
                                         val url = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
                                         downloader.downloadFile(url, fileName)
-                                        Toast.makeText(context, "Downloading $fileName...", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.download_started, fileName), Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }
@@ -184,12 +187,12 @@ fun FavoriteItemCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = file.fileName ?: "Untitled File",
+                    text = file.fileName ?: stringResource(R.string.file_untitled),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "${file.categoryName ?: "General"} • ${file.reasoningTitle ?: ""}",
+                    text = "${file.categoryName ?: stringResource(R.string.favorites_general)} • ${file.reasoningTitle ?: ""}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -202,11 +205,11 @@ fun FavoriteItemCard(
             }
 
             IconButton(onClick = onDownload) {
-                Icon(Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Download, contentDescription = stringResource(R.string.common_download), tint = MaterialTheme.colorScheme.primary)
             }
 
             IconButton(onClick = onRemoveFavorite) {
-                Icon(Icons.Default.Favorite, contentDescription = "Remove Favorite", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Default.Favorite, contentDescription = stringResource(R.string.favorite_remove), tint = MaterialTheme.colorScheme.error)
             }
         }
     }

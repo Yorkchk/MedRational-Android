@@ -24,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
@@ -39,6 +42,7 @@ import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.HashtagPickerDialog
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.BulkHashtagUiState
 import com.example.medrational_android.viewmodel.BulkHashtagViewModel
 import com.example.medrational_android.viewmodel.BulkTag
@@ -107,13 +111,13 @@ fun ReasoningDetailScreen(
     val bulkMessage by bulkViewModel.message.collectAsState()
     LaunchedEffect(uploadMessage) {
         uploadMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             viewModel.onMessageShown()
         }
     }
     LaunchedEffect(bulkMessage) {
         bulkMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             bulkViewModel.onMessageShown()
         }
     }
@@ -132,10 +136,10 @@ fun ReasoningDetailScreen(
             if (selectionMode) {
                 val busy = bulkState is BulkHashtagUiState.LoadingTags || bulkState is BulkHashtagUiState.Working
                 TopAppBar(
-                    title = { Text("${selectedFileIds.size} selected") },
+                    title = { Text(pluralStringResource(R.plurals.selection_count, selectedFileIds.size, selectedFileIds.size)) },
                     navigationIcon = {
                         IconButton(onClick = { selectedFileIds = emptyList() }) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel selection")
+                            Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(R.string.selection_cancel))
                         }
                     },
                     actions = {
@@ -146,10 +150,10 @@ fun ReasoningDetailScreen(
                                 catalogViewModel.refresh()
                                 showBulkAddDialog = true
                             }) {
-                                Icon(imageVector = Icons.Default.NewLabel, contentDescription = "Add hashtags to selected files")
+                                Icon(imageVector = Icons.Default.NewLabel, contentDescription = stringResource(R.string.selection_add_tags))
                             }
                             IconButton(onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
-                                Icon(imageVector = Icons.Default.LabelOff, contentDescription = "Remove hashtags from selected files")
+                                Icon(imageVector = Icons.Default.LabelOff, contentDescription = stringResource(R.string.selection_remove_tags))
                             }
                         }
                     }
@@ -158,16 +162,17 @@ fun ReasoningDetailScreen(
                 title = { Text(text = categoryName, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = {
                         val categoryZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/category/$categoryId/zip"
-                        downloader.downloadFile(categoryZipUrl, "${categoryName}_Materials.zip")
-                        Toast.makeText(context, "Downloading $categoryName ZIP...", Toast.LENGTH_SHORT).show()
+                        val zipName = context.getString(R.string.download_category_zip_name, categoryName)
+                        downloader.downloadFile(categoryZipUrl, zipName)
+                        Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(imageVector = Icons.Default.Download, contentDescription = "Download Category ZIP")
+                        Icon(imageVector = Icons.Default.Download, contentDescription = stringResource(R.string.reasonings_download_category))
                     }
                 }
             )
@@ -175,7 +180,7 @@ fun ReasoningDetailScreen(
         floatingActionButton = {
             if (isAdmin) {
                 FloatingActionButton(onClick = { showCreateReasoningDialog = true }) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Clinical Reasoning")
+                    Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.reasonings_add))
                 }
             }
         }
@@ -188,15 +193,15 @@ fun ReasoningDetailScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        Text(text = state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadReasoningsForCategory(categoryId) }) { Text("Retry") }
+                        Button(onClick = { viewModel.loadReasoningsForCategory(categoryId) }) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is ReasoningUiState.Success -> {
                     if (state.reasonings.isEmpty()) {
                         Text(
-                            text = "No reasonings added for this category.",
+                            text = stringResource(R.string.reasonings_empty),
                             modifier = Modifier.align(Alignment.Center),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -226,13 +231,14 @@ fun ReasoningDetailScreen(
                                     onDeleteFile = { fileId -> viewModel.deleteFile(fileId) },
                                     onDownloadReasoningZip = {
                                         val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
-                                        downloader.downloadFile(reasoningZipUrl, "${reasoning.title}_Files.zip")
-                                        Toast.makeText(context, "Downloading ${reasoning.title} files...", Toast.LENGTH_SHORT).show()
+                                        val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                        downloader.downloadFile(reasoningZipUrl, zipName)
+                                        Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
                                     },
                                     onDownloadSingleFile = { file ->
                                         val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
                                         downloader.downloadFile(singleFileUrl, file.fileName)
-                                        Toast.makeText(context, "Downloading ${file.fileName}...", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }
@@ -246,14 +252,14 @@ fun ReasoningDetailScreen(
     pendingUploadUri?.let { uri ->
         val fileName = remember(uri) { displayName(context, uri) }
         HashtagPickerDialog(
-            title = "Upload file",
-            confirmLabel = "Upload",
+            title = stringResource(R.string.upload_dialog_title),
+            confirmLabel = stringResource(R.string.upload_dialog_confirm),
             catalog = hashtagCatalog,
-            supportingText = "Optional. Separate several tags with spaces or commas",
+            supportingText = stringResource(R.string.upload_dialog_tags_hint),
             allowEmpty = true,
             header = {
                 Text(
-                    text = fileName ?: "Selected file",
+                    text = fileName ?: stringResource(R.string.upload_selected_file),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     maxLines = 2,
@@ -262,7 +268,7 @@ fun ReasoningDetailScreen(
             },
             onConfirm = { tags ->
                 activeUploadReasoningId?.let { viewModel.uploadFile(context, it, uri, tags) }
-                Toast.makeText(context, "Uploading file...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.upload_in_progress, Toast.LENGTH_SHORT).show()
                 pendingUploadUri = null
             },
             onDismissRequest = { pendingUploadUri = null }
@@ -271,10 +277,10 @@ fun ReasoningDetailScreen(
 
     if (showBulkAddDialog) {
         HashtagPickerDialog(
-            title = "Tag ${selectedFileIds.size} files",
-            confirmLabel = "Add",
+            title = pluralStringResource(R.plurals.bulk_tag_dialog_title, selectedFileIds.size, selectedFileIds.size),
+            confirmLabel = stringResource(R.string.bulk_tag_dialog_confirm),
             catalog = hashtagCatalog,
-            supportingText = "Added to every selected file",
+            supportingText = stringResource(R.string.bulk_tag_dialog_hint),
             onConfirm = { tags ->
                 bulkViewModel.addTags(selectedFileIds.toSet(), tags)
                 showBulkAddDialog = false
@@ -345,7 +351,7 @@ fun ReasoningItemCard(
                         IconButton(onClick = onDownloadReasoningZip) {
                             Icon(
                                 imageVector = Icons.Default.Download,
-                                contentDescription = "Download all files",
+                                contentDescription = stringResource(R.string.reasoning_download_all),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -354,14 +360,14 @@ fun ReasoningItemCard(
                         IconButton(onClick = onAddFile) {
                             Icon(
                                 imageVector = Icons.Default.UploadFile,
-                                contentDescription = "Upload Study File",
+                                contentDescription = stringResource(R.string.reasoning_upload_file),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         IconButton(onClick = onDeleteReasoning) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete reasoning",
+                                contentDescription = stringResource(R.string.reasoning_delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -377,7 +383,7 @@ fun ReasoningItemCard(
             if (!reasoning.files.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "Attached Files (${reasoning.files.size})",
+                    text = stringResource(R.string.reasoning_attached_files, reasoning.files.size),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -465,7 +471,7 @@ fun StudyFileRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RatingBadge(known = knownRating, avgRating = file.avgRating, totalRatings = file.totalRatings)
                     Text(
-                        text = if (isImage || file.previewable) " · Tap to preview" else " · Tap to open",
+                        text = if (isImage || file.previewable) stringResource(R.string.file_tap_to_preview) else stringResource(R.string.file_tap_to_open),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -477,14 +483,14 @@ fun StudyFileRow(
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (isFavorited) "Remove from favorites" else "Add to favorites",
+                    contentDescription = if (isFavorited) stringResource(R.string.favorite_remove) else stringResource(R.string.favorite_add),
                     tint = if (isFavorited) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
                 )
             }
             IconButton(onClick = onDownloadFile) {
                 Icon(
                     imageVector = Icons.Default.Download,
-                    contentDescription = "Download",
+                    contentDescription = stringResource(R.string.common_download),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -494,7 +500,7 @@ fun StudyFileRow(
                 IconButton(onClick = onDeleteFile) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete file",
+                        contentDescription = stringResource(R.string.file_delete),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -513,19 +519,19 @@ fun CreateReasoningDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Clinical Reasoning") },
+        title = { Text(stringResource(R.string.reasoning_new)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title / Diagnosis Algorithm") },
+                    label = { Text(stringResource(R.string.reasoning_title_label)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Algorithm / Protocol Steps") },
+                    label = { Text(stringResource(R.string.reasoning_content_label)) },
                     minLines = 3
                 )
             }
@@ -535,11 +541,11 @@ fun CreateReasoningDialog(
                 onClick = { if (title.isNotBlank() && content.isNotBlank()) onConfirm(title, content) },
                 enabled = title.isNotBlank() && content.isNotBlank()
             ) {
-                Text("Save")
+                Text(stringResource(R.string.common_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }
@@ -556,14 +562,14 @@ private fun BulkRemoveHashtagsDialog(
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Remove hashtags") },
+        title = { Text(stringResource(R.string.bulk_remove_title)) },
         text = {
             if (choices.tags.isEmpty()) {
-                Text("The selected files have no hashtags.")
+                Text(stringResource(R.string.bulk_remove_none))
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Removed from each selected file that has them. A tag no other file uses is deleted.",
+                        text = stringResource(R.string.bulk_remove_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -586,11 +592,11 @@ private fun BulkRemoveHashtagsDialog(
                 enabled = checked.isNotEmpty(),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
-                Text("Remove")
+                Text(stringResource(R.string.bulk_remove_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) { Text("Cancel") }
+            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

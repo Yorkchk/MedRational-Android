@@ -2,11 +2,13 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.NoveltiesFeed
 import com.example.medrational_android.data.model.NoveltyItem
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +27,7 @@ sealed interface NoveltiesUiState {
         val loadingMore: Boolean = false,
         val loadMoreFailed: Boolean = false
     ) : NoveltiesUiState
-    data class Error(val message: String) : NoveltiesUiState
+    data class Error(val message: UiText) : NoveltiesUiState
 }
 
 /**
@@ -64,9 +66,9 @@ class NoveltiesViewModel(
                     canLoadMore = feed.hasMorePages()
                 )
             } catch (e: IOException) {
-                NoveltiesUiState.Error("Network error. Check your connection and try again.")
+                NoveltiesUiState.Error(UiText.Res(R.string.error_network))
             } catch (e: HttpException) {
-                NoveltiesUiState.Error("Couldn't load what's new (HTTP ${e.code()}).")
+                NoveltiesUiState.Error(UiText.Res(R.string.novelties_error_load, listOf(e.code())))
             }
         }
     }

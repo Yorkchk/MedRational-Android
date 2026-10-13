@@ -2,6 +2,7 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.auth.TokenManager
@@ -11,22 +12,30 @@ import com.example.medrational_android.data.model.UserVerifyOtpRequest
 import com.example.medrational_android.data.model.VerifyOtpRequest
 import com.example.medrational_android.data.model.ResetPasswordRequest
 import com.example.medrational_android.data.model.ForgotPasswordRequest
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 sealed class AuthUiState {
     data object Idle : AuthUiState()
     data object Loading : AuthUiState()
-    data class OtpSent(val email: String, val message: String) : AuthUiState()
-    data class LoginSuccess(val role: String, val message: String) : AuthUiState()
+    data class OtpSent(val email: String) : AuthUiState()
+    data class LoginSuccess(val role: String) : AuthUiState()
     data object SignUpCompleted : AuthUiState()
-    data class Error(val error: String) : AuthUiState()
-    data object PasswordResetCompleted : AuthUiState() // <-- NEW
+    data class Error(val error: UiText) : AuthUiState()
+    data object PasswordResetCompleted : AuthUiState()
 }
 
+private val NETWORK_ERROR = UiText.Res(R.string.error_network)
+private val INVALID_CODE = UiText.Res(R.string.auth_error_invalid_code)
+private val ENTER_CODE = UiText.Res(R.string.auth_error_enter_code)
+
+/**
+ * The backend's own messages are in English, so the app shows its messages instead, picked from
+ * the HTTP status. 400 means the backend rejected what was typed (see AuthServiceImpl).
+ */
 class AuthViewModel(
     private val tokenManager: TokenManager,
     private val api: MedRationalApi = ApiClient.api
@@ -37,7 +46,7 @@ class AuthViewModel(
 
     fun requestLoginOtp(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            _uiState.value = AuthUiState.Error("Email and password are required.")
+            _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_credentials_required))
             return
         }
 
@@ -46,22 +55,19 @@ class AuthViewModel(
             try {
                 val response = api.login(LoginRequest(email.trim(), password))
                 if (response.isSuccessful && response.body() != null) {
-                    _uiState.value = AuthUiState.OtpSent(
-                        email = email.trim(),
-                        message = response.body()?.message ?: "Verification code sent."
-                    )
+                    _uiState.value = AuthUiState.OtpSent(email = email.trim())
                 } else {
-                    _uiState.value = AuthUiState.Error(extractErrorMessage(response.errorBody()?.string()) ?: "Invalid credentials.")
+                    _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_invalid_credentials))
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
 
     fun verifyLoginOtp(email: String, code: String) {
         if (code.isBlank() || code.length < 6) {
-            _uiState.value = AuthUiState.Error("Please enter a 6-digit code.")
+            _uiState.value = AuthUiState.Error(ENTER_CODE)
             return
         }
 
@@ -83,25 +89,19 @@ class AuthViewModel(
                         fullName = auth.fullName
                     )
 
-                    _uiState.value = AuthUiState.LoginSuccess(
-                        role = userRole,
-                        message = auth.message
-                    )
+                    _uiState.value = AuthUiState.LoginSuccess(role = userRole)
                 } else {
-                    _uiState.value = AuthUiState.Error(
-                        extractErrorMessage(response.errorBody()?.string())
-                            ?: "Invalid or expired verification code."
-                    )
+                    _uiState.value = AuthUiState.Error(INVALID_CODE)
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
 
     fun registerUser(firstName: String, lastName: String, phone: String, email: String, password: String) {
         if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
-            _uiState.value = AuthUiState.Error("All fields are required.")
+            _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_all_fields_required))
             return
         }
 
@@ -120,23 +120,22 @@ class AuthViewModel(
                     )
                 )
                 if (response.isSuccessful && response.body() != null) {
-                    val serverMsg = response.body()?.message ?: "Verification code sent."
-                    _uiState.value = AuthUiState.OtpSent(
-                        email = email.trim(),
-                        message = serverMsg
-                    )
+                    _uiState.value = AuthUiState.OtpSent(email = email.trim())
                 } else {
-                    _uiState.value = AuthUiState.Error(extractErrorMessage(response.errorBody()?.string()) ?: "Registration failed.")
+                    _uiState.value = AuthUiState.Error(
+                        if (response.code() == 400) UiText.Res(R.string.auth_error_check_fields)
+                        else UiText.Res(R.string.auth_error_registration_failed)
+                    )
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
 
     fun verifySignUpOtp(email: String, code: String) {
         if (code.isBlank() || code.length < 6) {
-            _uiState.value = AuthUiState.Error("Please enter a 6-digit code.")
+            _uiState.value = AuthUiState.Error(ENTER_CODE)
             return
         }
 
@@ -147,18 +146,17 @@ class AuthViewModel(
                 if (response.isSuccessful) {
                     _uiState.value = AuthUiState.SignUpCompleted
                 } else {
-                    _uiState.value = AuthUiState.Error(extractErrorMessage(response.errorBody()?.string()) ?: "Invalid code.")
+                    _uiState.value = AuthUiState.Error(INVALID_CODE)
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
 
-    // Inside AuthViewModel:
     fun requestPasswordResetOtp(email: String) {
         if (email.isBlank()) {
-            _uiState.value = AuthUiState.Error("Please enter your email.")
+            _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_email_required))
             return
         }
 
@@ -167,24 +165,22 @@ class AuthViewModel(
             try {
                 val response = api.forgotPassword(ForgotPasswordRequest(email.trim()))
                 if (response.isSuccessful && response.body() != null) {
-                    _uiState.value = AuthUiState.OtpSent(
-                        email = email.trim(),
-                        message = response.body()?.message ?: "Reset code sent."
-                    )
+                    _uiState.value = AuthUiState.OtpSent(email = email.trim())
                 } else {
                     _uiState.value = AuthUiState.Error(
-                        extractErrorMessage(response.errorBody()?.string()) ?: "Failed to send reset code."
+                        if (response.code() == 400) UiText.Res(R.string.auth_error_no_account)
+                        else UiText.Res(R.string.auth_error_reset_code_failed)
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
 
     fun confirmPasswordReset(email: String, code: String, newPassword: String) {
         if (code.isBlank() || code.length < 6) {
-            _uiState.value = AuthUiState.Error("Please enter a valid 6-digit code.")
+            _uiState.value = AuthUiState.Error(ENTER_CODE)
             return
         }
 
@@ -202,26 +198,17 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.PasswordResetCompleted
                 } else {
                     _uiState.value = AuthUiState.Error(
-                        extractErrorMessage(response.errorBody()?.string())
-                            ?: "Password reset failed."
+                        if (response.code() == 400) INVALID_CODE
+                        else UiText.Res(R.string.auth_error_reset_failed)
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.localizedMessage ?: "Network error.")
-            }
-        }}
-
-        fun resetState() {
-            _uiState.value = AuthUiState.Idle
-        }
-
-        private fun extractErrorMessage(rawBody: String?): String? {
-            if (rawBody.isNullOrBlank()) return null
-            return try {
-                val json = JSONObject(rawBody)
-                json.optString("message", json.optString("error", rawBody))
-            } catch (_: Exception) {
-                rawBody
+                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
             }
         }
     }
+
+    fun resetState() {
+        _uiState.value = AuthUiState.Idle
+    }
+}

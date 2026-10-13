@@ -50,11 +50,11 @@ fun toUtcDateMillis(localMillis: Long): Long {
 
 /**
  * "12 Mar 2026, 19:15", or "12 Mar 2026, 7:15 PM" when [is24Hour] is false, for local epoch millis.
- * Screens pass the phone's own setting, so AM and PM can't be mixed up.
+ * Month names follow [locale], the app's language: "12 mars 2026, 19:15" in French.
  */
-fun formatMillisDateTime(millis: Long, is24Hour: Boolean = true): String =
-    SimpleDateFormat(if (is24Hour) "d MMM yyyy, HH:mm" else "d MMM yyyy, h:mm a", Locale.US).format(Date(millis))
+fun formatMillisDateTime(millis: Long, locale: Locale, is24Hour: Boolean = true): String =
+    SimpleDateFormat(if (is24Hour) "d MMM yyyy, HH:mm" else "d MMM yyyy, h:mm a", locale).format(Date(millis))
 
 /** A backend LocalDateTime formatted like [formatMillisDateTime], or the raw value if it can't be read. */
-fun formatIsoLocalDateTime(isoDateTime: String, is24Hour: Boolean = true): String =
-    parseIsoLocalDateTime(isoDateTime)?.let { formatMillisDateTime(it, is24Hour) } ?: isoDateTime
+fun formatIsoLocalDateTime(isoDateTime: String, locale: Locale, is24Hour: Boolean = true): String =
+    parseIsoLocalDateTime(isoDateTime)?.let { formatMillisDateTime(it, locale, is24Hour) } ?: isoDateTime

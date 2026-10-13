@@ -14,11 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.AuthUiState
 import com.example.medrational_android.viewmodel.AuthViewModel
 
@@ -62,12 +65,12 @@ fun SignUpScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isOtpStep) "Verify Account" else "Create Account") },
+                title = { Text(if (isOtpStep) stringResource(R.string.signup_verify_title) else stringResource(R.string.signup_title)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (isOtpStep) viewModel.resetState() else onBackClick()
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -84,7 +87,7 @@ fun SignUpScreen(
         ) {
             if (!isOtpStep) {
                 Text(
-                    text = "Sign Up",
+                    text = stringResource(R.string.auth_sign_up),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -94,18 +97,18 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = firstName,
                     onValueChange = { if (it.length <= 50) firstName = it },
-                    label = { Text("First Name") },
+                    label = { Text(stringResource(R.string.signup_first_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = firstName.isNotEmpty() && !isFirstNameValid,
                     supportingText = {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             if (firstName.isNotEmpty() && !isFirstNameValid) {
-                                Text("Max 50 characters", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.signup_max_50), color = MaterialTheme.colorScheme.error)
                             } else {
                                 Spacer(modifier = Modifier.weight(1f))
                             }
-                            Text("${firstName.length}/50")
+                            Text(stringResource(R.string.common_char_count, firstName.length, 50))
                         }
                     }
                 )
@@ -115,18 +118,18 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = lastName,
                     onValueChange = { if (it.length <= 50) lastName = it },
-                    label = { Text("Last Name") },
+                    label = { Text(stringResource(R.string.signup_last_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = lastName.isNotEmpty() && !isLastNameValid,
                     supportingText = {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             if (lastName.isNotEmpty() && !isLastNameValid) {
-                                Text("Max 50 characters", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.signup_max_50), color = MaterialTheme.colorScheme.error)
                             } else {
                                 Spacer(modifier = Modifier.weight(1f))
                             }
-                            Text("${lastName.length}/50")
+                            Text(stringResource(R.string.common_char_count, lastName.length, 50))
                         }
                     }
                 )
@@ -139,7 +142,7 @@ fun SignUpScreen(
                         val digits = input.filter { it.isDigit() }
                         if (digits.length <= 10) phoneNumber = digits
                     },
-                    label = { Text("Phone Number") },
+                    label = { Text(stringResource(R.string.signup_phone)) },
                     placeholder = { Text("e.g. 0661234567") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -147,7 +150,7 @@ fun SignUpScreen(
                     isError = phoneNumber.isNotEmpty() && !isPhoneValid,
                     supportingText = {
                         if (phoneNumber.isNotEmpty() && !isPhoneValid) {
-                            Text("Must be exactly 10 digits (${cleanPhone.length}/10)", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.signup_phone_digits, cleanPhone.length), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -157,14 +160,14 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email Address") },
+                    label = { Text(stringResource(R.string.auth_email_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     isError = email.isNotEmpty() && !isEmailValid,
                     supportingText = {
                         if (email.isNotEmpty() && !isEmailValid) {
-                            Text("Please enter a valid email address", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.auth_invalid_email), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -174,7 +177,7 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.auth_password_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -188,7 +191,7 @@ fun SignUpScreen(
                     isError = password.isNotEmpty() && !isPasswordValid,
                     supportingText = {
                         if (password.isNotEmpty() && !isPasswordValid) {
-                            Text("Minimum 6 characters", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.auth_password_min_length), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 )
@@ -204,19 +207,19 @@ fun SignUpScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Send Verification Code")
+                        Text(stringResource(R.string.signup_send_code))
                     }
                 }
             } else {
                 val currentEmail = (uiState as? AuthUiState.OtpSent)?.email ?: email
                 Text(
-                    text = "Verify Your Email",
+                    text = stringResource(R.string.signup_verify_email),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "We sent a 6-digit code to $currentEmail",
+                    text = stringResource(R.string.signup_code_sent_to, currentEmail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -225,7 +228,7 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = otpCode,
                     onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpCode = it },
-                    label = { Text("6-Digit Code") },
+                    label = { Text(stringResource(R.string.auth_code_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -241,7 +244,7 @@ fun SignUpScreen(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Verify & Complete Registration")
+                        Text(stringResource(R.string.signup_complete))
                     }
                 }
             }
@@ -249,7 +252,7 @@ fun SignUpScreen(
             if (uiState is AuthUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (uiState as AuthUiState.Error).error,
+                    text = (uiState as AuthUiState.Error).error.asString(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )

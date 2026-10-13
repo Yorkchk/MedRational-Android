@@ -56,11 +56,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.ProjectStatus
@@ -68,6 +70,8 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopAttachment
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.PreviewState
 import com.example.medrational_android.viewmodel.WorkshopAttachmentPreviewsViewModel
 import com.example.medrational_android.viewmodel.WorkshopDetailUiState
@@ -112,7 +116,7 @@ fun WorkshopDetailScreen(
     }
     LaunchedEffect(message) {
         message?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             viewModel.onMessageShown()
         }
     }
@@ -131,28 +135,28 @@ fun WorkshopDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = success?.project?.title ?: "Project",
+                        text = success?.project?.title ?: stringResource(R.string.workshop_default_title),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                     if (isAdmin && success != null) {
                         Box {
                             IconButton(onClick = { menuOpen = true }, enabled = !success.busy) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Admin actions")
+                                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.workshop_admin_actions))
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Edit project") },
+                                    text = { Text(stringResource(R.string.workshop_edit)) },
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -162,7 +166,7 @@ fun WorkshopDetailScreen(
                                 HorizontalDivider()
                                 ProjectStatus.entries.filter { it != success.project.status }.forEach { status ->
                                     DropdownMenuItem(
-                                        text = { Text("Mark as ${status.label().lowercase()}") },
+                                        text = { Text(stringResource(status.markAsLabel())) },
                                         onClick = {
                                             menuOpen = false
                                             viewModel.changeStatus(status)
@@ -170,7 +174,7 @@ fun WorkshopDetailScreen(
                                     )
                                 }
                                 DropdownMenuItem(
-                                    text = { Text("Add attachment") },
+                                    text = { Text(stringResource(R.string.workshop_add_attachment)) },
                                     leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -179,7 +183,7 @@ fun WorkshopDetailScreen(
                                 )
                                 HorizontalDivider()
                                 DropdownMenuItem(
-                                    text = { Text("Delete project", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text(stringResource(R.string.workshop_delete), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = {
                                         Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                     },
@@ -207,9 +211,9 @@ fun WorkshopDetailScreen(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    Text(state.message.asString(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { viewModel.load(projectId) }) { Text("Retry") }
+                    Button(onClick = { viewModel.load(projectId) }) { Text(stringResource(R.string.common_retry)) }
                 }
                 is WorkshopDetailUiState.Success -> ProjectDetails(
                     state = state,
@@ -218,13 +222,13 @@ fun WorkshopDetailScreen(
                         try {
                             uriHandler.openUri(link)
                         } catch (e: IllegalArgumentException) {
-                            Toast.makeText(context, "Couldn't open the registration link.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, R.string.workshop_link_error, Toast.LENGTH_LONG).show()
                         }
                     },
                     previews = previews,
                     onDownloadAttachmentClick = { attachment ->
                         downloader.downloadFile(ApiClient.workshopAttachmentDownloadUrl(attachment.id), attachment.fileName)
-                        Toast.makeText(context, "Downloading ${attachment.fileName}...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.download_started, attachment.fileName), Toast.LENGTH_SHORT).show()
                     },
                     onRetryPreviewClick = previewsViewModel::retry,
                     onPreviewCorrupted = previewsViewModel::onPreviewCorrupted,
@@ -237,8 +241,8 @@ fun WorkshopDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete this project?") },
-            text = { Text("The project and its attachments will be removed for everyone. This can't be undone.") },
+            title = { Text(stringResource(R.string.workshop_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.workshop_delete_confirm_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -246,10 +250,10 @@ fun WorkshopDetailScreen(
                         viewModel.delete()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.common_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -257,8 +261,8 @@ fun WorkshopDetailScreen(
     attachmentToDelete?.let { attachment ->
         AlertDialog(
             onDismissRequest = { attachmentToDelete = null },
-            title = { Text("Remove attachment?") },
-            text = { Text("\"${attachment.fileName}\" will be deleted.") },
+            title = { Text(stringResource(R.string.workshop_remove_attachment_title)) },
+            text = { Text(stringResource(R.string.workshop_remove_attachment_body, attachment.fileName)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -266,10 +270,10 @@ fun WorkshopDetailScreen(
                         viewModel.deleteAttachment(attachment.id)
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Remove") }
+                ) { Text(stringResource(R.string.hashtags_remove)) }
             },
             dismissButton = {
-                TextButton(onClick = { attachmentToDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { attachmentToDelete = null }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -312,12 +316,12 @@ private fun ProjectDetails(
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val projectType = project.projectType ?: ProjectType.FIRST_COME_FIRST_SERVED
-                    DetailLine(label = "Project type", value = projectType.label())
-                    DetailLine(label = "Registration opens", value = project.opensLabel())
-                    DetailLine(label = "Registration closes", value = project.closesLabel())
-                    DetailLine(label = "Capacity", value = project.capacityLabel() ?: "No limit")
+                    DetailLine(label = stringResource(R.string.workshop_project_type), value = stringResource(projectType.label()))
+                    DetailLine(label = stringResource(R.string.workshop_registration_opens), value = project.opensLabel(appLocale()))
+                    DetailLine(label = stringResource(R.string.workshop_registration_closes), value = project.closesLabel(appLocale()))
+                    DetailLine(label = stringResource(R.string.workshop_capacity), value = project.capacityLabel()?.asString() ?: stringResource(R.string.workshop_no_limit))
                     Text(
-                        text = projectType.description(),
+                        text = stringResource(projectType.description()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -329,7 +333,7 @@ private fun ProjectDetails(
             // Admins receive the link in every status so they can check it before opening
             if (isAdmin && project.status != ProjectStatus.OPEN && !project.formLink.isNullOrBlank()) {
                 Text(
-                    text = "Registration link (visible to students only while open): ${project.formLink}",
+                    text = stringResource(R.string.workshop_admin_link, project.formLink),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -338,7 +342,7 @@ private fun ProjectDetails(
             Text(text = project.description, style = MaterialTheme.typography.bodyLarge)
 
             if (project.attachments.isNotEmpty()) {
-                Text("Documents", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.workshop_documents), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 project.attachments.forEach { attachment ->
                     WorkshopAttachmentCard(
                         attachment = attachment,
@@ -365,19 +369,19 @@ private fun RegistrationSection(
     when {
         link != null -> Button(onClick = { onRegisterClick(link) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("  Register now")
+            Text("  " + stringResource(R.string.workshop_register_now))
         }
         project.status == ProjectStatus.UPCOMING -> Notice(
             icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
-            text = "Registration opens ${project.opensLabel()}. The link appears here then."
+            text = stringResource(R.string.workshop_opens_notice, project.opensLabel(appLocale()))
         )
         project.status == ProjectStatus.OPEN -> Notice(
             icon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            text = "Registration is open, but no link was provided. Contact the organisers."
+            text = stringResource(R.string.workshop_open_no_link)
         )
         else -> OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("  Registration closed")
+            Text("  " + stringResource(R.string.workshop_registration_closed))
         }
     }
 }
@@ -395,7 +399,7 @@ private fun Notice(icon: @Composable () -> Unit, text: String) {
 private fun DetailLine(label: String, value: String) {
     Row {
         Text(
-            text = "$label: ",
+            text = stringResource(R.string.workshop_detail_label, label),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )

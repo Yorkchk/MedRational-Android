@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="categories_error_load">Impossible de charger les catégories (HTTP %1$d).</string>
+    <string name="categories_title">Catégories médicales</string>
+    <string name="home_open_menu_new">Ouvrir le menu, nouveaux fichiers disponibles</string>
+    <string name="home_open_menu">Ouvrir le menu</string>
+    <string name="categories_search_files">Rechercher des fichiers</string>
+    <string name="categories_add">Ajouter une catégorie</string>
+    <string name="home_sign_out">Se déconnecter</string>
+    <string name="home_sign_out_confirm">Voulez-vous vraiment vous déconnecter ?</string>
+    <string name="categories_delete">Supprimer la catégorie</string>
+    <string name="categories_new">Nouvelle catégorie</string>
+    <string name="categories_name">Nom de la catégorie</string>
+    <string name="categories_description_optional">Description (facultative)</string>
+    <string name="drawer_home">Accueil</string>
+    <string name="drawer_search">Rechercher</string>
+    <string name="drawer_novelties">Nouveautés</string>
+    <string name="drawer_projects">Projets</string>
+    <string name="drawer_favorites">Favoris</string>
+    <string name="drawer_downloads">Téléchargements récents</string>
+    <string name="drawer_suggestions_inbox">Boîte des suggestions</string>
+    <string name="drawer_suggestions">Suggestions</string>
+    <string name="drawer_profile">Profil</string>
+    <string name="drawer_admin">Admin</string>
+</resources>

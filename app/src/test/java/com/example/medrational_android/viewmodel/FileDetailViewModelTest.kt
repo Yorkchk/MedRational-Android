@@ -1,6 +1,7 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
@@ -176,7 +177,7 @@ class FileDetailViewModelTest {
         val viewModel = newViewModel()
         viewModel.load(REASONING_ID, FILE_ID)
 
-        assertEquals(FileDetailUiState.Error("This file no longer exists."), viewModel.uiState.value)
+        assertEquals("This file no longer exists.", en((viewModel.uiState.value as FileDetailUiState.Error).message))
     }
 
     @Test

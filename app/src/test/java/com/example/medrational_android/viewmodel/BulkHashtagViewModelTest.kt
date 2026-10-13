@@ -1,9 +1,11 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.Hashtag
+import com.example.medrational_android.ui.text.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -35,7 +37,10 @@ class BulkHashtagViewModelTest {
         listOf(10L, 11L, 12L).forEach { fileId ->
             coVerify(exactly = 1) { api.attachHashtags(fileId, AttachHashtagsRequest(listOf("exam", "ecg"))) }
         }
-        assertEquals("Added 2 tags to 3 files", viewModel.message.value)
+        assertEquals(
+            UiText.Plural(R.plurals.bulk_tags_added, 2, listOf(2, tags(2), files(3))),
+            viewModel.message.value
+        )
         assertEquals(BulkHashtagUiState.Idle, viewModel.uiState.value)
     }
 
@@ -47,7 +52,7 @@ class BulkHashtagViewModelTest {
 
         viewModel.addTags(setOf(10, 11, 12), listOf("exam"))
 
-        assertEquals("Couldn't tag 2 of 3 files.", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.bulk_tag_failed, listOf(2, files(3))), viewModel.message.value)
     }
 
     @Test
@@ -79,7 +84,7 @@ class BulkHashtagViewModelTest {
         viewModel.loadTagsFor(setOf(10, 11))
 
         assertEquals(BulkHashtagUiState.Idle, viewModel.uiState.value)
-        assertEquals("Couldn't load the hashtags of the selected files.", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.bulk_load_failed), viewModel.message.value)
     }
 
     @Test
@@ -92,7 +97,10 @@ class BulkHashtagViewModelTest {
         coVerify(exactly = 1) { api.detachHashtag(11, 3) }
         coVerify(exactly = 1) { api.detachHashtag(12, 2) }
         coVerify(exactly = 3) { api.detachHashtag(any(), any()) }
-        assertEquals("Removed 2 tags from 3 files", viewModel.message.value)
+        assertEquals(
+            UiText.Plural(R.plurals.bulk_tags_removed, 2, listOf(2, tags(2), files(3))),
+            viewModel.message.value
+        )
         assertEquals(BulkHashtagUiState.Idle, viewModel.uiState.value)
     }
 
@@ -103,6 +111,10 @@ class BulkHashtagViewModelTest {
 
         viewModel.removeTags(listOf(BulkTag("exam", mapOf(10L to 3L, 11L to 3L))))
 
-        assertEquals("Couldn't remove 1 of 2 tags.", viewModel.message.value)
+        assertEquals(UiText.Res(R.string.bulk_remove_failed, listOf(1, tags(2))), viewModel.message.value)
     }
+
+    private fun tags(count: Int) = UiText.Plural(R.plurals.hashtag_count, count)
+
+    private fun files(count: Int) = UiText.Plural(R.plurals.file_count, count)
 }

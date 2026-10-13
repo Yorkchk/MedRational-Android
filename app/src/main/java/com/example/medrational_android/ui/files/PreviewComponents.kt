@@ -45,12 +45,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.medrational_android.R
 import com.example.medrational_android.data.preview.PdfDocumentRenderer
 
 private const val MAX_ZOOM = 5f
@@ -82,7 +84,7 @@ internal fun PdfPage(
         bitmap?.let {
             Image(
                 bitmap = it.asImageBitmap(),
-                contentDescription = "Page ${index + 1}",
+                contentDescription = stringResource(R.string.preview_page, index + 1),
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
@@ -196,7 +198,7 @@ internal fun FullScreenViewer(
                     .statusBarsPadding()
                     .padding(8.dp)
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close full screen")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.preview_close_fullscreen))
             }
             if (scale > 1f) {
                 Surface(

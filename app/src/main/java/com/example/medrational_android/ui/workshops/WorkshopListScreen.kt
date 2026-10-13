@@ -41,12 +41,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.WorkshopListUiState
 import com.example.medrational_android.viewmodel.WorkshopListViewModel
 
@@ -73,15 +77,15 @@ fun WorkshopListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Projects", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.workshop_projects), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::load) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 }
             )
@@ -91,7 +95,7 @@ fun WorkshopListScreen(
                 ExtendedFloatingActionButton(
                     onClick = onNewProjectClick,
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("New project") }
+                    text = { Text(stringResource(R.string.workshop_new)) }
                 )
             }
         }
@@ -106,7 +110,7 @@ fun WorkshopListScreen(
                     Tab(
                         selected = tab == status,
                         onClick = { viewModel.selectTab(status) },
-                        text = { Text(status?.label() ?: "All") }
+                        text = { Text(stringResource(status?.label() ?: R.string.workshop_filter_all)) }
                     )
                 }
             }
@@ -117,9 +121,9 @@ fun WorkshopListScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text("Retry") }
+                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
                     }
                     is WorkshopListUiState.Success -> if (state.projects.isEmpty()) {
                         EmptyProjects(status = tab, modifier = Modifier.align(Alignment.Center))
@@ -163,12 +167,12 @@ private fun ProjectCard(project: WorkshopProject, onClick: () -> Unit, modifier:
                 WorkshopStatusChip(status = project.status)
             }
             val dates = when (project.status) {
-                ProjectStatus.UPCOMING -> "Registration opens ${project.opensLabel()}"
-                ProjectStatus.OPEN -> "Registration closes ${project.closesLabel()}"
-                ProjectStatus.CLOSED -> "Registration closed ${project.closesLabel()}"
+                ProjectStatus.UPCOMING -> stringResource(R.string.workshop_list_opens, project.opensLabel(appLocale()))
+                ProjectStatus.OPEN -> stringResource(R.string.workshop_list_closes, project.closesLabel(appLocale()))
+                ProjectStatus.CLOSED -> stringResource(R.string.workshop_list_closed, project.closesLabel(appLocale()))
             }
             Text(
-                text = listOfNotNull(dates, project.capacityLabel()).joinToString(" · "),
+                text = listOfNotNull(dates, project.capacityLabel()?.asString()).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -188,17 +192,17 @@ private fun EmptyProjects(status: ProjectStatus?, modifier: Modifier = Modifier)
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = when (status) {
-                null -> "No projects yet."
-                ProjectStatus.UPCOMING -> "No upcoming projects."
-                ProjectStatus.OPEN -> "No project is open for registration."
-                ProjectStatus.CLOSED -> "No closed projects."
+                null -> stringResource(R.string.workshop_empty)
+                ProjectStatus.UPCOMING -> stringResource(R.string.workshop_empty_upcoming)
+                ProjectStatus.OPEN -> stringResource(R.string.workshop_empty_open)
+                ProjectStatus.CLOSED -> stringResource(R.string.workshop_empty_closed)
             },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "You'll get a notification when a project's registration opens and closes, and 10 minutes before each.",
+            text = stringResource(R.string.workshop_empty_hint),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center

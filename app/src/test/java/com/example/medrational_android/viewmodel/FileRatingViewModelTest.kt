@@ -1,6 +1,7 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RateFileRequest
@@ -127,7 +128,7 @@ class FileRatingViewModelTest {
         viewModel.rate(5)
 
         assertEquals(summary(3.0, 2, mine = 2), store[FILE_ID])
-        assertEquals("Network error. Your rating wasn't saved.", viewModel.success().message)
+        assertEquals("Network error. Your rating wasn't saved.", en(viewModel.success().message))
         assertFalse(viewModel.success().isSubmitting)
 
         viewModel.onMessageShown()
@@ -142,7 +143,7 @@ class FileRatingViewModelTest {
         viewModel.removeRating()
 
         assertEquals(summary(3.0, 2, mine = 2), store[FILE_ID])
-        assertEquals("Couldn't save your rating (HTTP 500).", viewModel.success().message)
+        assertEquals("Couldn't save your rating (HTTP 500).", en(viewModel.success().message))
     }
 
     @Test
