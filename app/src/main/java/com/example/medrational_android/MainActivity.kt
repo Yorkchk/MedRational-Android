@@ -50,6 +50,7 @@ import com.example.medrational_android.ui.profile.ProfileScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SearchScreen
+import com.example.medrational_android.ui.statistics.StatisticsScreen
 import com.example.medrational_android.ui.suggestions.NewSuggestionScreen
 import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
 import com.example.medrational_android.ui.suggestions.SuggestionListScreen
@@ -68,6 +69,7 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
 import com.example.medrational_android.viewmodel.NoveltiesViewModel
+import com.example.medrational_android.viewmodel.StatisticsViewModel
 import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
 import com.example.medrational_android.viewmodel.SuggestionDetailViewModel
@@ -253,6 +255,7 @@ fun MedRationalApp(
                 onNavigateToNovelties = { navController.navigate("novelties") },
                 onNavigateToWorkshops = { navController.navigate("workshops") },
                 onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToStatistics = { navController.navigate("statistics") },
                 noveltyCount = noveltyCount
             )
         }
@@ -301,6 +304,17 @@ fun MedRationalApp(
 
             NoveltiesScreen(
                 viewModel = noveltiesViewModel,
+                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Admin only: reached from the side menu, which only lists it for admins
+        composable("statistics") {
+            val statisticsViewModel: StatisticsViewModel = viewModel { StatisticsViewModel(ApiClient.api) }
+
+            StatisticsScreen(
+                viewModel = statisticsViewModel,
                 onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
                 onBackClick = { navController.popBackStack() }
             )

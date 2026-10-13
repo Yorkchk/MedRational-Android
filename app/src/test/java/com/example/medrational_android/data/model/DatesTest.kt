@@ -82,4 +82,21 @@ class DatesTest {
         assertEquals(1_791_763_200_000L, toUtcDateMillis(stored))
         assertEquals(stored, combineDateAndTime(toUtcDateMillis(stored), hour = 0, minute = 30))
     }
+
+    @Test
+    fun `backend LocalDate is local midnight of that day`() {
+        val millis = parseIsoLocalDate("2026-10-07")!!
+
+        assertEquals("2026-10-07T00:00:00", toIsoLocalDateTime(millis))
+        assertNull(parseIsoLocalDate("07/10/2026"))
+        assertNull(parseIsoLocalDate(""))
+    }
+
+    @Test
+    fun `chart dates are short and follow the app's language`() {
+        val millis = parseIsoLocalDate("2026-10-07")!!
+
+        assertEquals("7 Oct", formatMillisShortDate(millis, Locale.ENGLISH))
+        assertEquals("7 oct.", formatMillisShortDate(millis, Locale.FRENCH))
+    }
 }

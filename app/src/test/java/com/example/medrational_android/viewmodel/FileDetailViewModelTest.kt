@@ -53,8 +53,8 @@ class FileDetailViewModelTest {
         files = files.toList()
     )
 
-    private fun newViewModel(previewDir: File = tempFolder.newFolder("previews")) =
-        FileDetailViewModel(api, previewDir, mainDispatcherRule.dispatcher)
+    private fun newViewModel(previewDir: File = tempFolder.newFolder("previews"), recordViews: Boolean = false) =
+        FileDetailViewModel(api, previewDir, mainDispatcherRule.dispatcher, recordViews)
 
     private fun pdfResponse() = Response.success(pdfBytes.toResponseBody(null))
 
@@ -198,6 +198,47 @@ class FileDetailViewModelTest {
         viewModel.load(REASONING_ID, FILE_ID)
 
         assertTrue(viewModel.uiState.value is FileDetailUiState.Error)
+    }
+
+    @Test
+    fun `opening a file records one view however often it reloads`() {
+        coEvery { api.getReasoning(REASONING_ID) } returns Response.success(reasoningWith(studyFile(previewable = false)))
+        coEvery { api.recordFileView(FILE_ID) } returns Response.success(Unit)
+        val viewModel = newViewModel(recordViews = true)
+
+        viewModel.load(REASONING_ID, FILE_ID)
+        viewModel.load(REASONING_ID, FILE_ID)
+
+        coVerify(exactly = 1) { api.recordFileView(FILE_ID) }
+    }
+
+    @Test
+    fun `views are not recorded for signed-out users and admins`() {
+        coEvery { api.getReasoning(REASONING_ID) } returns Response.success(reasoningWith(studyFile(previewable = false)))
+
+        newViewModel(recordViews = false).load(REASONING_ID, FILE_ID)
+
+        coVerify(exactly = 0) { api.recordFileView(any()) }
+    }
+
+    @Test
+    fun `a failed view never disturbs the file`() {
+        coEvery { api.getReasoning(REASONING_ID) } returns Response.success(reasoningWith(studyFile(previewable = false)))
+        coEvery { api.recordFileView(FILE_ID) } throws IOException("offline")
+        val viewModel = newViewModel(recordViews = true)
+
+        viewModel.load(REASONING_ID, FILE_ID)
+
+        assertEquals(PreviewState.NotSupported, viewModel.success().preview)
+    }
+
+    @Test
+    fun `a missing file records no view`() {
+        coEvery { api.getReasoning(REASONING_ID) } returns Response.success(reasoningWith())
+
+        newViewModel(recordViews = true).load(REASONING_ID, FILE_ID)
+
+        coVerify(exactly = 0) { api.recordFileView(any()) }
     }
 
     private companion object {

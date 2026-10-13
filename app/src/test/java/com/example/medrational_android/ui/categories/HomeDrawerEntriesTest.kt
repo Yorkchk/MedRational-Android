@@ -57,8 +57,20 @@ class HomeDrawerEntriesTest {
     }
 
     @Test
-    fun `admins get the same sections as users`() {
-        assertEquals(destinations(isAdmin = false, isLoggedIn = true), destinations(isAdmin = true, isLoggedIn = true))
+    fun `admins also get statistics, before their profile`() {
+        val userSections = destinations(isAdmin = false, isLoggedIn = true)
+        val adminSections = destinations(isAdmin = true, isLoggedIn = true)
+
+        assertEquals(userSections, adminSections - DrawerDestination.STATISTICS)
+        assertEquals(DrawerDestination.STATISTICS, adminSections[adminSections.indexOf(DrawerDestination.PROFILE) - 1])
+        assertEquals(R.string.drawer_statistics, label(DrawerDestination.STATISTICS, isAdmin = true))
+    }
+
+    // Its endpoint answers 403 to anyone else, which signs them out
+    @Test
+    fun `statistics are hidden from users`() {
+        assertFalse(DrawerDestination.STATISTICS in destinations(isAdmin = false, isLoggedIn = true))
+        assertFalse(DrawerDestination.STATISTICS in destinations(isAdmin = false, isLoggedIn = false))
     }
 
     @Test

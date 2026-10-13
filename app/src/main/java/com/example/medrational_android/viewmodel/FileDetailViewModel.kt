@@ -44,13 +44,17 @@ class FileDetailViewModel(
     private val api: MedRationalApi,
     // Converted PDFs are cached here as {fileId}.pdf so reopening a file is instant
     private val previewDir: File,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    // Signed-in students only: the endpoint needs a user, and admins aren't counted
+    private val recordViews: Boolean = false
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FileDetailUiState>(FileDetailUiState.Loading)
     val uiState: StateFlow<FileDetailUiState> = _uiState.asStateFlow()
 
     private var previewJob: Job? = null
+    // Coming back to the screen or retrying reloads the file but isn't a new view
+    private val recordedViews = HashSet<Long>()
 
     fun load(reasoningId: Long, fileId: Long) {
         _uiState.value = FileDetailUiState.Loading
@@ -68,6 +72,7 @@ class FileDetailViewModel(
                     return@launch
                 }
                 _uiState.value = FileDetailUiState.Success(file, reasoning, initialPreview(file))
+                recordView(file.id)
                 if (file.previewable && !isImageFile(file.fileName, file.fileType)) {
                     loadPdfPreview(file.id)
                 }
@@ -92,6 +97,20 @@ class FileDetailViewModel(
         val preview = state.preview as? PreviewState.Pdf ?: return
         preview.file.delete()
         setPreview(PreviewState.Unavailable(UiText.Res(R.string.preview_error_corrupted)))
+    }
+
+    // For the admin statistics; failures don't matter to the user, so they're ignored
+    private fun recordView(fileId: Long) {
+        if (!recordViews || !recordedViews.add(fileId)) return
+        viewModelScope.launch {
+            try {
+                api.recordFileView(fileId)
+            } catch (e: IOException) {
+                // Not retried: a missed view only makes the statistics a little low
+            } catch (e: HttpException) {
+                // Not retried: a missed view only makes the statistics a little low
+            }
+        }
     }
 
     private fun initialPreview(file: StudyFile): PreviewState = when {

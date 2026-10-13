@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Statistics for admins, reached from the home screen's side menu:
+  - Students: registered students and new sign-ups this week, students active in the last 7 days and today, stickiness, and activation (students who opened or downloaded at least one file). Weekly sign-up and active-student charts cover 12 weeks.
+  - Usage: downloads and file views this week, compared with the previous week, and a 30-day chart of both.
+  - Trending files and categories: what rose most against the previous week, to spot exam-season spikes.
+  - Most downloaded, viewed and favorited files, activity per category, and the most downloaded hashtags, over the last 7 days or all time.
+  - Engagement and community: favorites and ratings given, average rating, highest rated files, new files and files never downloaded, open suggestions and projects.
+  - Tap a file to open it, and use the refresh button for the latest figures.
+- Opening a file is counted as a view for these statistics (signed-in students only; reopening it within 30 minutes counts once).
 - The app is in French by default, and English can be picked in the Profile screen (on Android 13+ also in the system's app language settings). Everything the app writes is translated, including errors, dates, file sizes and workshop push notifications; what admins write (titles, descriptions, hashtags, projects) is shown as written.
 - Profile, reached from the home screen's side menu when signed in: see your first name, last name, email and phone, and edit your names and phone directly. Changing your password sends a 6-digit code to your email, and changing your email sends a code to the new address; you stay signed in after either change.
 - Projects (workshops), reached from the home screen's side menu when signed in. A project is either first come, first served, or by motivation letter, where students apply on the registration form and a committee picks who is accepted; admins choose the type when creating it. Each project shows its description, capacity, registration dates and documents (each with a preview of its first page or image, full screen with zoom on tap, and a Download button), with an Upcoming, Open or Closed status, filterable by tabs. The status changes on its own at the opening and closing times, and an open project page or list updates without a refresh. While registration is open a "Register now" button opens the organisers' sign-up form; it is hidden before opening and locked once closed. Push notifications, even while the app is closed, when a project's registration opens and closes, and 10 minutes before each. Tap one to open the project. Every phone with the app gets them, even when signed out or when the session has expired; tapping one then asks you to sign in and opens the project afterwards. Admins can create projects (title, description, registration link, optional capacity, opening and closing date and time, and documents to attach right away), edit them later (changing the dates moves the status and reminders to match, while a status set by hand is kept when the dates stay the same), attach and remove documents, force a project's status (for example to close it once the form is full; a forced status stays until the next opening or closing time still ahead), and delete projects.
@@ -22,7 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Backend URL configurable per build type through `local.properties`.
 
 ### Changed
-- The home screen has a ☰ side menu with Home, Search, Favorites, Recent downloads, Suggestions and Sign out, plus the signed-in user's name and email. Only Search stays in the top bar.
+- The home screen has a ☰ side menu with Home, Search, What's new, Projects, Favorites, Recent downloads, Suggestions, Statistics (admins), Profile and Sign out, plus the signed-in user's name and email. Only Search stays in the top bar.
 - Release builds are minified and resource-shrunk with R8.
 - HTTP bodies are logged in debug builds only.
 
