@@ -6,8 +6,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 
 @Composable
 fun WelcomeScreen(
@@ -28,7 +30,7 @@ fun WelcomeScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Clinical decision support & medical rationale platform",
+            text = stringResource(R.string.welcome_tagline),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -42,7 +44,7 @@ fun WelcomeScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(10.dp)
         ) {
-            Text("Log In")
+            Text(stringResource(R.string.auth_log_in))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -54,7 +56,7 @@ fun WelcomeScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(10.dp)
         ) {
-            Text("Sign Up")
+            Text(stringResource(R.string.auth_sign_up))
         }
     }
 }

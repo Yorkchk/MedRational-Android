@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="common_back">Retour</string>
+    <string name="common_retry">Réessayer</string>
+    <string name="common_cancel">Annuler</string>
+    <string name="common_save">Enregistrer</string>
+    <string name="common_delete">Supprimer</string>
+    <string name="common_create">Créer</string>
+    <string name="common_send">Envoyer</string>
+    <string name="common_ok">OK</string>
+    <string name="common_download">Télécharger</string>
+    <string name="common_clear">Effacer</string>
+    <string name="common_char_count">%1$d/%2$d</string>
+    <string name="error_network">Erreur réseau. Vérifiez votre connexion et réessayez.</string>
+</resources>

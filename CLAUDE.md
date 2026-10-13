@@ -86,6 +86,16 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
   - Startup routing: checks `TokenManager.hasToken()`. If valid, routes directly to `categories`; otherwise routes to `welcome`.
   - Secondary sections (Projects, Favorites, Recent downloads, Suggestions, Profile, Sign out) are reached from the home screen's ☰ side menu (`ui/categories/HomeDrawer.kt`); add new sections there rather than to the top bar. Other screens use a back arrow.
 
+## Localization (French / English)
+
+- French is the default whatever the phone's language (`res/values/`, marked `tools:locale="fr"`), and English lives in `res/values-en/`. Strings are split by feature (`strings_<feature>.xml`). Every key needs both languages with the same placeholders; `StringResourcesParityTest` and lint's `MissingTranslation` check it.
+- `data/locale/AppLanguage` stores the choice through AppCompat (`MainActivity` is an `AppCompatActivity`, and the manifest's `AppLocalesMetadataHolderService` keeps it on Android 12 and older). `ensureDefault()` sets French on first launch, and the Profile screen's language card switches it, which recreates the activity.
+- Never hardcode user-facing text: composables use `stringResource`/`pluralStringResource`, and ViewModels expose `ui/text/UiText` (a resource id plus args, resolved with `asString()` when shown), never a `String`. Tests check the text with `TestStrings.en(...)`/`fr(...)`, which read the XML files.
+- Show the app's own messages, chosen from the HTTP status, never the backend's (English) message text.
+- Dates and sizes take the screen's locale from `ui/text/appLocale()`.
+- Only translate what the app writes. What admins enter (titles, descriptions, hashtags, projects) is shown as written.
+- Workshop pushes name a string (`push_{event}_{fcfs|motivation}_title`/`_body` in `push_strings.xml`, with the project title as `%1$s`) that must match `WorkshopNotificationServiceImpl` in the backend. Language splits are disabled in the App Bundle, so both languages ship in every install.
+
 ## Core Workflows
 
 - **Two-Step OTP Auth:**

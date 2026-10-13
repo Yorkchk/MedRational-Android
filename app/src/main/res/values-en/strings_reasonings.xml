@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="reasonings_error_load">Couldn\'t load reasonings (HTTP %1$d).</string>
+    <string name="upload_error_read_file">Couldn\'t read the selected file.</string>
+    <string name="upload_error_failed">Upload failed. Check your connection and try again.</string>
+    <string name="upload_done">Uploaded %1$s</string>
+    <string name="upload_done_tagged">Uploaded and tagged %1$s</string>
+    <string name="upload_done_tags_failed">Uploaded %1$s, but its hashtags couldn\'t be saved.</string>
+    <string name="bulk_tag_failed" tools:ignore="PluralsCandidate">Couldn\'t tag %1$d of %2$s.</string>
+    <string name="bulk_remove_failed" tools:ignore="PluralsCandidate">Couldn\'t remove %1$d of %2$s.</string>
+    <string name="bulk_load_failed">Couldn\'t load the hashtags of the selected files.</string>
+    <string name="selection_cancel">Cancel selection</string>
+    <string name="selection_add_tags">Add hashtags to selected files</string>
+    <string name="selection_remove_tags">Remove hashtags from selected files</string>
+    <string name="download_started">Downloading %1$s…</string>
+    <string name="download_category_zip_name">%1$s_Materials.zip</string>
+    <string name="download_reasoning_zip_name">%1$s_Files.zip</string>
+    <string name="reasonings_download_category">Download category ZIP</string>
+    <string name="reasonings_add">Add clinical reasoning</string>
+    <string name="reasonings_empty">No reasonings added for this category.</string>
+    <string name="upload_dialog_title">Upload file</string>
+    <string name="upload_dialog_confirm">Upload</string>
+    <string name="upload_dialog_tags_hint">Optional. Separate several tags with spaces or commas</string>
+    <string name="upload_selected_file">Selected file</string>
+    <string name="upload_in_progress">Uploading file…</string>
+    <string name="bulk_tag_dialog_confirm">Add</string>
+    <string name="bulk_tag_dialog_hint">Added to every selected file</string>
+    <string name="reasoning_download_all">Download all files</string>
+    <string name="reasoning_upload_file">Upload study file</string>
+    <string name="reasoning_delete">Delete reasoning</string>
+    <string name="reasoning_attached_files">Attached files (%1$d)</string>
+    <string name="file_tap_to_preview">" · Tap to preview"</string>
+    <string name="file_tap_to_open">" · Tap to open"</string>
+    <string name="favorite_remove">Remove from favorites</string>
+    <string name="favorite_add">Add to favorites</string>
+    <string name="file_delete">Delete file</string>
+    <string name="reasoning_new">New clinical reasoning</string>
+    <string name="reasoning_title_label">Title / diagnosis algorithm</string>
+    <string name="reasoning_content_label">Algorithm / protocol steps</string>
+    <string name="bulk_remove_title">Remove hashtags</string>
+    <string name="bulk_remove_none">The selected files have no hashtags.</string>
+    <string name="bulk_remove_hint">Removed from each selected file that has them. A tag no other file uses is deleted.</string>
+    <string name="bulk_remove_confirm">Remove</string>
+    <plurals name="hashtag_count">
+        <item quantity="one">%d tag</item>
+        <item quantity="other">%d tags</item>
+    </plurals>
+    <plurals name="file_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="bulk_tags_added">
+        <item quantity="one">Added %2$s to %3$s</item>
+        <item quantity="other">Added %2$s to %3$s</item>
+    </plurals>
+    <plurals name="bulk_tags_removed">
+        <item quantity="one">Removed %2$s from %3$s</item>
+        <item quantity="other">Removed %2$s from %3$s</item>
+    </plurals>
+    <plurals name="selection_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <plurals name="bulk_tag_dialog_title">
+        <item quantity="one">Tag %d file</item>
+        <item quantity="other">Tag %d files</item>
+    </plurals>
+</resources>

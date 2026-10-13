@@ -18,10 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.Category
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import kotlinx.coroutines.launch
@@ -90,7 +93,7 @@ fun CategoryListScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(text = "Medical Categories", fontWeight = FontWeight.Bold) },
+                    title = { Text(text = stringResource(R.string.categories_title), fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             // A dot tells the user there is something new behind the menu. It sits on the
@@ -99,7 +102,7 @@ fun CategoryListScreen(
                             Box {
                                 Icon(
                                     Icons.Default.Menu,
-                                    contentDescription = if (noveltyCount > 0) "Open menu, new files available" else "Open menu"
+                                    contentDescription = if (noveltyCount > 0) stringResource(R.string.home_open_menu_new) else stringResource(R.string.home_open_menu)
                                 )
                                 if (noveltyCount > 0) {
                                     Badge(
@@ -117,7 +120,7 @@ fun CategoryListScreen(
                     },
                     actions = {
                         IconButton(onClick = onNavigateToSearch) {
-                            Icon(Icons.Default.Search, contentDescription = "Search Files")
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.categories_search_files))
                         }
                     }
                 )
@@ -125,7 +128,7 @@ fun CategoryListScreen(
             floatingActionButton = {
                 if (isAdmin) {
                     FloatingActionButton(onClick = { showCreateDialog = true }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Category")
+                        Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.categories_add))
                     }
                 }
             }
@@ -144,9 +147,9 @@ fun CategoryListScreen(
                                 .padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                            Text(text = state.message.asString(), color = MaterialTheme.colorScheme.error)
                             Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = { viewModel.loadCategories() }) { Text("Retry") }
+                            Button(onClick = { viewModel.loadCategories() }) { Text(stringResource(R.string.common_retry)) }
                         }
                     }
                     is CategoryUiState.Success -> {
@@ -171,8 +174,8 @@ fun CategoryListScreen(
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
-            title = { Text("Sign Out") },
-            text = { Text("Are you sure you want to sign out?") },
+            title = { Text(stringResource(R.string.home_sign_out)) },
+            text = { Text(stringResource(R.string.home_sign_out_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -181,12 +184,12 @@ fun CategoryListScreen(
                         onSignOut()
                     }
                 ) {
-                    Text("Sign Out", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.home_sign_out), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSignOutDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -243,7 +246,7 @@ fun CategoryCard(
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Category",
+                        contentDescription = stringResource(R.string.categories_delete),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -262,19 +265,19 @@ fun CreateCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Category") },
+        title = { Text(stringResource(R.string.categories_new)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Category Name") },
+                    label = { Text(stringResource(R.string.categories_name)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = desc,
                     onValueChange = { desc = it },
-                    label = { Text("Description (Optional)") }
+                    label = { Text(stringResource(R.string.categories_description_optional)) }
                 )
             }
         },
@@ -283,11 +286,11 @@ fun CreateCategoryDialog(
                 onClick = { if (name.isNotBlank()) onConfirm(name, desc.ifBlank { null }) },
                 enabled = name.isNotBlank()
             ) {
-                Text("Create")
+                Text(stringResource(R.string.common_create))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

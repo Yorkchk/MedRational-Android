@@ -61,6 +61,13 @@ android {
         compose = true
         buildConfig = true
     }
+    // The language is picked in the app (French by default, English from the profile), not from
+    // the phone's settings, so every install needs both: Play must not split strings by language
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 dependencies {
@@ -68,6 +75,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    // Per-app language (French by default, English from the profile)
+    implementation(libs.androidx.appcompat)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

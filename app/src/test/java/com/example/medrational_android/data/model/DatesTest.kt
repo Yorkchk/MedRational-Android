@@ -1,5 +1,6 @@
 package com.example.medrational_android.data.model
 
+import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,17 +52,26 @@ class DatesTest {
         val millis = combineDateAndTime(pickedDay, hour = 9, minute = 5)
 
         assertEquals("2026-10-12T09:05:00", toIsoLocalDateTime(millis))
-        assertEquals("12 Oct 2026, 09:05", formatMillisDateTime(millis))
+        assertEquals("12 Oct 2026, 09:05", formatMillisDateTime(millis, Locale.ENGLISH))
     }
 
     @Test
     fun `times follow the phone's 12 or 24-hour clock`() {
         val evening = parseIsoLocalDateTime("2026-10-11T19:53:00")!!
 
-        assertEquals("11 Oct 2026, 19:53", formatMillisDateTime(evening, is24Hour = true))
-        assertEquals("11 Oct 2026, 7:53 PM", formatMillisDateTime(evening, is24Hour = false))
-        assertEquals("11 Oct 2026, 7:53 AM", formatIsoLocalDateTime("2026-10-11T07:53:00", is24Hour = false))
-        assertEquals("soon", formatIsoLocalDateTime("soon", is24Hour = false))
+        assertEquals("11 Oct 2026, 19:53", formatMillisDateTime(evening, Locale.ENGLISH, is24Hour = true))
+        assertEquals("11 Oct 2026, 7:53 PM", formatMillisDateTime(evening, Locale.ENGLISH, is24Hour = false))
+        assertEquals("11 Oct 2026, 7:53 AM", formatIsoLocalDateTime("2026-10-11T07:53:00", Locale.ENGLISH, is24Hour = false))
+        assertEquals("soon", formatIsoLocalDateTime("soon", Locale.ENGLISH, is24Hour = false))
+    }
+
+    // The app is in French by default
+    @Test
+    fun `month names follow the app's language`() {
+        val evening = parseIsoLocalDateTime("2026-03-11T19:53:00")!!
+
+        assertEquals("11 mars 2026, 19:53", formatMillisDateTime(evening, Locale.FRENCH))
+        assertEquals("11 Mar 2026, 19:53", formatMillisDateTime(evening, Locale.ENGLISH))
     }
 
     @Test

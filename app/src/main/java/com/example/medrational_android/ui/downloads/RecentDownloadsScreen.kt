@@ -36,16 +36,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RecentDownload
 import com.example.medrational_android.data.model.formatIsoDate
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.RecentDownloadsUiState
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 
@@ -67,10 +71,10 @@ fun RecentDownloadsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Recent downloads", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.downloads_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -88,9 +92,9 @@ fun RecentDownloadsScreen(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text("Retry") }
+                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 is RecentDownloadsUiState.Success -> {
@@ -146,7 +150,7 @@ private fun RecentDownloadCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = download.fileName ?: "Untitled file",
+                    text = download.fileName ?: stringResource(R.string.file_untitled),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
@@ -162,9 +166,9 @@ private fun RecentDownloadCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                download.downloadedAt?.let(::formatIsoDate)?.let { date ->
+                download.downloadedAt?.let { formatIsoDate(it, appLocale()) }?.let { date ->
                     Text(
-                        text = "Downloaded $date",
+                        text = stringResource(R.string.downloads_downloaded_on, date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -193,10 +197,10 @@ private fun EmptyDownloads(modifier: Modifier = Modifier) {
             tint = MaterialTheme.colorScheme.outline
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text("No downloads yet.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.downloads_empty), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Files you download will appear here so you can open them again quickly.",
+            stringResource(R.string.downloads_empty_hint),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center

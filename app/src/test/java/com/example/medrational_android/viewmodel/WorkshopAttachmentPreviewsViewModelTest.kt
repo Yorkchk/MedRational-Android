@@ -1,6 +1,7 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.WorkshopAttachment
@@ -109,7 +110,8 @@ class WorkshopAttachmentPreviewsViewModelTest {
         val viewModel = newViewModel()
         viewModel.load(listOf(attachment()))
 
-        assertEquals(PreviewState.Unavailable("The preview can't be generated right now."), viewModel.previews.value[ID])
+        val preview = viewModel.previews.value[ID] as PreviewState.Unavailable
+        assertEquals("The preview can't be generated right now.", en(preview.message))
     }
 
     @Test

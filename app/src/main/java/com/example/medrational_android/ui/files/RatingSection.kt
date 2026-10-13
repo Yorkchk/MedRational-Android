@@ -17,12 +17,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.ui.components.AverageStars
 import com.example.medrational_android.ui.components.StarRatingInput
 import com.example.medrational_android.ui.components.formatAverage
 import com.example.medrational_android.ui.components.ratingCountLabel
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.FileRatingUiState
 
 /** The file's average and count, and the user's own stars to rate, change or remove their rating. */
@@ -36,18 +39,18 @@ fun RatingSection(
 ) {
     OutlinedCard(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Text(text = "Rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(R.string.rating_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             when (state) {
                 FileRatingUiState.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 is FileRatingUiState.Error -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = state.message,
+                        text = state.message.asString(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.weight(1f)
                     )
-                    TextButton(onClick = onRetry) { Text("Retry") }
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.common_retry)) }
                 }
                 is FileRatingUiState.Success -> {
                     val summary = state.summary
@@ -64,7 +67,7 @@ fun RatingSection(
                             AverageStars(avgRating = summary.avgRating)
                         }
                         Text(
-                            text = if (summary.totalRatings == 0) "No ratings yet" else ratingCountLabel(summary.totalRatings),
+                            text = if (summary.totalRatings == 0) stringResource(R.string.rating_none) else ratingCountLabel(summary.totalRatings),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -75,14 +78,14 @@ fun RatingSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (summary.userRating == null) "Tap a star to rate this file" else "Your rating",
+                            text = if (summary.userRating == null) stringResource(R.string.rating_tap_star) else stringResource(R.string.rating_yours),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
                         )
                         if (summary.userRating != null) {
                             TextButton(onClick = onRemoveRating, enabled = !state.isSubmitting) {
-                                Text("Remove rating")
+                                Text(stringResource(R.string.rating_remove))
                             }
                         }
                     }

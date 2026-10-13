@@ -11,6 +11,7 @@ import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 
@@ -32,7 +33,7 @@ class AndroidDownloader(private val context: Context) {
             .setAllowedOverMetered(true)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setTitle(cleanFileName)
-            .setDescription("Downloading study resource...")
+            .setDescription(context.getString(R.string.download_description))
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, cleanFileName)
         // Lets the backend add single-file downloads to the user's recent downloads, and authorizes
         // workshop attachments. Only ever sent to our own API, never to another host
@@ -78,22 +79,22 @@ class AndroidDownloader(private val context: Context) {
             when (status) {
                 DownloadManager.STATUS_SUCCESSFUL -> {
                     Log.d("DownloadManager", "Successfully downloaded $fileName")
-                    Toast.makeText(context, "$fileName downloaded successfully", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.download_success, fileName), Toast.LENGTH_SHORT).show()
                 }
                 DownloadManager.STATUS_FAILED -> {
                     Log.e("DownloadManager", "Download failed for $fileName. Reason code: $reason")
                     val explanation = when (reason) {
-                        DownloadManager.ERROR_CANNOT_RESUME -> "Cannot resume transfer (stream length issue)"
-                        DownloadManager.ERROR_DEVICE_NOT_FOUND -> "No external storage device found"
-                        DownloadManager.ERROR_FILE_ALREADY_EXISTS -> "File already exists"
-                        DownloadManager.ERROR_FILE_ERROR -> "Storage permission or file system error"
-                        DownloadManager.ERROR_HTTP_DATA_ERROR -> "HTTP data parsing error"
-                        DownloadManager.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
-                        DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "Too many redirects"
-                        DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "Unhandled HTTP code (check backend 4xx/5xx)"
-                        else -> "HTTP Error / Code: $reason"
+                        DownloadManager.ERROR_CANNOT_RESUME -> context.getString(R.string.download_error_cannot_resume)
+                        DownloadManager.ERROR_DEVICE_NOT_FOUND -> context.getString(R.string.download_error_no_storage)
+                        DownloadManager.ERROR_FILE_ALREADY_EXISTS -> context.getString(R.string.download_error_file_exists)
+                        DownloadManager.ERROR_FILE_ERROR -> context.getString(R.string.download_error_file)
+                        DownloadManager.ERROR_HTTP_DATA_ERROR -> context.getString(R.string.download_error_http_data)
+                        DownloadManager.ERROR_INSUFFICIENT_SPACE -> context.getString(R.string.download_error_space)
+                        DownloadManager.ERROR_TOO_MANY_REDIRECTS -> context.getString(R.string.download_error_redirects)
+                        DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> context.getString(R.string.download_error_http_code)
+                        else -> context.getString(R.string.download_error_code, reason)
                     }
-                    Toast.makeText(context, "Download failed: $explanation", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.download_failed, explanation), Toast.LENGTH_LONG).show()
                 }
             }
             cursor.close()

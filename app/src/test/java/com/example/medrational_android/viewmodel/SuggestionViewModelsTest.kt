@@ -1,6 +1,7 @@
 package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
+import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.PageResponse
 import com.example.medrational_android.data.model.SuggestionDetail
@@ -151,7 +152,7 @@ class SuggestionViewModelsTest {
         val viewModel = NewSuggestionViewModel(api)
         viewModel.submit("Title", "Description", null)
 
-        assertEquals(NewSuggestionUiState.Error("Files must be 10 MB or smaller."), viewModel.uiState.value)
+        assertEquals("Files must be 10 MB or smaller.", en((viewModel.uiState.value as NewSuggestionUiState.Error).message))
         viewModel.onErrorShown()
         assertEquals(NewSuggestionUiState.Idle, viewModel.uiState.value)
     }
@@ -163,7 +164,7 @@ class SuggestionViewModelsTest {
         val viewModel = NewSuggestionViewModel(api)
         viewModel.submit("Title", "Description", null)
 
-        assertTrue((viewModel.uiState.value as NewSuggestionUiState.Error).message.contains("file type"))
+        assertTrue(en((viewModel.uiState.value as NewSuggestionUiState.Error).message)!!.contains("file type"))
     }
 
     // --- detail ------------------------------------------------------------------------------------
@@ -190,7 +191,7 @@ class SuggestionViewModelsTest {
         val viewModel = SuggestionDetailViewModel(api)
         viewModel.load(ID)
 
-        assertEquals(SuggestionDetailUiState.Error("This suggestion no longer exists."), viewModel.uiState.value)
+        assertEquals("This suggestion no longer exists.", en((viewModel.uiState.value as SuggestionDetailUiState.Error).message))
     }
 
     @Test
@@ -238,7 +239,7 @@ class SuggestionViewModelsTest {
         viewModel.sendMessage("Hello?", null) { cleared = true }
 
         assertFalse(viewModel.success().canPost)
-        assertTrue(viewModel.message.value!!.contains("closed"))
+        assertTrue(en(viewModel.message.value)!!.contains("closed"))
         assertFalse(cleared)
     }
 
@@ -251,7 +252,7 @@ class SuggestionViewModelsTest {
 
         assertEquals(listOf(message(1)), viewModel.success().suggestion.messages)
         assertFalse(viewModel.success().busy)
-        assertTrue(viewModel.message.value!!.contains("Network"))
+        assertTrue(en(viewModel.message.value)!!.contains("Network"))
         viewModel.onMessageShown()
         assertNull(viewModel.message.value)
     }
@@ -275,7 +276,7 @@ class SuggestionViewModelsTest {
         viewModel.close()
 
         assertTrue(viewModel.success().canPost)
-        assertTrue(viewModel.message.value!!.contains("HTTP 500"))
+        assertTrue(en(viewModel.message.value)!!.contains("HTTP 500"))
     }
 
     private companion object {

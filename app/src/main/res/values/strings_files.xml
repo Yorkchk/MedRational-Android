@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="file_error_load">Impossible de charger ce fichier (HTTP %1$d).</string>
+    <string name="file_error_gone">Ce fichier n’existe plus.</string>
+    <string name="preview_error_corrupted">L’aperçu n’a pas pu être ouvert.</string>
+    <string name="preview_error_busy">L’aperçu ne peut pas être généré pour le moment.</string>
+    <string name="preview_error_http">Échec du chargement de l’aperçu (HTTP %1$d).</string>
+    <string name="preview_error_network">Erreur réseau pendant le chargement de l’aperçu.</string>
+    <string name="hashtags_error_load">Impossible de charger les hashtags (HTTP %1$d).</string>
+    <string name="hashtags_error_load_network">Erreur réseau pendant le chargement des hashtags.</string>
+    <string name="hashtags_error_save">Impossible d’enregistrer les hashtags (HTTP %1$d).</string>
+    <string name="error_http_code">Erreur HTTP %1$d.</string>
+    <string name="hashtags_rename_partial">#%1$s ajouté, mais impossible de retirer #%2$s. %3$s</string>
+    <string name="hashtags_remove_failed">Impossible de retirer #%1$s. %2$s</string>
+    <string name="rating_error_load">Impossible de charger les notes (HTTP %1$d).</string>
+    <string name="rating_error_load_network">Erreur réseau pendant le chargement des notes.</string>
+    <string name="rating_error_save">Impossible d’enregistrer votre note (HTTP %1$d).</string>
+    <string name="rating_error_save_network">Erreur réseau. Votre note n’a pas été enregistrée.</string>
+    <string name="preview_unavailable">Aperçu indisponible</string>
+    <string name="preview_image_failed">Cette image n’a pas pu être affichée. Téléchargez-la pour l’ouvrir dans une autre application.</string>
+    <string name="preview_preparing">Préparation de l’aperçu…</string>
+    <string name="preview_preparing_hint">La première fois, les documents Office peuvent prendre quelques secondes.</string>
+    <string name="preview_none_for_extension">Pas d’aperçu pour les fichiers .%1$s</string>
+    <string name="preview_none">Pas d’aperçu pour ce fichier</string>
+    <string name="preview_supported_types">Les aperçus sont disponibles pour les fichiers PDF, Word, PowerPoint, Excel et les images. Téléchargez le fichier pour l’ouvrir.</string>
+    <string name="file_from_reasoning">Issu du raisonnement</string>
+    <string name="show_less">Voir moins</string>
+    <string name="show_more">Voir plus</string>
+    <string name="preview_title">Aperçu</string>
+    <string name="preview_open_fullscreen">Ouvrir en plein écran</string>
+    <string name="preview_close_fullscreen">Quitter le plein écran</string>
+    <string name="preview_page">Page %1$d</string>
+    <string name="hashtags_title">Hashtags</string>
+    <string name="hashtags_remove_named">Retirer #%1$s</string>
+    <string name="hashtags_add">Ajouter</string>
+    <string name="hashtags_add_title">Ajouter des hashtags</string>
+    <string name="hashtags_add_hint">Séparez plusieurs hashtags par des espaces ou des virgules</string>
+    <string name="hashtags_rename_title">Renommer #%1$s</string>
+    <string name="hashtags_rename_hint">Renomme le hashtag sur ce fichier uniquement</string>
+    <string name="hashtags_remove_confirm_title">Retirer #%1$s ?</string>
+    <string name="hashtags_remove_confirm_body">Il sera retiré de ce fichier, et supprimé entièrement si aucun autre fichier ne l’utilise.</string>
+    <string name="hashtags_remove">Retirer</string>
+    <string name="hashtags_new_name">Nouveau nom</string>
+    <string name="hashtags_type_tag">Saisissez un hashtag</string>
+    <string name="hashtags_most_used">Les plus utilisés</string>
+    <string name="hashtags_existing">Hashtags existants</string>
+    <string name="rating_title">Note</string>
+    <string name="rating_none">Pas encore de note</string>
+    <string name="rating_tap_star">Appuyez sur une étoile pour noter ce fichier</string>
+    <string name="rating_yours">Votre note</string>
+    <string name="rating_remove">Retirer ma note</string>
+    <string name="rating_description">Noté %1$s sur 5, %2$s</string>
+    <plurals name="preview_title_pages">
+        <item quantity="one">Aperçu · %d page</item>
+        <item quantity="many">Aperçu · %d pages</item>
+        <item quantity="other">Aperçu · %d pages</item>
+    </plurals>
+    <plurals name="rating_count">
+        <item quantity="one">%d note</item>
+        <item quantity="many">%d notes</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
+    <plurals name="rating_rate_stars">
+        <item quantity="one">Donner %d étoile</item>
+        <item quantity="many">Donner %d étoiles</item>
+        <item quantity="other">Donner %d étoiles</item>
+    </plurals>
+</resources>

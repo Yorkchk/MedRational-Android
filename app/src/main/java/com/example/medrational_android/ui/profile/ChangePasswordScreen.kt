@@ -29,12 +29,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.ui.components.OtpCodeField
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.ChangePasswordUiState
 import com.example.medrational_android.viewmodel.ChangePasswordViewModel
 
@@ -59,10 +62,10 @@ fun ChangePasswordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Change password", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.profile_change_password), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -80,18 +83,18 @@ fun ChangePasswordScreen(
                 is ChangePasswordUiState.RequestCode -> {
                     Text(
                         if (email != null) {
-                            "To confirm it's you, we'll send a 6-digit code to $email."
+                            stringResource(R.string.profile_password_code_to, email)
                         } else {
-                            "To confirm it's you, we'll send a 6-digit code to your email."
+                            stringResource(R.string.profile_password_code_to_your_email)
                         },
                         style = MaterialTheme.typography.bodyLarge
                     )
                     state.error?.let { ErrorText(it) }
-                    BusyButton(text = "Send code", isBusy = state.isSending, onClick = viewModel::requestCode)
+                    BusyButton(text = stringResource(R.string.profile_send_code), isBusy = state.isSending, onClick = viewModel::requestCode)
                 }
                 is ChangePasswordUiState.EnterCode -> {
                     Text(
-                        if (email != null) "We sent a code to $email." else "We sent a code to your email.",
+                        if (email != null) stringResource(R.string.profile_code_sent_to, email) else stringResource(R.string.profile_code_sent_to_your_email),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     OtpCodeField(
@@ -105,17 +108,17 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        label = { Text("New password") },
+                        label = { Text(stringResource(R.string.profile_new_password)) },
                         singleLine = true,
                         enabled = !state.isBusy,
                         visualTransformation = visualTransformation,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        supportingText = { Text("At least 6 characters") },
+                        supportingText = { Text(stringResource(R.string.profile_password_min)) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password)
                                 )
                             }
                         },
@@ -124,7 +127,7 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = repeatPassword,
                         onValueChange = { repeatPassword = it },
-                        label = { Text("Repeat new password") },
+                        label = { Text(stringResource(R.string.profile_repeat_password)) },
                         singleLine = true,
                         enabled = !state.isBusy,
                         visualTransformation = visualTransformation,
@@ -132,16 +135,16 @@ fun ChangePasswordScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     state.notice?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(it.asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     state.error?.let { ErrorText(it) }
                     BusyButton(
-                        text = "Change password",
+                        text = stringResource(R.string.profile_change_password),
                         isBusy = state.isBusy,
                         enabled = code.length == 6 && newPassword.isNotEmpty() && repeatPassword.isNotEmpty(),
                         onClick = { viewModel.confirm(code, newPassword, repeatPassword) }
                     )
-                    TextButton(onClick = viewModel::resendCode, enabled = !state.isBusy) { Text("Resend code") }
+                    TextButton(onClick = viewModel::resendCode, enabled = !state.isBusy) { Text(stringResource(R.string.profile_resend_code)) }
                 }
                 // Navigating away
                 is ChangePasswordUiState.Done -> Unit

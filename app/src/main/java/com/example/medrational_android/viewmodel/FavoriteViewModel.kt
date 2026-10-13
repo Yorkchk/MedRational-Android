@@ -2,12 +2,14 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.FavoriteResponse
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +18,7 @@ import kotlinx.coroutines.launch
 sealed class FavoriteUiState {
     data object Loading : FavoriteUiState()
     data class Success(val favorites: List<FavoriteResponse>) : FavoriteUiState()
-    data class Error(val message: String) : FavoriteUiState()
+    data class Error(val message: UiText) : FavoriteUiState()
 }
 
 class FavoriteViewModel(
@@ -34,7 +36,7 @@ class FavoriteViewModel(
     fun loadFavorites() {
         val userId = tokenManager.getUserId()
         if (userId <= 0L) {
-            _uiState.value = FavoriteUiState.Error("User session not found. Please log in again.")
+            _uiState.value = FavoriteUiState.Error(UiText.Res(R.string.favorites_error_session))
             return
         }
 
@@ -48,10 +50,10 @@ class FavoriteViewModel(
                     // Persist the set of file IDs so all hearts know they are liked
                     _favoritedFileIds.value = list.map { it.file.id }.toSet()
                 } else {
-                    _uiState.value = FavoriteUiState.Error("Failed to fetch favorites.")
+                    _uiState.value = FavoriteUiState.Error(UiText.Res(R.string.favorites_error_load, listOf(response.code())))
                 }
             } catch (e: Exception) {
-                _uiState.value = FavoriteUiState.Error(e.localizedMessage ?: "Network error.")
+                _uiState.value = FavoriteUiState.Error(UiText.Res(R.string.error_network))
             }
         }
     }

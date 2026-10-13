@@ -1,7 +1,9 @@
 package com.example.medrational_android.viewmodel
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.ChangePasswordRequest
@@ -9,7 +11,7 @@ import com.example.medrational_android.data.model.ConfirmCodeRequest
 import com.example.medrational_android.data.model.RequestEmailChangeRequest
 import com.example.medrational_android.data.model.UpdateProfileRequest
 import com.example.medrational_android.data.model.UserProfile
-import com.google.gson.JsonParser
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,61 +20,63 @@ import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
 
-private const val NETWORK_ERROR = "Network error. Check your connection and try again."
+private val NETWORK_ERROR = UiText.Res(R.string.error_network)
+private val ENTER_CODE = UiText.Res(R.string.auth_error_enter_code)
 private const val NAME_MAX_LENGTH = 50
 private val EMAIL_REGEX = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 private val CODE_REGEX = Regex("^[0-9]{6}$")
 private val PHONE_REGEX = Regex("^[0-9]{10}$")
 
 /**
- * The backend's own message for a failed call: "error" (thrown errors such as a wrong code),
- * "message", or the first field error of a validation failure. Falls back to [fallback].
+ * What to show for a failed call. The backend answers 400 for what the user typed (a wrong or
+ * expired code, an email already in use...) with an English message, so the app shows its own:
+ * [badRequest], or "email already in use" when the backend says so. Other statuses show [failed]
+ * with the HTTP code.
  */
-internal fun profileErrorMessage(response: Response<*>, fallback: String): String {
+internal fun profileErrorMessage(
+    response: Response<*>,
+    @StringRes failed: Int,
+    @StringRes badRequest: Int = R.string.profile_error_check_fields
+): UiText {
+    if (response.code() != 400) return UiText.Res(failed, listOf(response.code()))
     val raw = try {
         response.errorBody()?.string()
     } catch (e: IOException) {
         null
     }
-    if (raw.isNullOrBlank()) return "$fallback (HTTP ${response.code()})."
-    return try {
-        val json = JsonParser.parseString(raw).asJsonObject
-        val fieldError = json.getAsJsonObject("errors")?.entrySet()?.firstOrNull()?.value?.asString
-        fieldError
-            ?: json.get("error")?.takeIf { it.isJsonPrimitive }?.asString
-            ?: json.get("message")?.takeIf { it.isJsonPrimitive }?.asString
-            ?: "$fallback (HTTP ${response.code()})."
-    } catch (e: RuntimeException) {
-        "$fallback (HTTP ${response.code()})."
+    return if (raw?.contains("already in use", ignoreCase = true) == true) {
+        UiText.Res(R.string.profile_error_email_in_use)
+    } else {
+        UiText.Res(badRequest)
     }
 }
 
 /** Null when the names and phone can be sent, otherwise what to fix. Same rules as sign-up. */
-internal fun validateProfileFields(firstName: String, lastName: String, phone: String): String? = when {
-    firstName.isBlank() || lastName.isBlank() -> "First and last name are required."
+internal fun validateProfileFields(firstName: String, lastName: String, phone: String): UiText? = when {
+    firstName.isBlank() || lastName.isBlank() -> UiText.Res(R.string.profile_error_names_required)
     firstName.trim().length > NAME_MAX_LENGTH || lastName.trim().length > NAME_MAX_LENGTH ->
-        "Names must be at most $NAME_MAX_LENGTH characters."
-    phone.isNotBlank() && !PHONE_REGEX.matches(phone.trim()) -> "Phone number must be exactly 10 digits."
+        UiText.Res(R.string.profile_error_name_too_long, listOf(NAME_MAX_LENGTH))
+    phone.isNotBlank() && !PHONE_REGEX.matches(phone.trim()) -> UiText.Res(R.string.profile_error_phone_digits)
     else -> null
 }
 
-internal fun validateNewPassword(newPassword: String, repeatPassword: String): String? = when {
-    newPassword.length < 6 -> "Password must be at least 6 characters."
-    newPassword != repeatPassword -> "Passwords don't match."
+internal fun validateNewPassword(newPassword: String, repeatPassword: String): UiText? = when {
+    newPassword.length < 6 -> UiText.Res(R.string.profile_error_password_too_short)
+    newPassword != repeatPassword -> UiText.Res(R.string.profile_error_passwords_mismatch)
     else -> null
 }
 
 sealed interface ProfileUiState {
     data object Loading : ProfileUiState
     data class Success(val profile: UserProfile) : ProfileUiState
-    data class Error(val message: String) : ProfileUiState
+    data class Error(val message: UiText) : ProfileUiState
 }
 
 sealed interface ProfileSaveState {
     data object Idle : ProfileSaveState
     data object Saving : ProfileSaveState
     data object Saved : ProfileSaveState
-    data class Error(val message: String) : ProfileSaveState
+    data class Error(val message: UiText) : ProfileSaveState
 }
 
 class ProfileViewModel(
@@ -98,12 +102,12 @@ class ProfileViewModel(
                 if (response.isSuccessful && body != null) {
                     ProfileUiState.Success(body)
                 } else {
-                    ProfileUiState.Error(profileErrorMessage(response, "Couldn't load your profile"))
+                    ProfileUiState.Error(profileErrorMessage(response, R.string.profile_error_load))
                 }
             } catch (e: IOException) {
                 ProfileUiState.Error(NETWORK_ERROR)
             } catch (e: HttpException) {
-                ProfileUiState.Error("Couldn't load your profile (HTTP ${e.code()}).")
+                ProfileUiState.Error(UiText.Res(R.string.profile_error_load, listOf(e.code())))
             }
         }
     }
@@ -130,12 +134,12 @@ class ProfileViewModel(
                     tokenManager.saveUserName(body.fullName)
                     ProfileSaveState.Saved
                 } else {
-                    ProfileSaveState.Error(profileErrorMessage(response, "Couldn't save your profile"))
+                    ProfileSaveState.Error(profileErrorMessage(response, R.string.profile_error_save))
                 }
             } catch (e: IOException) {
                 ProfileSaveState.Error(NETWORK_ERROR)
             } catch (e: HttpException) {
-                ProfileSaveState.Error("Couldn't save your profile (HTTP ${e.code()}).")
+                ProfileSaveState.Error(UiText.Res(R.string.profile_error_save, listOf(e.code())))
             }
         }
     }
@@ -146,13 +150,13 @@ class ProfileViewModel(
 }
 
 sealed interface ChangeEmailUiState {
-    data class EnterEmail(val isSending: Boolean = false, val error: String? = null) : ChangeEmailUiState
+    data class EnterEmail(val isSending: Boolean = false, val error: UiText? = null) : ChangeEmailUiState
     // notice: e.g. "A new code was sent" after a resend
     data class EnterCode(
         val newEmail: String,
         val isBusy: Boolean = false,
-        val error: String? = null,
-        val notice: String? = null
+        val error: UiText? = null,
+        val notice: UiText? = null
     ) : ChangeEmailUiState
     data object Done : ChangeEmailUiState
 }
@@ -169,8 +173,8 @@ class ChangeEmailViewModel(
     fun requestCode(newEmail: String) {
         val email = newEmail.trim()
         val error = when {
-            !EMAIL_REGEX.matches(email) -> "Enter a valid email address."
-            email.equals(tokenManager.getEmail(), ignoreCase = true) -> "This is already your email."
+            !EMAIL_REGEX.matches(email) -> UiText.Res(R.string.profile_error_invalid_email)
+            email.equals(tokenManager.getEmail(), ignoreCase = true) -> UiText.Res(R.string.profile_error_same_email)
             else -> null
         }
         if (error != null) {
@@ -191,7 +195,7 @@ class ChangeEmailViewModel(
         _uiState.value = state.copy(isBusy = true, error = null, notice = null)
         viewModelScope.launch {
             _uiState.value = when (val failure = sendCode(state.newEmail)) {
-                null -> state.copy(isBusy = false, error = null, notice = "A new code was sent to ${state.newEmail}.")
+                null -> state.copy(isBusy = false, error = null, notice = UiText.Res(R.string.profile_code_resent_to, listOf(state.newEmail)))
                 else -> state.copy(isBusy = false, error = failure, notice = null)
             }
         }
@@ -205,7 +209,7 @@ class ChangeEmailViewModel(
     fun confirm(code: String) {
         val state = _uiState.value as? ChangeEmailUiState.EnterCode ?: return
         if (!CODE_REGEX.matches(code.trim())) {
-            _uiState.value = state.copy(error = "Please enter the 6-digit code.", notice = null)
+            _uiState.value = state.copy(error = ENTER_CODE, notice = null)
             return
         }
         _uiState.value = state.copy(isBusy = true, error = null, notice = null)
@@ -224,33 +228,36 @@ class ChangeEmailViewModel(
                     )
                     ChangeEmailUiState.Done
                 } else {
-                    state.copy(isBusy = false, error = profileErrorMessage(response, "Couldn't change your email"))
+                    state.copy(
+                        isBusy = false,
+                        error = profileErrorMessage(response, R.string.profile_error_change_email, R.string.auth_error_invalid_code)
+                    )
                 }
             } catch (e: IOException) {
                 state.copy(isBusy = false, error = NETWORK_ERROR)
             } catch (e: HttpException) {
-                state.copy(isBusy = false, error = "Couldn't change your email (HTTP ${e.code()}).")
+                state.copy(isBusy = false, error = UiText.Res(R.string.profile_error_change_email, listOf(e.code())))
             }
         }
     }
 
     // Null on success, otherwise the message to show
-    private suspend fun sendCode(email: String): String? = try {
+    private suspend fun sendCode(email: String): UiText? = try {
         val response = api.requestEmailChangeCode(RequestEmailChangeRequest(email))
-        if (response.isSuccessful) null else profileErrorMessage(response, "Couldn't send the code")
+        if (response.isSuccessful) null else profileErrorMessage(response, R.string.profile_error_send_code, R.string.profile_error_invalid_email)
     } catch (e: IOException) {
         NETWORK_ERROR
     } catch (e: HttpException) {
-        "Couldn't send the code (HTTP ${e.code()})."
+        UiText.Res(R.string.profile_error_send_code, listOf(e.code()))
     }
 }
 
 sealed interface ChangePasswordUiState {
-    data class RequestCode(val isSending: Boolean = false, val error: String? = null) : ChangePasswordUiState
+    data class RequestCode(val isSending: Boolean = false, val error: UiText? = null) : ChangePasswordUiState
     data class EnterCode(
         val isBusy: Boolean = false,
-        val error: String? = null,
-        val notice: String? = null
+        val error: UiText? = null,
+        val notice: UiText? = null
     ) : ChangePasswordUiState
     data object Done : ChangePasswordUiState
 }
@@ -276,7 +283,7 @@ class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
         _uiState.value = state.copy(isBusy = true, error = null, notice = null)
         viewModelScope.launch {
             _uiState.value = when (val failure = sendCode()) {
-                null -> state.copy(isBusy = false, error = null, notice = "A new code was sent.")
+                null -> state.copy(isBusy = false, error = null, notice = UiText.Res(R.string.profile_code_resent))
                 else -> state.copy(isBusy = false, error = failure, notice = null)
             }
         }
@@ -285,7 +292,7 @@ class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
     fun confirm(code: String, newPassword: String, repeatPassword: String) {
         val state = _uiState.value as? ChangePasswordUiState.EnterCode ?: return
         val error = if (!CODE_REGEX.matches(code.trim())) {
-            "Please enter the 6-digit code."
+            ENTER_CODE
         } else {
             validateNewPassword(newPassword, repeatPassword)
         }
@@ -300,22 +307,25 @@ class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
                 if (response.isSuccessful) {
                     ChangePasswordUiState.Done
                 } else {
-                    state.copy(isBusy = false, error = profileErrorMessage(response, "Couldn't change your password"))
+                    state.copy(
+                        isBusy = false,
+                        error = profileErrorMessage(response, R.string.profile_error_change_password, R.string.auth_error_invalid_code)
+                    )
                 }
             } catch (e: IOException) {
                 state.copy(isBusy = false, error = NETWORK_ERROR)
             } catch (e: HttpException) {
-                state.copy(isBusy = false, error = "Couldn't change your password (HTTP ${e.code()}).")
+                state.copy(isBusy = false, error = UiText.Res(R.string.profile_error_change_password, listOf(e.code())))
             }
         }
     }
 
-    private suspend fun sendCode(): String? = try {
+    private suspend fun sendCode(): UiText? = try {
         val response = api.requestPasswordChangeCode()
-        if (response.isSuccessful) null else profileErrorMessage(response, "Couldn't send the code")
+        if (response.isSuccessful) null else profileErrorMessage(response, R.string.profile_error_send_code)
     } catch (e: IOException) {
         NETWORK_ERROR
     } catch (e: HttpException) {
-        "Couldn't send the code (HTTP ${e.code()})."
+        UiText.Res(R.string.profile_error_send_code, listOf(e.code()))
     }
 }

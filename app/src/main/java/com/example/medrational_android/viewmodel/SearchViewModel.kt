@@ -2,12 +2,14 @@ package com.example.medrational_android.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Category
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.FileSearchResult
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,7 @@ sealed class SearchUiState {
     data object Idle : SearchUiState()
     data object Loading : SearchUiState()
     data class Success(val files: List<FileSearchResult>) : SearchUiState()
-    data class Error(val message: String) : SearchUiState()
+    data class Error(val message: UiText) : SearchUiState()
 }
 
 class SearchViewModel(
@@ -88,10 +90,10 @@ class SearchViewModel(
                 ratingStore.seed(files.map { FileRatingSummary(it.id, it.avgRating, it.totalRatings) })
                 _uiState.value = SearchUiState.Success(files)
             } else {
-                _uiState.value = SearchUiState.Error("No results found.")
+                _uiState.value = SearchUiState.Error(UiText.Res(R.string.search_error, listOf(response.code())))
             }
         } catch (e: Exception) {
-            _uiState.value = SearchUiState.Error(e.localizedMessage ?: "Search failed.")
+            _uiState.value = SearchUiState.Error(UiText.Res(R.string.error_network))
         }
     }
 }

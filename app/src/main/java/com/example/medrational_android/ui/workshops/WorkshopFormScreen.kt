@@ -1,6 +1,7 @@
 package com.example.medrational_android.ui.workshops
 
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,11 +57,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.medrational_android.R
 import com.example.medrational_android.data.model.combineDateAndTime
 import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.formatMillisDateTime
@@ -69,6 +72,8 @@ import com.example.medrational_android.data.upload.PickedFile
 import com.example.medrational_android.ui.suggestions.PickedFileChip
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
+import com.example.medrational_android.ui.text.appLocale
+import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.EditWorkshopUiState
 import com.example.medrational_android.viewmodel.EditWorkshopViewModel
 import com.example.medrational_android.viewmodel.NewWorkshopUiState
@@ -103,27 +108,25 @@ fun NewWorkshopScreen(
                 if (state.failedFiles.isNotEmpty()) {
                     Toast.makeText(
                         context,
-                        "Project created, but ${state.failedFiles.joinToString()} couldn't be attached. " +
-                            "Add it from the project page.",
+                        context.getString(R.string.workshop_created_files_failed, state.failedFiles.joinToString()),
                         Toast.LENGTH_LONG
                     ).show()
                 }
                 onCreated(state.projectId)
             }
             is NewWorkshopUiState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, state.message.asString(context), Toast.LENGTH_LONG).show()
                 viewModel.onErrorShown()
             }
             else -> Unit
         }
     }
 
-    WorkshopFormScaffold(title = "New project", onBackClick = onBackClick) {
+    WorkshopFormScaffold(title = stringResource(R.string.workshop_new), onBackClick = onBackClick) {
         WorkshopFormFields(
             initial = WorkshopForm(),
-            intro = "Students see the registration link only while registration is open, and everyone is " +
-                "notified 10 minutes before it opens and closes.",
-            submitLabel = "Create project",
+            intro = stringResource(R.string.workshop_new_intro),
+            submitLabel = stringResource(R.string.workshop_create),
             showTypePicker = true,
             busy = sending,
             onSubmit = { form ->
@@ -137,13 +140,13 @@ fun NewWorkshopScreen(
                 }
             }
         ) {
-            Text("Documents (optional)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.workshop_documents_optional), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             attachments.forEach { file ->
                 PickedFileChip(file = file, onRemoveClick = { attachments.remove(file) }, enabled = !sending)
             }
             OutlinedButton(onClick = pickAttachment, enabled = !sending) {
                 Icon(Icons.Default.AttachFile, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(if (attachments.isEmpty()) "  Attach a file (max 10 MB)" else "  Attach another file")
+                Text("  " + if (attachments.isEmpty()) stringResource(R.string.workshop_attach_file) else stringResource(R.string.workshop_attach_another))
             }
         }
     }
@@ -166,7 +169,7 @@ fun EditWorkshopScreen(
     }
     LaunchedEffect(message) {
         message?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             viewModel.onMessageShown()
         }
     }
@@ -174,7 +177,7 @@ fun EditWorkshopScreen(
         if (uiState == EditWorkshopUiState.Saved) onSaved()
     }
 
-    WorkshopFormScaffold(title = "Edit project", onBackClick = onBackClick) {
+    WorkshopFormScaffold(title = stringResource(R.string.workshop_edit), onBackClick = onBackClick) {
         when (val state = uiState) {
             is EditWorkshopUiState.Loading, EditWorkshopUiState.Saved -> Box(
                 modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
@@ -186,15 +189,14 @@ fun EditWorkshopScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                Text(state.message.asString(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { viewModel.load(projectId) }) { Text("Retry") }
+                Button(onClick = { viewModel.load(projectId) }) { Text(stringResource(R.string.common_retry)) }
             }
             is EditWorkshopUiState.Editing -> WorkshopFormFields(
                 initial = state.initial,
-                intro = "Changing the dates updates the status to match them and sends the 10-minute reminders " +
-                    "again. If the dates stay the same, a status you set by hand is kept.",
-                submitLabel = "Save changes",
+                intro = stringResource(R.string.workshop_edit_intro),
+                submitLabel = stringResource(R.string.workshop_save_changes),
                 busy = state.saving,
                 onSubmit = viewModel::save
             )
@@ -215,7 +217,7 @@ private fun WorkshopFormScaffold(
                 title = { Text(title, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -270,7 +272,7 @@ private fun WorkshopFormFields(
         value = title,
         onValueChange = { title = it },
         modifier = Modifier.fillMaxWidth(),
-        label = { Text("Title") },
+        label = { Text(stringResource(R.string.workshop_title_label)) },
         singleLine = true,
         enabled = !busy
     )
@@ -280,7 +282,7 @@ private fun WorkshopFormFields(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 140.dp),
-        label = { Text("Description") },
+        label = { Text(stringResource(R.string.workshop_description_label)) },
         enabled = !busy,
         minLines = 5
     )
@@ -288,7 +290,7 @@ private fun WorkshopFormFields(
         value = formLink,
         onValueChange = { formLink = it },
         modifier = Modifier.fillMaxWidth(),
-        label = { Text("Registration link") },
+        label = { Text(stringResource(R.string.workshop_link_label)) },
         placeholder = { Text("https://forms.gle/…") },
         singleLine = true,
         enabled = !busy,
@@ -298,14 +300,14 @@ private fun WorkshopFormFields(
         value = capacity,
         onValueChange = { value -> capacity = value.filter(Char::isDigit).take(6) },
         modifier = Modifier.fillMaxWidth(),
-        label = { Text("Capacity (optional)") },
-        supportingText = { Text("Leave empty for no limit") },
+        label = { Text(stringResource(R.string.workshop_capacity_optional)) },
+        supportingText = { Text(stringResource(R.string.workshop_capacity_hint)) },
         singleLine = true,
         enabled = !busy,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
-    DateTimeButton(label = "Registration opens", millis = opensAt, enabled = !busy, onClick = { picking = DateField.OPENS })
-    DateTimeButton(label = "Registration closes", millis = closesAt, enabled = !busy, onClick = { picking = DateField.CLOSES })
+    DateTimeButton(label = stringResource(R.string.workshop_registration_opens), millis = opensAt, enabled = !busy, onClick = { picking = DateField.OPENS })
+    DateTimeButton(label = stringResource(R.string.workshop_registration_closes), millis = closesAt, enabled = !busy, onClick = { picking = DateField.CLOSES })
     extraContent()
     Button(
         onClick = { onSubmit(WorkshopForm(title, description, formLink, capacity, opensAt, closesAt, projectType)) },
@@ -335,15 +337,16 @@ private fun WorkshopFormFields(
 }
 
 // Both types work the same in the app: the difference is what students do on the external form
-private fun ProjectType.formHint(): String = when (this) {
-    ProjectType.FIRST_COME_FIRST_SERVED -> "Students register on the link as soon as registration opens, until it's full."
-    ProjectType.MOTIVATION -> "Students apply on the link with a motivation letter; the committee decides who is accepted."
+@StringRes
+private fun ProjectType.formHint(): Int = when (this) {
+    ProjectType.FIRST_COME_FIRST_SERVED -> R.string.workshop_type_fcfs_hint
+    ProjectType.MOTIVATION -> R.string.workshop_type_motivation_hint
 }
 
 @Composable
 private fun ProjectTypePicker(selected: ProjectType, enabled: Boolean, onSelect: (ProjectType) -> Unit) {
     Column(modifier = Modifier.selectableGroup()) {
-        Text("Project type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.workshop_project_type), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         ProjectType.entries.sortedBy { it != ProjectType.FIRST_COME_FIRST_SERVED }.forEach { type ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -361,9 +364,9 @@ private fun ProjectTypePicker(selected: ProjectType, enabled: Boolean, onSelect:
                 RadioButton(selected = type == selected, onClick = null, enabled = enabled)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(type.label(), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(type.label()), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = type.formHint(),
+                        text = stringResource(type.formHint()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -377,7 +380,8 @@ private fun ProjectTypePicker(selected: ProjectType, enabled: Boolean, onSelect:
 private fun DateTimeButton(label: String, millis: Long?, enabled: Boolean, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text("  $label: ${millis?.let { formatMillisDateTime(it) } ?: "pick a date and time"}")
+        val value = millis?.let { formatMillisDateTime(it, appLocale()) } ?: stringResource(R.string.workshop_pick_date_time)
+        Text("  " + stringResource(R.string.workshop_date_button, label, value))
     }
 }
 
@@ -396,10 +400,10 @@ private fun DateTimePickerDialog(initialMillis: Long?, onDismissRequest: () -> U
                 TextButton(
                     onClick = { pickedDate = dateState.selectedDateMillis },
                     enabled = dateState.selectedDateMillis != null
-                ) { Text("Next") }
+                ) { Text(stringResource(R.string.common_next)) }
             },
             dismissButton = {
-                TextButton(onClick = onDismissRequest) { Text("Cancel") }
+                TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
             }
         ) {
             DatePicker(state = dateState)
@@ -414,15 +418,15 @@ private fun DateTimePickerDialog(initialMillis: Long?, onDismissRequest: () -> U
         )
         AlertDialog(
             onDismissRequest = onDismissRequest,
-            title = { Text("Pick a time") },
+            title = { Text(stringResource(R.string.workshop_pick_time)) },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = { onPicked(combineDateAndTime(date, timeState.hour, timeState.minute)) }) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismissRequest) { Text("Cancel") }
+                TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }

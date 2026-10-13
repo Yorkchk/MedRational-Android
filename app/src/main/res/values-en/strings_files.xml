@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="file_error_load">Couldn\'t load this file (HTTP %1$d).</string>
+    <string name="file_error_gone">This file no longer exists.</string>
+    <string name="preview_error_corrupted">The preview couldn\'t be opened.</string>
+    <string name="preview_error_busy">The preview can\'t be generated right now.</string>
+    <string name="preview_error_http">Preview failed to load (HTTP %1$d).</string>
+    <string name="preview_error_network">Network error while loading the preview.</string>
+    <string name="hashtags_error_load">Couldn\'t load hashtags (HTTP %1$d).</string>
+    <string name="hashtags_error_load_network">Network error while loading hashtags.</string>
+    <string name="hashtags_error_save">Couldn\'t save hashtags (HTTP %1$d).</string>
+    <string name="error_http_code">HTTP error %1$d.</string>
+    <string name="hashtags_rename_partial">Added #%1$s but couldn\'t remove #%2$s. %3$s</string>
+    <string name="hashtags_remove_failed">Couldn\'t remove #%1$s. %2$s</string>
+    <string name="rating_error_load">Couldn\'t load ratings (HTTP %1$d).</string>
+    <string name="rating_error_load_network">Network error while loading ratings.</string>
+    <string name="rating_error_save">Couldn\'t save your rating (HTTP %1$d).</string>
+    <string name="rating_error_save_network">Network error. Your rating wasn\'t saved.</string>
+    <string name="preview_unavailable">Preview unavailable</string>
+    <string name="preview_image_failed">This image couldn\'t be displayed. Download it to open it in another app.</string>
+    <string name="preview_preparing">Preparing preview…</string>
+    <string name="preview_preparing_hint">Office documents can take a few seconds the first time.</string>
+    <string name="preview_none_for_extension">No preview for .%1$s files</string>
+    <string name="preview_none">No preview for this file</string>
+    <string name="preview_supported_types">Previews are available for PDF, Word, PowerPoint, Excel and image files. Download the file to open it.</string>
+    <string name="file_from_reasoning">From reasoning</string>
+    <string name="show_less">Show less</string>
+    <string name="show_more">Show more</string>
+    <string name="preview_title">Preview</string>
+    <string name="preview_open_fullscreen">Open full screen</string>
+    <string name="preview_close_fullscreen">Close full screen</string>
+    <string name="preview_page">Page %1$d</string>
+    <string name="hashtags_title">Hashtags</string>
+    <string name="hashtags_remove_named">Remove #%1$s</string>
+    <string name="hashtags_add">Add</string>
+    <string name="hashtags_add_title">Add hashtags</string>
+    <string name="hashtags_add_hint">Separate several tags with spaces or commas</string>
+    <string name="hashtags_rename_title">Rename #%1$s</string>
+    <string name="hashtags_rename_hint">Renames the tag on this file only</string>
+    <string name="hashtags_remove_confirm_title">Remove #%1$s?</string>
+    <string name="hashtags_remove_confirm_body">It will be removed from this file, and deleted entirely if no other file uses it.</string>
+    <string name="hashtags_remove">Remove</string>
+    <string name="hashtags_new_name">New name</string>
+    <string name="hashtags_type_tag">Type a tag</string>
+    <string name="hashtags_most_used">Most used</string>
+    <string name="hashtags_existing">Existing tags</string>
+    <string name="rating_title">Rating</string>
+    <string name="rating_none">No ratings yet</string>
+    <string name="rating_tap_star">Tap a star to rate this file</string>
+    <string name="rating_yours">Your rating</string>
+    <string name="rating_remove">Remove rating</string>
+    <string name="rating_description">Rated %1$s out of 5, %2$s</string>
+    <plurals name="preview_title_pages">
+        <item quantity="one">Preview · %d page</item>
+        <item quantity="other">Preview · %d pages</item>
+    </plurals>
+    <plurals name="rating_count">
+        <item quantity="one">%d rating</item>
+        <item quantity="other">%d ratings</item>
+    </plurals>
+    <plurals name="rating_rate_stars">
+        <item quantity="one">Rate %d star</item>
+        <item quantity="other">Rate %d stars</item>
+    </plurals>
+</resources>
