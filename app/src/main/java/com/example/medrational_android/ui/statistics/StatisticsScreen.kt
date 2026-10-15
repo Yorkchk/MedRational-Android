@@ -18,12 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,7 +36,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,18 +52,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.data.model.AdminStatistics
+import com.example.medrational_android.data.model.ContentStats
+import com.example.medrational_android.data.model.EngagementStats
+import com.example.medrational_android.data.model.FileMetric
+import com.example.medrational_android.data.model.formatIsoLocalDateTime
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
-import com.example.medrational_android.data.model.AdminStatistics
-import com.example.medrational_android.data.model.CategoryActivity
-import com.example.medrational_android.data.model.ContentStats
-import com.example.medrational_android.data.model.FileMetric
-import com.example.medrational_android.data.model.HashtagActivity
-import com.example.medrational_android.data.model.TrendingItem
-import com.example.medrational_android.data.model.formatIsoLocalDateTime
-import com.example.medrational_android.ui.components.formatAverage
+import com.example.medrational_android.ui.components.SectionHeader
+import com.example.medrational_android.ui.components.SwisraTopBar
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
+import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.ui.theme.TrendUp
 import com.example.medrational_android.viewmodel.StatRange
 import com.example.medrational_android.viewmodel.StatisticsUiState
@@ -95,17 +90,16 @@ fun StatisticsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.stats_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                },
+            SwisraTopBar(
+                title = stringResource(R.string.stats_title),
+                onBackClick = onBackClick,
                 actions = {
                     val refreshing = (uiState as? StatisticsUiState.Success)?.refreshing == true
                     if (refreshing) {
-                        CircularProgressIndicator(modifier = Modifier.padding(12.dp).size(24.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(Spacing.md).size(24.dp),
+                            strokeWidth = 2.dp
+                        )
                     } else {
                         IconButton(onClick = viewModel::refresh, enabled = uiState !is StatisticsUiState.Loading) {
                             Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.stats_refresh))
@@ -114,7 +108,8 @@ fun StatisticsScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -123,9 +118,7 @@ fun StatisticsScreen(
         ) {
             when (val state = uiState) {
                 is StatisticsUiState.Loading -> LoadingState()
-                is StatisticsUiState.Error -> {
-                    ErrorState(message = state.message, onRetry = viewModel::retry)
-                }
+                is StatisticsUiState.Error -> ErrorState(message = state.message, onRetry = viewModel::retry)
                 is StatisticsUiState.Success -> StatisticsContent(
                     stats = state.stats,
                     range = state.range,
@@ -138,6 +131,7 @@ fun StatisticsScreen(
     }
 }
 
+// Three questions, top to bottom: are students using the app, what do they use, what needs a look
 @Composable
 private fun StatisticsContent(
     stats: AdminStatistics,
@@ -150,114 +144,73 @@ private fun StatisticsContent(
     val locale = appLocale()
     val users = stats.users
     val usage = stats.usage
-    val engagement = stats.engagement
-    val primary = MaterialTheme.colorScheme.primary
-    val tertiary = MaterialTheme.colorScheme.tertiary
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        item {
-            Column {
-                stats.generatedAt?.let {
-                    Text(
-                        stringResource(R.string.stats_updated_at, formatIsoLocalDateTime(it, locale)),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        stats.generatedAt?.let { generatedAt ->
+            item {
                 Text(
-                    stringResource(R.string.stats_scope_note),
-                    style = MaterialTheme.typography.bodySmall,
+                    stringResource(R.string.stats_updated_at, formatIsoLocalDateTime(generatedAt, locale)),
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // Students
-        item { SectionTitle(stringResource(R.string.stats_section_students)) }
+        // This week
         item {
-            KpiRow(
+            Column {
+                SectionHeader(stringResource(R.string.stats_section_week))
+                Text(
+                    stringResource(R.string.stats_week_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item {
+            TileRow(
                 left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_total_students),
-                        value = formatCount(users.totalStudents, locale),
-                        caption = countText(R.plurals.stats_new_students, users.newStudentsThisWeek),
-                        delta = weekDelta(users.newStudentsThisWeek, users.newStudentsPreviousWeek),
-                        modifier = it
-                    )
-                },
-                right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_weekly_active),
+                    StatTile(
+                        label = stringResource(R.string.stats_active_students),
                         value = formatCount(users.weeklyActiveStudents, locale),
-                        caption = countText(R.plurals.stats_active_today, users.dailyActiveStudents),
                         delta = weekDelta(users.weeklyActiveStudents, users.weeklyActiveStudentsPreviousWeek),
-                        modifier = it
-                    )
-                }
-            )
-        }
-        item {
-            KpiRow(
-                left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_stickiness),
-                        value = stringResource(
-                            R.string.stats_percent,
-                            percentOf(users.dailyActiveStudents, users.weeklyActiveStudents)
+                        caption = stringResource(
+                            R.string.stats_active_share,
+                            percentOf(users.weeklyActiveStudents, users.totalStudents),
+                            formatCount(users.totalStudents, locale)
                         ),
-                        caption = stringResource(R.string.stats_stickiness_caption),
                         modifier = it
                     )
                 },
                 right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_activation),
-                        value = stringResource(R.string.stats_percent, percentOf(users.activatedStudents, users.totalStudents)),
-                        caption = stringResource(R.string.stats_activation_caption),
+                    StatTile(
+                        label = stringResource(R.string.stats_new_students),
+                        value = formatCount(users.newStudentsThisWeek, locale),
+                        delta = weekDelta(users.newStudentsThisWeek, users.newStudentsPreviousWeek),
+                        caption = countText(R.plurals.stats_registered_total, users.totalStudents),
                         modifier = it
                     )
                 }
             )
         }
         item {
-            StatCard {
-                BarChart(
-                    title = stringResource(R.string.stats_chart_signups),
-                    series = ChartSeries(stringResource(R.string.stats_chart_signups), users.weeklySignUps, primary)
-                )
-            }
-        }
-        item {
-            StatCard {
-                BarChart(
-                    title = stringResource(R.string.stats_chart_weekly_active),
-                    series = ChartSeries(stringResource(R.string.stats_chart_weekly_active), users.weeklyActiveSeries, tertiary)
-                )
-            }
-        }
-
-        // Usage
-        item { SectionTitle(stringResource(R.string.stats_section_usage)) }
-        item {
-            KpiRow(
+            TileRow(
                 left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_downloads_week),
+                    StatTile(
+                        label = stringResource(R.string.stats_legend_downloads),
                         value = formatCount(usage.downloadsThisWeek, locale),
-                        caption = stringResource(R.string.stats_total_caption, formatCount(usage.totalDownloads, locale)),
                         delta = weekDelta(usage.downloadsThisWeek, usage.downloadsPreviousWeek),
                         modifier = it
                     )
                 },
                 right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_views_week),
+                    StatTile(
+                        label = stringResource(R.string.stats_legend_views),
                         value = formatCount(usage.viewsThisWeek, locale),
-                        caption = stringResource(R.string.stats_total_caption, formatCount(usage.totalViews, locale)),
                         delta = weekDelta(usage.viewsThisWeek, usage.viewsPreviousWeek),
                         modifier = it
                     )
@@ -267,233 +220,84 @@ private fun StatisticsContent(
         item {
             StatCard {
                 LineChart(
-                    title = stringResource(R.string.stats_chart_daily_usage),
+                    title = stringResource(R.string.stats_chart_activity),
                     series = listOf(
-                        ChartSeries(stringResource(R.string.stats_legend_downloads), usage.dailyDownloads, primary),
-                        ChartSeries(stringResource(R.string.stats_legend_views), usage.dailyViews, tertiary)
+                        ChartSeries(
+                            stringResource(R.string.stats_legend_downloads),
+                            usage.dailyDownloads,
+                            MaterialTheme.colorScheme.primary
+                        ),
+                        ChartSeries(
+                            stringResource(R.string.stats_legend_views),
+                            usage.dailyViews,
+                            MaterialTheme.colorScheme.tertiary
+                        )
                     )
                 )
             }
         }
 
-        // Trending
-        item { SectionTitle(stringResource(R.string.stats_section_trending)) }
-        item {
-            StatCard {
-                Text(
-                    stringResource(R.string.stats_trending_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                TrendingList(
-                    title = stringResource(R.string.stats_trending_files),
-                    items = stats.trends.files,
-                    onItemClick = { item -> item.reasoningId?.let { onFileClick(it, item.id) } }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                TrendingList(
-                    title = stringResource(R.string.stats_trending_categories),
-                    items = stats.trends.categories,
-                    onItemClick = null
-                )
-            }
-        }
-
-        // Content
-        item { SectionTitle(stringResource(R.string.stats_section_content)) }
+        // Most popular
+        item { SectionHeader(stringResource(R.string.stats_section_popular)) }
         item { RangeSelector(range = range, onRangeSelected = onRangeSelected) }
-        item {
-            Leaderboard(
-                title = stringResource(R.string.stats_top_downloaded),
-                items = content.topDownloaded,
-                metric = { countText(R.plurals.stats_downloads_count, it.metricValue) },
-                onFileClick = onFileClick
-            )
-        }
-        item {
-            Leaderboard(
-                title = stringResource(R.string.stats_top_viewed),
-                items = content.topViewed,
-                metric = { countText(R.plurals.stats_views_count, it.metricValue) },
-                onFileClick = onFileClick
-            )
-        }
-        item {
-            Leaderboard(
-                title = stringResource(R.string.stats_most_favorited),
-                items = content.mostFavorited,
-                metric = { countText(R.plurals.stats_favorites_count, it.metricValue) },
-                onFileClick = onFileClick
-            )
-        }
-        item { CategoryBreakdown(categories = content.categories) }
-        item { HashtagList(hashtags = content.topHashtags) }
+        item { TopFiles(files = content.topDownloaded.take(TOP_LIMIT), onFileClick = onFileClick) }
+        item { TopCategories(shares = topCategoryShares(content.categories)) }
 
-        // Engagement
-        item { SectionTitle(stringResource(R.string.stats_section_engagement)) }
-        item {
-            KpiRow(
-                left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_favorites_week),
-                        value = formatCount(engagement.favoritesThisWeek, locale),
-                        caption = stringResource(R.string.stats_total_caption, formatCount(engagement.totalFavorites, locale)),
-                        modifier = it
-                    )
-                },
-                right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_ratings_week),
-                        value = formatCount(engagement.ratingsThisWeek, locale),
-                        caption = stringResource(R.string.stats_total_caption, formatCount(engagement.totalRatings, locale)),
-                        modifier = it
-                    )
-                }
-            )
-        }
-        item {
-            KpiRow(
-                left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_average_rating),
-                        value = engagement.averageRating?.let { "${formatAverage(it)} ★" }
-                            ?: stringResource(R.string.stats_no_value),
-                        caption = countText(R.plurals.stats_ratings_count, engagement.totalRatings),
-                        modifier = it
-                    )
-                },
-                right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_new_files),
-                        value = formatCount(engagement.newFilesThisWeek, locale),
-                        caption = countText(R.plurals.stats_files_total, engagement.totalFiles),
-                        modifier = it
-                    )
-                }
-            )
-        }
-        item {
-            KpiRow(
-                left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_cold_files),
-                        value = formatCount(engagement.filesWithoutDownloads, locale),
-                        caption = stringResource(
-                            R.string.stats_cold_caption,
-                            percentOf(engagement.filesWithoutDownloads, engagement.totalFiles)
-                        ),
-                        modifier = it
-                    )
-                },
-                right = null
-            )
-        }
-        item {
-            Leaderboard(
-                title = stringResource(R.string.stats_highest_rated),
-                items = engagement.highestRated,
-                metric = { file ->
-                    val average = file.avgRating?.let { "${formatAverage(it)} ★" } ?: stringResource(R.string.stats_no_value)
-                    "$average · ${countText(R.plurals.stats_ratings_count, (file.totalRatings ?: 0).toLong())}"
-                },
-                onFileClick = onFileClick
-            )
-        }
-
-        // Community
-        item { SectionTitle(stringResource(R.string.stats_section_community)) }
-        item {
-            KpiRow(
-                left = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_open_suggestions),
-                        value = formatCount(engagement.openSuggestions, locale),
-                        caption = countText(R.plurals.stats_unread, engagement.unreadSuggestions),
-                        modifier = it
-                    )
-                },
-                right = {
-                    KpiCard(
-                        label = stringResource(R.string.stats_open_workshops),
-                        value = formatCount(engagement.openWorkshops, locale),
-                        caption = stringResource(
-                            R.string.stats_workshops_caption,
-                            formatCount(engagement.upcomingWorkshops, locale),
-                            formatCount(engagement.closedWorkshops, locale)
-                        ),
-                        modifier = it
-                    )
-                }
-            )
-        }
+        // Needs attention
+        item { SectionHeader(stringResource(R.string.stats_section_attention)) }
+        item { AttentionCard(engagement = stats.engagement) }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = modifier.padding(top = 8.dp)
-    )
 }
 
 @Composable
 private fun StatCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) { content() }
+        Column(modifier = Modifier.padding(Spacing.lg)) { content() }
     }
 }
 
-// Two cards side by side with the same height; a missing right card leaves its half empty
+// Two tiles side by side with the same height
 @Composable
-private fun KpiRow(
+private fun TileRow(
     left: @Composable (Modifier) -> Unit,
-    right: (@Composable (Modifier) -> Unit)?,
+    right: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         left(Modifier.weight(1f).fillMaxHeight())
-        if (right != null) {
-            right(Modifier.weight(1f).fillMaxHeight())
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
-        }
+        right(Modifier.weight(1f).fillMaxHeight())
     }
 }
 
 @Composable
-private fun KpiCard(
+private fun StatTile(
     label: String,
     value: String,
+    delta: WeekDelta,
     modifier: Modifier = Modifier,
-    caption: String? = null,
-    delta: WeekDelta = WeekDelta.None
+    caption: String? = null
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(8.dp))
-                DeltaChip(delta)
-            }
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            DeltaChip(delta, modifier = Modifier.padding(top = Spacing.xs))
             if (caption != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(caption, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -512,7 +316,7 @@ private fun DeltaChip(delta: WeekDelta, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.stats_delta_description, text)
     Surface(
         modifier = modifier.clearAndSetSemantics { contentDescription = description },
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.extraSmall,
         color = color.copy(alpha = 0.12f)
     ) {
         Text(
@@ -520,7 +324,7 @@ private fun DeltaChip(delta: WeekDelta, modifier: Modifier = Modifier) {
             color = color,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
         )
     }
 }
@@ -543,177 +347,48 @@ private fun RangeSelector(range: StatRange, onRangeSelected: (StatRange) -> Unit
 }
 
 @Composable
-private fun Leaderboard(
-    title: String,
-    items: List<FileMetric>,
-    metric: @Composable (FileMetric) -> String,
+private fun TopFiles(
+    files: List<FileMetric>,
     onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     StatCard(modifier = modifier) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        Spacer(modifier = Modifier.height(4.dp))
-        if (items.isEmpty()) {
+        Text(stringResource(R.string.stats_top_files), style = MaterialTheme.typography.titleSmall)
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        if (files.isEmpty()) {
             EmptyText()
         }
-        items.forEachIndexed { index, file ->
+        files.forEachIndexed { index, file ->
             if (index > 0) HorizontalDivider()
             val reasoningId = file.reasoningId
-            RankedRow(
-                rank = index + 1,
-                title = file.fileName,
-                subtitle = listOfNotNull(file.categoryName, file.reasoningTitle).joinToString(" · ")
-                    .ifEmpty { stringResource(R.string.stats_unassigned) },
-                trailing = metric(file),
-                onClick = reasoningId?.let { { onFileClick(it, file.fileId) } }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TrendingList(
-    title: String,
-    items: List<TrendingItem>,
-    onItemClick: ((TrendingItem) -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    val locale = appLocale()
-    Column(modifier = modifier) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        if (items.isEmpty()) {
-            EmptyText(R.string.stats_trending_empty)
-        }
-        items.forEachIndexed { index, item ->
-            if (index > 0) HorizontalDivider()
-            val delta = weekDelta(item.thisWeek, item.previousWeek)
-            RankedRow(
-                rank = index + 1,
-                title = item.name,
-                subtitle = stringResource(
-                    R.string.stats_trending_counts,
-                    formatCount(item.thisWeek, locale),
-                    formatCount(item.previousWeek, locale)
-                ),
-                trailing = null,
-                trailingContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = null,
-                            tint = TrendUp,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        DeltaChip(delta)
-                    }
-                },
-                onClick = if (onItemClick != null && item.reasoningId != null) {
-                    { onItemClick(item) }
-                } else {
-                    null
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RankedRow(
-    rank: Int,
-    title: String,
-    subtitle: String,
-    trailing: String?,
-    onClick: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-    trailingContent: (@Composable () -> Unit)? = null
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = rank.toString(),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.width(28.dp)
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        if (trailing != null) {
-            Text(trailing, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-        }
-        trailingContent?.invoke()
-    }
-}
-
-@Composable
-private fun CategoryBreakdown(categories: List<CategoryActivity>, modifier: Modifier = Modifier) {
-    val totals = categories.map { it.downloads + it.views + it.favorites }
-    val sum = totals.sum()
-    val busiest = totals.maxOrNull() ?: 0L
-    val barColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-
-    StatCard(modifier = modifier) {
-        Text(stringResource(R.string.stats_categories), style = MaterialTheme.typography.titleSmall)
-        if (categories.isEmpty()) {
-            EmptyText()
-        }
-        categories.forEachIndexed { index, category ->
-            Column(modifier = Modifier.padding(top = 12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        category.categoryName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        stringResource(R.string.stats_share, percentOf(totals[index], sum)),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .background(trackColor, RoundedCornerShape(4.dp))
-                ) {
-                    val fraction = chartFractions(listOf(totals[index]), busiest).first()
-                    if (fraction > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .fillMaxHeight()
-                                .background(barColor, RoundedCornerShape(4.dp))
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (reasoningId != null) Modifier.clickable { onFileClick(reasoningId, file.fileId) } else Modifier)
+                    .padding(vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    listOf(
-                        countText(R.plurals.stats_downloads_count, category.downloads),
-                        countText(R.plurals.stats_views_count, category.views),
-                        countText(R.plurals.stats_favorites_count, category.favorites)
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = (index + 1).toString(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.width(Spacing.xl)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(file.fileName, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        file.categoryName ?: stringResource(R.string.stats_unassigned),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(
+                    countText(R.plurals.stats_downloads_count, file.metricValue),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
@@ -721,33 +396,120 @@ private fun CategoryBreakdown(categories: List<CategoryActivity>, modifier: Modi
 }
 
 @Composable
-private fun HashtagList(hashtags: List<HashtagActivity>, modifier: Modifier = Modifier) {
+private fun TopCategories(shares: List<CategoryShare>, modifier: Modifier = Modifier) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val barShape = MaterialTheme.shapes.extraSmall
+
     StatCard(modifier = modifier) {
-        Text(stringResource(R.string.stats_hashtags), style = MaterialTheme.typography.titleSmall)
-        Spacer(modifier = Modifier.height(4.dp))
-        if (hashtags.isEmpty()) {
+        Text(stringResource(R.string.stats_top_categories), style = MaterialTheme.typography.titleSmall)
+        if (shares.isEmpty()) {
             EmptyText()
         }
-        hashtags.forEachIndexed { index, hashtag ->
-            if (index > 0) HorizontalDivider()
-            RankedRow(
-                rank = index + 1,
-                title = "#${hashtag.name}",
-                subtitle = countText(R.plurals.stats_downloads_count, hashtag.downloads),
-                trailing = null,
-                onClick = null
+        shares.forEach { share ->
+            Column(modifier = Modifier.padding(top = Spacing.md)) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        share.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        stringResource(R.string.stats_share, share.percent),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Spacing.sm)
+                        .background(trackColor, barShape)
+                ) {
+                    if (share.fraction > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(share.fraction)
+                                .fillMaxHeight()
+                                .background(barColor, barShape)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Only what an admin can act on; a row with nothing to report is left out
+@Composable
+private fun AttentionCard(engagement: EngagementStats, modifier: Modifier = Modifier) {
+    val locale = appLocale()
+    // Label, count, and the share of all files where that helps
+    val rows = buildList<Triple<Int, Long, Int?>> {
+        if (engagement.unreadSuggestions > 0) {
+            add(Triple(R.string.stats_unread_suggestions, engagement.unreadSuggestions, null))
+        }
+        if (engagement.openWorkshops > 0) {
+            add(Triple(R.string.stats_open_projects, engagement.openWorkshops, null))
+        }
+        if (engagement.filesWithoutDownloads > 0) {
+            add(
+                Triple(
+                    R.string.stats_never_downloaded,
+                    engagement.filesWithoutDownloads,
+                    percentOf(engagement.filesWithoutDownloads, engagement.totalFiles)
+                )
             )
+        }
+    }
+
+    StatCard(modifier = modifier) {
+        if (rows.isEmpty()) {
+            Text(
+                stringResource(R.string.stats_all_clear),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        rows.forEachIndexed { index, (labelId, count, percent) ->
+            if (index > 0) HorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(labelId), style = MaterialTheme.typography.bodyMedium)
+                    if (percent != null) {
+                        Text(
+                            stringResource(R.string.stats_never_downloaded_caption, percent),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(
+                    formatCount(count, locale),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun EmptyText(textId: Int = R.string.stats_list_empty) {
+private fun EmptyText() {
     Text(
-        stringResource(textId),
+        stringResource(R.string.stats_list_empty),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(vertical = 8.dp)
+        modifier = Modifier.padding(vertical = Spacing.sm)
     )
 }
 

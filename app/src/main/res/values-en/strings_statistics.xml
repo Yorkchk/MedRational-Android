@@ -4,11 +4,8 @@
     <string name="stats_refresh">Refresh</string>
     <string name="stats_error_load">Couldn\'t load the statistics (HTTP %1$d).</string>
     <string name="stats_updated_at">Updated %1$s</string>
-    <string name="stats_scope_note">A week is the last 7 days, today included. Admin accounts aren\'t counted as students.</string>
-    <string name="stats_no_value">—</string>
     <string name="stats_unassigned">Unassigned</string>
     <string name="stats_list_empty">No data for this period.</string>
-    <string name="stats_percent">%1$d%%</string>
 
     <string name="stats_delta_up">+%1$d%%</string>
     <string name="stats_delta_down">−%1$d%%</string>
@@ -16,86 +13,36 @@
     <string name="stats_delta_new">New</string>
     <string name="stats_delta_description">%1$s compared with the previous 7 days</string>
 
-    <string name="stats_section_students">Students</string>
-    <string name="stats_total_students">Registered students</string>
-    <string name="stats_weekly_active">Active in the last 7 days</string>
-    <string name="stats_stickiness">Stickiness</string>
-    <string name="stats_stickiness_caption">Active today out of active this week</string>
-    <string name="stats_activation">Activation</string>
-    <string name="stats_activation_caption">Opened or downloaded at least one file</string>
-    <string name="stats_chart_signups">Sign-ups per week</string>
-    <string name="stats_chart_weekly_active">Active students per week</string>
-
-    <string name="stats_section_usage">Usage</string>
-    <string name="stats_downloads_week">Downloads (7 days)</string>
-    <string name="stats_views_week">Views (7 days)</string>
-    <string name="stats_total_caption">%1$s in total</string>
-    <string name="stats_chart_daily_usage">Per day, over 30 days</string>
+    <string name="stats_section_week">This week</string>
+    <string name="stats_week_subtitle">The last 7 days, compared with the 7 days before.</string>
+    <string name="stats_active_students">Active students</string>
+    <string name="stats_active_share">%1$d%% of the %2$s registered</string>
+    <string name="stats_new_students">New students</string>
     <string name="stats_legend_downloads">Downloads</string>
     <string name="stats_legend_views">Views</string>
+    <string name="stats_chart_activity">Downloads and views per day, last 30 days</string>
     <string name="stats_chart_summary">%1$s, from %2$s to %3$s, peak %4$s</string>
 
-    <string name="stats_section_trending">Trending this week</string>
-    <string name="stats_trending_note">Downloads and views added up, compared with the previous 7 days.</string>
-    <string name="stats_trending_files">Rising files</string>
-    <string name="stats_trending_categories">Rising categories</string>
-    <string name="stats_trending_empty">Nothing is rising this week.</string>
-    <string name="stats_trending_counts">%1$s this week, %2$s the week before</string>
-
-    <string name="stats_section_content">Most wanted content</string>
+    <string name="stats_section_popular">Most popular</string>
     <string name="stats_range_week">Last 7 days</string>
     <string name="stats_range_all">All time</string>
-    <string name="stats_top_downloaded">Most downloaded</string>
-    <string name="stats_top_viewed">Most viewed</string>
-    <string name="stats_most_favorited">Most favorited</string>
-    <string name="stats_categories">Activity by category</string>
+    <string name="stats_top_files">Most downloaded files</string>
+    <string name="stats_top_categories">Busiest categories</string>
     <string name="stats_share">%1$d%% of activity</string>
-    <string name="stats_hashtags">Most downloaded hashtags</string>
 
-    <string name="stats_section_engagement">Engagement</string>
-    <string name="stats_favorites_week">Favorites added (7 days)</string>
-    <string name="stats_ratings_week">Ratings given (7 days)</string>
-    <string name="stats_average_rating">Average rating</string>
-    <string name="stats_new_files">New files (7 days)</string>
-    <string name="stats_cold_files">Never downloaded</string>
-    <string name="stats_cold_caption">%1$d%% of files</string>
-    <string name="stats_highest_rated">Highest rated (at least 3 ratings)</string>
-
-    <string name="stats_section_community">Community</string>
-    <string name="stats_open_suggestions">Open suggestions</string>
-    <string name="stats_open_workshops">Open projects</string>
-    <string name="stats_workshops_caption">Upcoming: %1$s · Closed: %2$s</string>
+    <string name="stats_section_attention">Needs attention</string>
+    <string name="stats_unread_suggestions">Unread suggestions</string>
+    <string name="stats_open_projects">Projects open for registration</string>
+    <string name="stats_never_downloaded">Files never downloaded</string>
+    <string name="stats_never_downloaded_caption">%1$d%% of all files</string>
+    <string name="stats_all_clear">Nothing needs your attention.</string>
 
     <plurals name="stats_downloads_count">
         <item quantity="one">%1$s download</item>
         <item quantity="other">%1$s downloads</item>
     </plurals>
-    <plurals name="stats_views_count">
-        <item quantity="one">%1$s view</item>
-        <item quantity="other">%1$s views</item>
-    </plurals>
-    <plurals name="stats_favorites_count">
-        <item quantity="one">%1$s favorite</item>
-        <item quantity="other">%1$s favorites</item>
-    </plurals>
-    <plurals name="stats_ratings_count">
-        <item quantity="one">%1$s rating</item>
-        <item quantity="other">%1$s ratings</item>
-    </plurals>
-    <plurals name="stats_new_students">
-        <item quantity="one">%1$s new this week</item>
-        <item quantity="other">%1$s new this week</item>
-    </plurals>
-    <plurals name="stats_active_today">
-        <item quantity="one">%1$s active today</item>
-        <item quantity="other">%1$s active today</item>
-    </plurals>
-    <plurals name="stats_files_total">
-        <item quantity="one">%1$s file in total</item>
-        <item quantity="other">%1$s files in total</item>
-    </plurals>
-    <plurals name="stats_unread">
-        <item quantity="one">%1$s unread</item>
-        <item quantity="other">%1$s unread</item>
+    <plurals name="stats_registered_total">
+        <item quantity="one">%1$s student registered in total</item>
+        <item quantity="other">%1$s students registered in total</item>
     </plurals>
 </resources>
