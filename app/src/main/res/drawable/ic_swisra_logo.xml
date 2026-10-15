@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SWISRA logo. Generated from docs/brand/swisra-logo.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <group android:translateX="0" android:translateY="0" android:scaleX="1" android:scaleY="1">
+        <path android:pathData="M10.0,50.0 A40.0,40.0 0 1,1 90.0,50.0 A40.0,40.0 0 1,1 10.0,50.0 Z" android:fillColor="#E3212B"/>
+        <group>
+            <clip-path android:pathData="M10.0,50.0 A40.0,40.0 0 1,1 90.0,50.0 A40.0,40.0 0 1,1 10.0,50.0 Z"/>
+            <path android:pathData="M-2,14.0 Q50,9.0 102,14.0 L102,17.8 Q50,12.8 -2,17.8 Z" android:fillColor="#1B1B1F"/>
+            <path android:pathData="M-2,23.5 Q50,17.5 102,23.5 L102,27.7 Q50,21.7 -2,27.7 Z" android:fillColor="#1B1B1F"/>
+            <path android:pathData="M-2,33.0 Q50,28.0 102,33.0 L102,37.2 Q50,32.2 -2,37.2 Z" android:fillColor="#1B1B1F"/>
+            <path android:pathData="M-2,63.5 Q50,68.5 102,63.5 L102,67.7 Q50,72.7 -2,67.7 Z" android:fillColor="#1B1B1F"/>
+            <path android:pathData="M-2,73.5 Q50,79.5 102,73.5 L102,77.7 Q50,83.7 -2,77.7 Z" android:fillColor="#1B1B1F"/>
+            <path android:pathData="M-2,83.0 Q50,88.0 102,83.0 L102,86.8 Q50,91.8 -2,86.8 Z" android:fillColor="#1B1B1F"/>
+        </group>
+        <path android:pathData="M4,57 L15,57 L19,48 L24,66 L31,21 L50,60 L69,21 L76,75 L82,57 L96,57" android:strokeColor="#FFFFFF" android:strokeWidth="11.0"
+            android:strokeLineJoin="round" android:strokeLineCap="round" android:fillColor="#00000000"/>
+        <path android:pathData="M4,57 L15,57 L19,48 L24,66 L31,21 L50,60 L69,21 L76,75 L82,57 L96,57" android:strokeColor="#25343C" android:strokeWidth="7.0"
+            android:strokeLineJoin="round" android:strokeLineCap="round" android:fillColor="#00000000"/>
+    </group>
+</vector>

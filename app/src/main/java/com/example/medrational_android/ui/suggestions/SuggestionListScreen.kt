@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.SuggestionSummary
 import com.example.medrational_android.data.model.formatIsoDateTime
@@ -122,7 +123,7 @@ fun SuggestionListScreen(
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = uiState) {
-                    is SuggestionListUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    is SuggestionListUiState.Loading -> LoadingState()
                     is SuggestionListUiState.Error -> Column(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally

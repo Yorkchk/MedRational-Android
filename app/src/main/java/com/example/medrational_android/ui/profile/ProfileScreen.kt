@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,6 +53,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -59,7 +61,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.locale.AppLanguage
+import com.example.medrational_android.data.settings.AppTheme
 import com.example.medrational_android.data.model.UserProfile
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.ProfileSaveState
@@ -119,16 +124,9 @@ fun ProfileScreen(
                 .padding(innerPadding)
         ) {
             when (val state = uiState) {
-                is ProfileUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is ProfileUiState.Loading -> LoadingState()
                 is ProfileUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
-                    }
+                    ErrorState(message = state.message, onRetry = viewModel::load)
                 }
                 is ProfileUiState.Success -> {
                     Column(
@@ -156,6 +154,7 @@ fun ProfileScreen(
                             onChangePasswordClick = onChangePasswordClick
                         )
                         LanguageCard()
+                        ThemeCard()
                     }
                 }
             }
@@ -369,4 +368,57 @@ private fun LanguageCard(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/** Light (the default), dark, or like the phone. Picking one recreates the screen in that look. */
+@Composable
+private fun ThemeCard(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val current = remember { AppTheme.current(context) }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Contrast, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.profile_theme), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.profile_theme_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            AppTheme.entries.forEach { theme ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = theme == current,
+                            onClick = { if (theme != current) AppTheme.set(context, theme) },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = theme == current, onClick = null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(stringResource(theme.label()), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+    }
+}
+
+private fun AppTheme.label(): Int = when (this) {
+    AppTheme.LIGHT -> R.string.theme_light
+    AppTheme.DARK -> R.string.theme_dark
+    AppTheme.SYSTEM -> R.string.theme_system
 }

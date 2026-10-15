@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,8 +35,8 @@ fun RatingSection(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+    SectionCard(modifier = modifier) {
+        Column {
             Text(text = stringResource(R.string.rating_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             when (state) {

@@ -3,28 +3,78 @@ package com.example.medrational_android.ui.categories
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.NewReleases
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.Category
-import com.example.medrational_android.ui.text.asString
+import com.example.medrational_android.ui.components.EmptyState
+import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.LoadingState
+import com.example.medrational_android.ui.components.MonogramTile
+import com.example.medrational_android.ui.components.SectionHeader
+import com.example.medrational_android.ui.components.SwisraLogo
+import com.example.medrational_android.ui.components.greetingName
+import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import kotlinx.coroutines.launch
@@ -54,9 +104,12 @@ fun CategoryListScreen(
         val role = tokenManager.getRole() ?: ""
         role.contains("ADMIN", ignoreCase = true)
     }
+    val isLoggedIn = remember { tokenManager.isLoggedIn() }
+    val firstName = remember { greetingName(tokenManager.getUserName()) }
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     // Back closes the side menu instead of leaving the app
@@ -71,7 +124,7 @@ fun CategoryListScreen(
                 userName = tokenManager.getUserName(),
                 email = tokenManager.getEmail(),
                 isAdmin = isAdmin,
-                entries = homeDrawerEntries(isAdmin = isAdmin, isLoggedIn = tokenManager.isLoggedIn()),
+                groups = homeDrawerGroups(isAdmin = isAdmin, isLoggedIn = isLoggedIn),
                 noveltyCount = noveltyCount,
                 onEntryClick = { destination ->
                     // Close first so the menu isn't left open when coming back to home
@@ -93,9 +146,20 @@ fun CategoryListScreen(
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
-                    title = { Text(text = stringResource(R.string.categories_title), fontWeight = FontWeight.Bold) },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SwisraLogo(size = 30.dp)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             // A dot tells the user there is something new behind the menu. It sits on the
@@ -114,24 +178,22 @@ fun CategoryListScreen(
                                             // Default 6dp dot is easy to miss
                                             .size(10.dp)
                                             // Ring in the bar's color so the dot stands out from the ☰ lines
-                                            .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                            .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
                                     )
                                 }
                             }
                         }
                     },
-                    actions = {
-                        IconButton(onClick = onNavigateToSearch) {
-                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.categories_search_files))
-                        }
-                    }
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
                 )
             },
             floatingActionButton = {
                 if (isAdmin) {
-                    FloatingActionButton(onClick = { showCreateDialog = true }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.categories_add))
-                    }
+                    ExtendedFloatingActionButton(
+                        onClick = { showCreateDialog = true },
+                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text = { Text(stringResource(R.string.categories_new)) }
+                    )
                 }
             }
         ) { innerPadding ->
@@ -141,34 +203,18 @@ fun CategoryListScreen(
                     .padding(innerPadding)
             ) {
                 when (val state = uiState) {
-                    is CategoryUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    is CategoryUiState.Error -> {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = state.message.asString(), color = MaterialTheme.colorScheme.error)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = { viewModel.loadCategories() }) { Text(stringResource(R.string.common_retry)) }
-                        }
-                    }
-                    is CategoryUiState.Success -> {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(state.categories, key = { it.id }) { category ->
-                                CategoryCard(
-                                    category = category,
-                                    isAdmin = isAdmin,
-                                    onClick = { onCategoryClick(category.id, category.name) },
-                                    onDelete = { viewModel.deleteCategory(category.id) }
-                                )
-                            }
-                        }
-                    }
+                    is CategoryUiState.Loading -> LoadingState()
+                    is CategoryUiState.Error -> ErrorState(message = state.message, onRetry = { viewModel.loadCategories() })
+                    is CategoryUiState.Success -> HomeContent(
+                        categories = state.categories,
+                        firstName = firstName,
+                        noveltyCount = if (isLoggedIn) noveltyCount else 0,
+                        isAdmin = isAdmin,
+                        onSearchClick = onNavigateToSearch,
+                        onNoveltiesClick = onNavigateToNovelties,
+                        onCategoryClick = onCategoryClick,
+                        onDeleteClick = { categoryToDelete = it }
+                    )
                 }
             }
         }
@@ -197,6 +243,29 @@ fun CategoryListScreen(
         )
     }
 
+    // Deleting a category removes all its reasonings and files, so it's never one tap away
+    categoryToDelete?.let { category ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            icon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
+            title = { Text(stringResource(R.string.categories_delete)) },
+            text = { Text(stringResource(R.string.categories_delete_confirm, category.name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCategory(category.id)
+                        categoryToDelete = null
+                    }
+                ) {
+                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) { Text(stringResource(R.string.common_cancel)) }
+            }
+        )
+    }
+
     if (showCreateDialog) {
         CreateCategoryDialog(
             onDismiss = { showCreateDialog = false },
@@ -209,47 +278,175 @@ fun CategoryListScreen(
 }
 
 @Composable
-fun CategoryCard(
+private fun HomeContent(
+    categories: List<Category>,
+    firstName: String?,
+    noveltyCount: Long,
+    isAdmin: Boolean,
+    onSearchClick: () -> Unit,
+    onNoveltiesClick: () -> Unit,
+    onCategoryClick: (Long, String) -> Unit,
+    onDeleteClick: (Category) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        modifier = modifier.fillMaxSize(),
+        // Room at the bottom so the admin button never covers the last cards
+        contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.xs, bottom = 96.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column {
+                Text(
+                    text = if (firstName != null) stringResource(R.string.home_greeting, firstName) else stringResource(R.string.home_greeting_anonymous),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = stringResource(R.string.home_greeting_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            SearchPill(onClick = onSearchClick)
+        }
+        if (noveltyCount > 0) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                NoveltyBanner(count = noveltyCount, onClick = onNoveltiesClick)
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            SectionHeader(title = stringResource(R.string.categories_title))
+        }
+        if (categories.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                EmptyState(
+                    title = stringResource(R.string.categories_empty),
+                    hint = if (isAdmin) stringResource(R.string.categories_empty_admin_hint) else null,
+                    icon = Icons.Outlined.MedicalServices,
+                    modifier = Modifier.heightIn(min = 240.dp)
+                )
+            }
+        }
+        items(categories, key = { it.id }) { category ->
+            CategoryTile(
+                category = category,
+                isAdmin = isAdmin,
+                onClick = { onCategoryClick(category.id, category.name) },
+                onDeleteClick = { onDeleteClick(category) }
+            )
+        }
+    }
+}
+
+// Looks like a search field and opens the Search screen, where typing happens
+@Composable
+private fun SearchPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth().padding(top = Spacing.sm)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.width(Spacing.md))
+            Text(
+                text = stringResource(R.string.home_search_hint),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoveltyBanner(count: Long, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(modifier = Modifier.padding(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.NewReleases, contentDescription = null)
+            Spacer(modifier = Modifier.width(Spacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.drawer_novelties), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    pluralStringResource(R.plurals.novelties_new_count, count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), count),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+private fun CategoryTile(
     category: Category,
     isAdmin: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 148.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        // Full width so the delete button sits in the card's corner, not after the text
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(
+                    start = Spacing.lg,
+                    top = Spacing.lg,
+                    bottom = Spacing.lg,
+                    // Keeps long names clear of the delete button
+                    end = if (isAdmin) 44.dp else Spacing.lg
+                )
+            ) {
+                MonogramTile(name = category.name, key = category.id, fallback = Icons.Outlined.MedicalServices)
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
                     text = category.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (!category.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xxs))
                     Text(
                         text = category.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             if (isAdmin) {
-                IconButton(onClick = onDelete) {
+                IconButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs)
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = Icons.Outlined.DeleteOutline,
                         contentDescription = stringResource(R.string.categories_delete),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -269,17 +466,19 @@ fun CreateCategoryDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.categories_new)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.categories_name)) },
-                    singleLine = true
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small
                 )
                 OutlinedTextField(
                     value = desc,
                     onValueChange = { desc = it },
-                    label = { Text(stringResource(R.string.categories_description_optional)) }
+                    label = { Text(stringResource(R.string.categories_description_optional)) },
+                    shape = MaterialTheme.shapes.small
                 )
             }
         },

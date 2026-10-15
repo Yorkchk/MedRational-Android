@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
 import com.example.medrational_android.ui.text.appLocale
@@ -116,7 +117,7 @@ fun WorkshopListScreen(
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = uiState) {
-                    is WorkshopListUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    is WorkshopListUiState.Loading -> LoadingState()
                     is WorkshopListUiState.Error -> Column(
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally

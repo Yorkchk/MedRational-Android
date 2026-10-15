@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed (monochrome) launcher icon. Generated from docs/brand/swisra-logo.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateX="18" android:translateY="18" android:scaleX="0.72" android:scaleY="0.72">
+        <path android:pathData="M10.0,50.0 A40.0,40.0 0 1,1 90.0,50.0 A40.0,40.0 0 1,1 10.0,50.0 Z" android:strokeColor="#FF000000" android:strokeWidth="5" android:fillColor="#00000000"/>
+        <path android:pathData="M4,57 L15,57 L19,48 L24,66 L31,21 L50,60 L69,21 L76,75 L82,57 L96,57" android:strokeColor="#FF000000" android:strokeWidth="7.0"
+            android:strokeLineJoin="round" android:strokeLineCap="round" android:fillColor="#00000000"/>
+    </group>
+</vector>

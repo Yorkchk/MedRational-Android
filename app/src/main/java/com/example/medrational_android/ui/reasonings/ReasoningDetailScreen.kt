@@ -9,19 +9,69 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LabelOff
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NewLabel
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -37,12 +87,21 @@ import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.EmptyState
+import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.FileTypeBadge
 import com.example.medrational_android.ui.components.HashtagPickerDialog
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.RatingBadge
-import com.example.medrational_android.ui.files.fileTypeIcon
+import com.example.medrational_android.ui.components.SwisraTopBar
+import com.example.medrational_android.ui.components.TintedTile
+import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
+import com.example.medrational_android.ui.theme.Spacing
+import com.example.medrational_android.ui.theme.SwisraTints
 import com.example.medrational_android.viewmodel.BulkHashtagUiState
 import com.example.medrational_android.viewmodel.BulkHashtagViewModel
 import com.example.medrational_android.viewmodel.BulkTag
@@ -50,6 +109,9 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.ReasoningUiState
 import com.example.medrational_android.viewmodel.ReasoningViewModel
+
+// Long protocols are folded to this many lines so the files stay in sight
+private const val CONTENT_PREVIEW_LINES = 4
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +149,9 @@ fun ReasoningDetailScreen(
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
     // Picked but not yet uploaded: the admin chooses its hashtags first
     var pendingUploadUri by remember { mutableStateOf<Uri?>(null) }
+    // Deleting is permanent, so it always asks first
+    var reasoningToDelete by remember { mutableStateOf<Reasoning?>(null) }
+    var fileToDelete by remember { mutableStateOf<StudyFile?>(null) }
 
     // Only refreshed from admin controls: its endpoint is admin-only and a 403 logs the user out
     val catalogViewModel: HashtagCatalogViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
@@ -132,6 +197,7 @@ fun ReasoningDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (selectionMode) {
                 val busy = bulkState is BulkHashtagUiState.LoadingTags || bulkState is BulkHashtagUiState.Working
@@ -144,7 +210,7 @@ fun ReasoningDetailScreen(
                     },
                     actions = {
                         if (busy) {
-                            CircularProgressIndicator(modifier = Modifier.padding(end = 16.dp).size(24.dp))
+                            CircularProgressIndicator(modifier = Modifier.padding(end = Spacing.lg).size(24.dp))
                         } else {
                             IconButton(onClick = {
                                 catalogViewModel.refresh()
@@ -156,79 +222,79 @@ fun ReasoningDetailScreen(
                                 Icon(imageVector = Icons.Default.LabelOff, contentDescription = stringResource(R.string.selection_remove_tags))
                             }
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 )
-            } else TopAppBar(
-                title = { Text(text = categoryName, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                },
-                actions = {
+            } else {
+                SwisraTopBar(title = categoryName, onBackClick = onBackClick) {
                     IconButton(onClick = {
                         val categoryZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/category/$categoryId/zip"
                         val zipName = context.getString(R.string.download_category_zip_name, categoryName)
                         downloader.downloadFile(categoryZipUrl, zipName)
                         Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(imageVector = Icons.Default.Download, contentDescription = stringResource(R.string.reasonings_download_category))
+                        Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = stringResource(R.string.reasonings_download_category))
                     }
                 }
-            )
+            }
         },
         floatingActionButton = {
-            if (isAdmin) {
-                FloatingActionButton(onClick = { showCreateReasoningDialog = true }) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.reasonings_add))
-                }
+            if (isAdmin && !selectionMode) {
+                ExtendedFloatingActionButton(
+                    onClick = { showCreateReasoningDialog = true },
+                    icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.reasoning_new_short)) }
+                )
             }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when (val state = uiState) {
-                is ReasoningUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                is ReasoningUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = state.message.asString(), color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadReasoningsForCategory(categoryId) }) { Text(stringResource(R.string.common_retry)) }
-                    }
-                }
+                is ReasoningUiState.Loading -> LoadingState()
+                is ReasoningUiState.Error -> ErrorState(
+                    message = state.message,
+                    onRetry = { viewModel.loadReasoningsForCategory(categoryId) }
+                )
                 is ReasoningUiState.Success -> {
                     if (state.reasonings.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.reasonings_empty),
-                            modifier = Modifier.align(Alignment.Center),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        EmptyState(title = stringResource(R.string.reasonings_empty), icon = Icons.Outlined.Psychology)
                     } else {
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            // Room at the bottom so the admin button never covers the last card
+                            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.xs, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
                         ) {
+                            item {
+                                Text(
+                                    text = pluralStringResource(R.plurals.reasonings_count, state.reasonings.size, state.reasonings.size),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             items(state.reasonings, key = { it.id }) { reasoning ->
                                 ReasoningItemCard(
                                     reasoning = reasoning,
                                     isAdmin = isAdmin,
-                                    favoritedIds = favoritedIds, // <-- Pass the set of favorited IDs
+                                    favoritedIds = favoritedIds,
                                     ratings = ratings,
-                                    onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) }, // <-- Pass the toggle lambda
+                                    onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
                                     selectedFileIds = selectedFileIds,
                                     onFileClick = { file ->
                                         if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
                                     },
                                     // Long-press starts bulk hashtag selection (admins only)
                                     onFileLongClick = { file -> if (isAdmin) toggleSelection(file.id) },
-                                    onDeleteReasoning = { viewModel.deleteReasoning(reasoning.id) },
+                                    onDeleteReasoning = { reasoningToDelete = reasoning },
                                     onAddFile = {
                                         activeUploadReasoningId = reasoning.id
                                         filePickerLauncher.launch("*/*")
                                     },
-                                    onDeleteFile = { fileId -> viewModel.deleteFile(fileId) },
+                                    onDeleteFile = { file -> fileToDelete = file },
                                     onDownloadReasoningZip = {
                                         val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
                                         val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
@@ -247,6 +313,29 @@ fun ReasoningDetailScreen(
                 }
             }
         }
+    }
+
+    reasoningToDelete?.let { reasoning ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.reasoning_delete),
+            message = stringResource(R.string.reasoning_delete_confirm, reasoning.title),
+            onConfirm = {
+                viewModel.deleteReasoning(reasoning.id)
+                reasoningToDelete = null
+            },
+            onDismissRequest = { reasoningToDelete = null }
+        )
+    }
+    fileToDelete?.let { file ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.file_delete),
+            message = stringResource(R.string.file_delete_confirm, file.fileName),
+            onConfirm = {
+                viewModel.deleteFile(file.id)
+                fileToDelete = null
+            },
+            onDismissRequest = { fileToDelete = null }
+        )
     }
 
     pendingUploadUri?.let { uri ->
@@ -324,87 +413,129 @@ fun ReasoningItemCard(
     ratings: Map<Long, FileRatingSummary>,
     onToggleFavorite: (Long) -> Unit,
     onAddFile: () -> Unit,
-    onDeleteFile: (Long) -> Unit,
+    onDeleteFile: (StudyFile) -> Unit,
     onDownloadReasoningZip: () -> Unit,
     onDownloadSingleFile: (StudyFile) -> Unit
 ) {
+    val files = reasoning.files.orEmpty()
+    var expanded by rememberSaveable(reasoning.id) { mutableStateOf(false) }
+    var contentOverflows by remember(reasoning.id) { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.Top) {
+                TintedTile(tint = SwisraTints.forKey(reasoning.id), size = 40.dp) {
+                    Icon(Icons.Outlined.Psychology, contentDescription = null, modifier = Modifier.size(22.dp))
+                }
+                Spacer(modifier = Modifier.width(Spacing.md))
                 Text(
                     text = reasoning.title,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).padding(top = Spacing.xxs)
                 )
+                ReasoningMenu(
+                    hasFiles = files.isNotEmpty(),
+                    isAdmin = isAdmin,
+                    onDownloadAll = onDownloadReasoningZip,
+                    onAddFile = onAddFile,
+                    onDelete = onDeleteReasoning
+                )
+            }
 
-                Row {
-                    if (!reasoning.files.isNullOrEmpty()) {
-                        IconButton(onClick = onDownloadReasoningZip) {
-                            Icon(
-                                imageVector = Icons.Default.Download,
-                                contentDescription = stringResource(R.string.reasoning_download_all),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    if (isAdmin) {
-                        IconButton(onClick = onAddFile) {
-                            Icon(
-                                imageVector = Icons.Default.UploadFile,
-                                contentDescription = stringResource(R.string.reasoning_upload_file),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(onClick = onDeleteReasoning) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.reasoning_delete),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
+            if (!reasoning.content.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = reasoning.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (expanded) Int.MAX_VALUE else CONTENT_PREVIEW_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { if (!expanded) contentOverflows = it.hasVisualOverflow }
+                )
+                if (contentOverflows || expanded) {
+                    TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                        Text(stringResource(if (expanded) R.string.reasoning_show_less else R.string.reasoning_show_more))
                     }
                 }
             }
 
-            if (!reasoning.content.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = reasoning.content, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            if (!reasoning.files.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(14.dp))
+            if (files.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
-                    text = stringResource(R.string.reasoning_attached_files, reasoning.files.size),
+                    text = stringResource(R.string.reasoning_attached_files, files.size),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.secondary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                reasoning.files?.forEach { file ->
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                files.forEachIndexed { index, file ->
+                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     StudyFileRow(
                         file = file,
                         isAdmin = isAdmin,
-                        isFavorited = favoritedIds.contains(file.id), // <-- Fixes 'No value passed for parameter isFavorited'
+                        isFavorited = favoritedIds.contains(file.id),
                         knownRating = ratings[file.id],
-                        onToggleFavorite = { onToggleFavorite(file.id) }, // <-- Fixes 'No value passed for parameter onToggleFavorite'
+                        onToggleFavorite = { onToggleFavorite(file.id) },
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
                         selectionMode = selectedFileIds.isNotEmpty(),
                         isSelected = file.id in selectedFileIds,
-                        onDeleteFile = { onDeleteFile(file.id) },
+                        onDeleteFile = { onDeleteFile(file) },
                         onDownloadFile = { onDownloadSingleFile(file) }
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
                 }
+            }
+        }
+    }
+}
+
+// Reasoning actions live in a menu, so the title keeps the card's width
+@Composable
+private fun ReasoningMenu(
+    hasFiles: Boolean,
+    isAdmin: Boolean,
+    onDownloadAll: () -> Unit,
+    onAddFile: () -> Unit,
+    onDelete: () -> Unit
+) {
+    if (!hasFiles && !isAdmin) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_more_options))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (hasFiles) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reasoning_download_all)) },
+                    leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                    onClick = {
+                        open = false
+                        onDownloadAll()
+                    }
+                )
+            }
+            if (isAdmin) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reasoning_upload_file)) },
+                    leadingIcon = { Icon(Icons.Outlined.UploadFile, contentDescription = null) },
+                    onClick = {
+                        open = false
+                        onAddFile()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reasoning_delete), color = MaterialTheme.colorScheme.error) },
+                    leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    onClick = {
+                        open = false
+                        onDelete()
+                    }
+                )
             }
         }
     }
@@ -428,85 +559,114 @@ fun StudyFileRow(
     isSelected: Boolean = false
 ) {
     val isImage = isImageFile(file.fileName, file.fileType)
+    val locale = appLocale()
+    var menuOpen by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.small,
+        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = Spacing.xxs)
+            .clip(MaterialTheme.shapes.small)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Row(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(vertical = Spacing.sm, horizontal = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (selectionMode) {
-                Checkbox(checked = isSelected, onCheckedChange = { onClick() })
-            } else if (isImage) {
-                AsyncImage(
+            when {
+                selectionMode -> Checkbox(checked = isSelected, onCheckedChange = { onClick() })
+                isImage -> AsyncImage(
                     model = ApiClient.filePreviewUrl(file.id),
                     contentDescription = null,
-                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)),
+                    modifier = Modifier.size(44.dp).clip(MaterialTheme.shapes.small),
                     contentScale = ContentScale.Crop
                 )
-            } else {
-                Icon(
-                    imageVector = fileTypeIcon(file.fileName, file.fileType),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp)
-                )
+                else -> FileTypeBadge(fileName = file.fileName, fileType = file.fileType)
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = file.fileName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RatingBadge(known = knownRating, avgRating = file.avgRating, totalRatings = file.totalRatings)
-                    Text(
-                        text = if (isImage || file.previewable) stringResource(R.string.file_tap_to_preview) else stringResource(R.string.file_tap_to_open),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    val meta = fileMetaLine(file.fileName, file.fileType, file.fileSizeBytes, null, locale)
+                    if (meta.isNotEmpty()) {
+                        Text(
+                            text = " · $meta",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             if (selectionMode) return@Row
             IconButton(onClick = onToggleFavorite) {
                 Icon(
-                    imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = if (isFavorited) stringResource(R.string.favorite_remove) else stringResource(R.string.favorite_add),
-                    tint = if (isFavorited) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+                    tint = if (isFavorited) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = onDownloadFile) {
-                Icon(
-                    imageVector = Icons.Default.Download,
-                    contentDescription = stringResource(R.string.common_download),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-
-            if (isAdmin) {
-                IconButton(onClick = onDeleteFile) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.file_delete),
-                        tint = MaterialTheme.colorScheme.error
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_more_options))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_download)) },
+                        leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onDownloadFile()
+                        }
                     )
+                    if (isAdmin) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.file_delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                menuOpen = false
+                                onDeleteFile()
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ConfirmDeleteDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        icon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
+        }
+    )
 }
 
 @Composable
@@ -521,18 +681,20 @@ fun CreateReasoningDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.reasoning_new)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text(stringResource(R.string.reasoning_title_label)) },
-                    singleLine = true
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small
                 )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.reasoning_content_label)) },
-                    minLines = 3
+                    minLines = 3,
+                    shape = MaterialTheme.shapes.small
                 )
             }
         },
@@ -567,13 +729,13 @@ private fun BulkRemoveHashtagsDialog(
             if (choices.tags.isEmpty()) {
                 Text(stringResource(R.string.bulk_remove_none))
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
                         text = stringResource(R.string.bulk_remove_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         choices.tags.forEach { tag ->
                             val isChecked = tag.name in checked
                             FilterChip(
