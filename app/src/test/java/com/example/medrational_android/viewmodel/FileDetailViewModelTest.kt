@@ -53,11 +53,8 @@ class FileDetailViewModelTest {
         files = files.toList()
     )
 
-    private fun newViewModel(
-        previewDir: File = tempFolder.newFolder("previews"),
-        recordViews: Boolean = false,
-        shareDir: File = File(tempFolder.root, "shared")
-    ) = FileDetailViewModel(api, previewDir, mainDispatcherRule.dispatcher, recordViews, shareDir)
+    private fun newViewModel(previewDir: File = tempFolder.newFolder("previews"), recordViews: Boolean = false) =
+        FileDetailViewModel(api, previewDir, mainDispatcherRule.dispatcher, recordViews)
 
     private fun pdfResponse() = Response.success(pdfBytes.toResponseBody(null))
 
@@ -242,82 +239,6 @@ class FileDetailViewModelTest {
         newViewModel(recordViews = true).load(REASONING_ID, FILE_ID)
 
         coVerify(exactly = 0) { api.recordFileView(any()) }
-    }
-
-    @Test
-    fun `sharing fetches the original file under its real name`() {
-        val shareDir = File(tempFolder.root, "shared")
-        val docBytes = "original docx".toByteArray()
-        coEvery { api.downloadStudyFile(FILE_ID) } returns Response.success(docBytes.toResponseBody(null))
-        val viewModel = newViewModel(shareDir = shareDir)
-
-        viewModel.share(studyFile(fileName = "Cardio: ECG.docx"))
-
-        val ready = viewModel.shareState.value as ShareState.Ready
-        assertEquals(File(File(shareDir, "$FILE_ID"), "Cardio_ ECG.docx"), ready.file)
-        assertTrue(ready.file.readBytes().contentEquals(docBytes))
-        assertEquals("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ready.mimeType)
-        assertFalse(File(ready.file.parentFile, "${ready.file.name}.part").exists())
-    }
-
-    @Test
-    fun `sharing the same file again reuses the cached copy`() {
-        coEvery { api.downloadStudyFile(FILE_ID) } returns Response.success("bytes".toByteArray().toResponseBody(null))
-        val viewModel = newViewModel()
-
-        viewModel.share(studyFile())
-        viewModel.onShareHandled()
-        viewModel.share(studyFile())
-
-        assertTrue(viewModel.shareState.value is ShareState.Ready)
-        coVerify(exactly = 1) { api.downloadStudyFile(FILE_ID) }
-    }
-
-    @Test
-    fun `sharing another file drops the previous shared copy`() {
-        coEvery { api.downloadStudyFile(any()) } returns Response.success("bytes".toByteArray().toResponseBody(null))
-        val viewModel = newViewModel()
-
-        viewModel.share(studyFile(id = 1, fileName = "a.pdf"))
-        val first = (viewModel.shareState.value as ShareState.Ready).file
-        viewModel.onShareHandled()
-        viewModel.share(studyFile(id = 2, fileName = "b.pdf"))
-
-        assertFalse(first.exists())
-        assertTrue((viewModel.shareState.value as ShareState.Ready).file.exists())
-    }
-
-    @Test
-    fun `a refused share shows the app's own message`() {
-        coEvery { api.downloadStudyFile(FILE_ID) } returns errorResponse(404)
-        val viewModel = newViewModel()
-
-        viewModel.share(studyFile())
-
-        val error = viewModel.shareState.value as ShareState.Error
-        assertEquals("Couldn't share this file.", en(error.message))
-    }
-
-    @Test
-    fun `sharing offline shows the network error`() {
-        coEvery { api.downloadStudyFile(FILE_ID) } throws IOException("offline")
-        val viewModel = newViewModel()
-
-        viewModel.share(studyFile())
-
-        val error = viewModel.shareState.value as ShareState.Error
-        assertEquals("Network error. Check your connection and try again.", en(error.message))
-    }
-
-    @Test
-    fun `handling the share resets the state`() {
-        coEvery { api.downloadStudyFile(FILE_ID) } returns Response.success("bytes".toByteArray().toResponseBody(null))
-        val viewModel = newViewModel()
-
-        viewModel.share(studyFile())
-        viewModel.onShareHandled()
-
-        assertEquals(ShareState.Idle, viewModel.shareState.value)
     }
 
     private companion object {

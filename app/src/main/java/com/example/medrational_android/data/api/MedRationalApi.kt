@@ -50,6 +50,15 @@ interface MedRationalApi {
     @GET("api/v1/downloads/file/{id}")
     suspend fun downloadStudyFile(@Path("id") id: Long): Response<ResponseBody>
 
+    // Zips for sharing: the reasoning's files, or the category with a folder per reasoning. Not recorded.
+    @Streaming
+    @GET("api/v1/downloads/reasoning/{id}/zip")
+    suspend fun downloadReasoningZip(@Path("id") id: Long): Response<ResponseBody>
+
+    @Streaming
+    @GET("api/v1/downloads/category/{id}/zip")
+    suspend fun downloadCategoryZip(@Path("id") id: Long): Response<ResponseBody>
+
     @DELETE("api/v1/files/{id}")
     suspend fun deleteFile(@Path("id") id: Long): Response<Unit>
 

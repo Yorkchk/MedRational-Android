@@ -105,6 +105,7 @@ import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.HashtagsUiState
 import com.example.medrational_android.viewmodel.PreviewState
 import com.example.medrational_android.viewmodel.ShareState
+import com.example.medrational_android.viewmodel.ShareViewModel
 import java.io.File
 
 private const val PAGE_KEY_PREFIX = "page-"
@@ -124,10 +125,10 @@ fun FileDetailScreen(
         FileDetailViewModel(
             ApiClient.api,
             File(context.cacheDir, "previews"),
-            recordViews = tokenManager.isLoggedIn() && !tokenManager.isAdmin(),
-            shareDir = File(context.cacheDir, "shared")
+            recordViews = tokenManager.isLoggedIn() && !tokenManager.isAdmin()
         )
     }
+    val shareViewModel: ShareViewModel = viewModel { ShareViewModel(ApiClient.api, File(context.cacheDir, "shared")) }
     val favoriteViewModel: FavoriteViewModel = viewModel { FavoriteViewModel(tokenManager) }
     val hashtagsViewModel: FileHashtagsViewModel = viewModel { FileHashtagsViewModel(ApiClient.api) }
     val ratingViewModel: FileRatingViewModel = viewModel { FileRatingViewModel(ApiClient.api) }
@@ -140,7 +141,7 @@ fun FileDetailScreen(
     val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
     val hashtagsState by hashtagsViewModel.uiState.collectAsState()
     val ratingState by ratingViewModel.uiState.collectAsState()
-    val shareState by viewModel.shareState.collectAsState()
+    val shareState by shareViewModel.state.collectAsState()
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
@@ -157,20 +158,8 @@ fun FileDetailScreen(
         }
     }
 
-    LaunchedEffect(shareState) {
-        when (val state = shareState) {
-            is ShareState.Ready -> {
-                context.shareFile(state.file, state.mimeType)
-                viewModel.onShareHandled()
-            }
-            is ShareState.Error -> {
-                Toast.makeText(context, state.message.asString(context), Toast.LENGTH_LONG).show()
-                viewModel.onShareHandled()
-            }
-            ShareState.Idle, ShareState.Preparing -> Unit
-        }
-    }
-    val isSharing = shareState == ShareState.Preparing
+    ShareEffects(shareViewModel, singleFileProgressInline = true)
+    val isSharing = shareState is ShareState.Preparing
 
     val loadedHashtags = hashtagsState as? HashtagsUiState.Success
     val showHashtags = loadedHashtags != null && (isAdmin || loadedHashtags.hashtags.isNotEmpty())
@@ -225,7 +214,7 @@ fun FileDetailScreen(
                         IconButton(onClick = { onDownload(success.file) }) {
                             Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(R.string.common_download))
                         }
-                        IconButton(onClick = { viewModel.share(success.file) }, enabled = !isSharing) {
+                        IconButton(onClick = { shareViewModel.shareFiles(listOf(success.file)) }, enabled = !isSharing) {
                             ShareIcon(isSharing = isSharing)
                         }
                     }
@@ -254,7 +243,7 @@ fun FileDetailScreen(
                     onPreviewCorrupted = viewModel::onPreviewCorrupted,
                     onDownload = { onDownload(state.file) },
                     isSharing = isSharing,
-                    onShare = { viewModel.share(state.file) },
+                    onShare = { shareViewModel.shareFiles(listOf(state.file)) },
                     rating = {
                         RatingSection(
                             state = ratingState,
