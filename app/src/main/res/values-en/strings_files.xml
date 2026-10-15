@@ -65,4 +65,15 @@
     <string name="favorite_add_short">Favorite</string>
     <string name="file_in_favorites">In your favorites</string>
     <string name="preview_retry">Retry preview</string>
+    <string name="share_chooser_title">Send file to…</string>
+    <string name="share_preparing">Preparing file…</string>
+    <string name="share_failed">Couldn\'t share this file.</string>
+    <string name="share_no_app">No app can receive this file.</string>
+    <string name="share_selected">Share selection</string>
+    <string name="share_preparing_files">Preparing files… %1$d / %2$d</string>
+    <string name="share_preparing_zip">Preparing the zip…</string>
+    <plurals name="share_partial">
+        <item quantity="one">%d file couldn\'t be fetched.</item>
+        <item quantity="other">%d files couldn\'t be fetched.</item>
+    </plurals>
 </resources>

@@ -33,12 +33,14 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -70,6 +72,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,6 +104,8 @@ import com.example.medrational_android.viewmodel.FileRatingViewModel
 import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.HashtagsUiState
 import com.example.medrational_android.viewmodel.PreviewState
+import com.example.medrational_android.viewmodel.ShareState
+import com.example.medrational_android.viewmodel.ShareViewModel
 import java.io.File
 
 private const val PAGE_KEY_PREFIX = "page-"
@@ -122,6 +128,7 @@ fun FileDetailScreen(
             recordViews = tokenManager.isLoggedIn() && !tokenManager.isAdmin()
         )
     }
+    val shareViewModel: ShareViewModel = viewModel { ShareViewModel(ApiClient.api, File(context.cacheDir, "shared")) }
     val favoriteViewModel: FavoriteViewModel = viewModel { FavoriteViewModel(tokenManager) }
     val hashtagsViewModel: FileHashtagsViewModel = viewModel { FileHashtagsViewModel(ApiClient.api) }
     val ratingViewModel: FileRatingViewModel = viewModel { FileRatingViewModel(ApiClient.api) }
@@ -134,6 +141,7 @@ fun FileDetailScreen(
     val favoritedIds by favoriteViewModel.favoritedFileIds.collectAsState()
     val hashtagsState by hashtagsViewModel.uiState.collectAsState()
     val ratingState by ratingViewModel.uiState.collectAsState()
+    val shareState by shareViewModel.state.collectAsState()
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
@@ -149,6 +157,9 @@ fun FileDetailScreen(
             ratingViewModel.onMessageShown()
         }
     }
+
+    ShareEffects(shareViewModel, singleFileProgressInline = true)
+    val isSharing = shareState is ShareState.Preparing
 
     val loadedHashtags = hashtagsState as? HashtagsUiState.Success
     val showHashtags = loadedHashtags != null && (isAdmin || loadedHashtags.hashtags.isNotEmpty())
@@ -203,6 +214,9 @@ fun FileDetailScreen(
                         IconButton(onClick = { onDownload(success.file) }) {
                             Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(R.string.common_download))
                         }
+                        IconButton(onClick = { shareViewModel.shareFiles(listOf(success.file)) }, enabled = !isSharing) {
+                            ShareIcon(isSharing = isSharing)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -228,6 +242,8 @@ fun FileDetailScreen(
                     onRetryPreview = viewModel::retryPreview,
                     onPreviewCorrupted = viewModel::onPreviewCorrupted,
                     onDownload = { onDownload(state.file) },
+                    isSharing = isSharing,
+                    onShare = { shareViewModel.shareFiles(listOf(state.file)) },
                     rating = {
                         RatingSection(
                             state = ratingState,
@@ -268,6 +284,8 @@ private fun BoxScope.FileDetailContent(
     onRetryPreview: () -> Unit,
     onPreviewCorrupted: () -> Unit,
     onDownload: () -> Unit,
+    isSharing: Boolean,
+    onShare: () -> Unit,
     rating: @Composable () -> Unit,
     hashtags: (@Composable () -> Unit)?
 ) {
@@ -306,6 +324,8 @@ private fun BoxScope.FileDetailContent(
                 isFavorited = isFavorited,
                 onToggleFavorite = onToggleFavorite,
                 onDownload = onDownload,
+                isSharing = isSharing,
+                onShare = onShare,
                 modifier = Modifier.padding(horizontal = Spacing.screen)
             )
         }
@@ -441,6 +461,8 @@ private fun FileHeader(
     isFavorited: Boolean,
     onToggleFavorite: () -> Unit,
     onDownload: () -> Unit,
+    isSharing: Boolean,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SectionCard(modifier = modifier) {
@@ -487,7 +509,26 @@ private fun FileHeader(
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Text(stringResource(if (isFavorited) R.string.file_in_favorites else R.string.favorite_add_short))
             }
+            FilledTonalIconButton(onClick = onShare, enabled = !isSharing, shape = MaterialTheme.shapes.medium) {
+                ShareIcon(isSharing = isSharing)
+            }
         }
+    }
+}
+
+// A spinner while the file is fetched for the share sheet
+@Composable
+private fun ShareIcon(isSharing: Boolean) {
+    if (isSharing) {
+        val preparing = stringResource(R.string.share_preparing)
+        CircularProgressIndicator(
+            strokeWidth = 2.dp,
+            modifier = Modifier
+                .size(18.dp)
+                .semantics { contentDescription = preparing }
+        )
+    } else {
+        Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share))
     }
 }
 
