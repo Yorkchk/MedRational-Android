@@ -4,8 +4,6 @@
     <string name="categories_title">Medical Categories</string>
     <string name="home_open_menu_new">Open menu, new files available</string>
     <string name="home_open_menu">Open menu</string>
-    <string name="categories_search_files">Search files</string>
-    <string name="categories_add">Add category</string>
     <string name="home_sign_out">Sign out</string>
     <string name="home_sign_out_confirm">Are you sure you want to sign out?</string>
     <string name="categories_delete">Delete category</string>
@@ -23,4 +21,14 @@
     <string name="drawer_profile">Profile</string>
     <string name="drawer_statistics">Statistics</string>
     <string name="drawer_admin">Admin</string>
+    <string name="drawer_group_explore">Explore</string>
+    <string name="drawer_group_mine">My space</string>
+    <string name="drawer_group_admin">Administration</string>
+    <string name="home_greeting">Hello, %1$s</string>
+    <string name="home_greeting_anonymous">Hello</string>
+    <string name="home_greeting_subtitle">What are you studying today?</string>
+    <string name="home_search_hint">Search files or hashtags</string>
+    <string name="categories_empty">No categories yet</string>
+    <string name="categories_empty_admin_hint">Create the first one with the New category button.</string>
+    <string name="categories_delete_confirm">Delete “%1$s” with all its reasonings and files? This can\'t be undone.</string>
 </resources>

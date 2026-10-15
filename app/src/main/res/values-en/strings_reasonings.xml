@@ -16,7 +16,6 @@
     <string name="download_category_zip_name">%1$s_Materials.zip</string>
     <string name="download_reasoning_zip_name">%1$s_Files.zip</string>
     <string name="reasonings_download_category">Download category ZIP</string>
-    <string name="reasonings_add">Add clinical reasoning</string>
     <string name="reasonings_empty">No reasonings added for this category.</string>
     <string name="upload_dialog_title">Upload file</string>
     <string name="upload_dialog_confirm">Upload</string>
@@ -29,8 +28,6 @@
     <string name="reasoning_upload_file">Upload study file</string>
     <string name="reasoning_delete">Delete reasoning</string>
     <string name="reasoning_attached_files">Attached files (%1$d)</string>
-    <string name="file_tap_to_preview">" · Tap to preview"</string>
-    <string name="file_tap_to_open">" · Tap to open"</string>
     <string name="favorite_remove">Remove from favorites</string>
     <string name="favorite_add">Add to favorites</string>
     <string name="file_delete">Delete file</string>
@@ -64,5 +61,14 @@
     <plurals name="bulk_tag_dialog_title">
         <item quantity="one">Tag %d file</item>
         <item quantity="other">Tag %d files</item>
+    </plurals>
+    <string name="reasoning_new_short">New reasoning</string>
+    <string name="reasoning_show_more">Read more</string>
+    <string name="reasoning_show_less">Show less</string>
+    <string name="reasoning_delete_confirm">Delete “%1$s” and all its files? This can\'t be undone.</string>
+    <string name="file_delete_confirm">Delete “%1$s”? This can\'t be undone.</string>
+    <plurals name="reasonings_count">
+        <item quantity="one">%d clinical reasoning</item>
+        <item quantity="other">%d clinical reasonings</item>
     </plurals>
 </resources>

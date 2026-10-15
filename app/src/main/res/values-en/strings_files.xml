@@ -62,4 +62,6 @@
         <item quantity="one">Rate %d star</item>
         <item quantity="other">Rate %d stars</item>
     </plurals>
+    <string name="favorite_add_short">Favorite</string>
+    <string name="file_in_favorites">In your favorites</string>
 </resources>

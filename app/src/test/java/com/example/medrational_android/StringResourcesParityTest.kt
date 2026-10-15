@@ -19,7 +19,8 @@ class StringResourcesParityTest {
     @Test
     fun `both languages have the same strings`() {
         assertTrue("No strings found in ${TestStrings.resDir.absolutePath}", french.strings.size > 100)
-        assertEquals(emptySet<String>(), french.strings.keys - english.strings.keys - "app_name")
+        // The brand (translatable="false" in values/strings.xml) is the same in every language
+        assertEquals(emptySet<String>(), french.strings.keys - english.strings.keys - setOf("app_name", "brand_tagline"))
         assertEquals(emptySet<String>(), english.strings.keys - french.strings.keys)
         assertEquals(french.plurals.keys, english.plurals.keys)
     }

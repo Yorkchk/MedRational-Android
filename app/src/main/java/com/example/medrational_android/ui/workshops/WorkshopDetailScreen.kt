@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.ProjectStatus
@@ -206,7 +207,7 @@ fun WorkshopDetailScreen(
         ) {
             when (val state = uiState) {
                 is WorkshopDetailUiState.Loading, WorkshopDetailUiState.Deleted ->
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LoadingState()
                 is WorkshopDetailUiState.Error -> Column(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally

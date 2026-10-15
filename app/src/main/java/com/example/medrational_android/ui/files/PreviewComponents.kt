@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.data.preview.PdfDocumentRenderer
 
 private const val MAX_ZOOM = 5f
@@ -100,11 +100,11 @@ internal fun PreviewMessage(
     modifier: Modifier = Modifier,
     action: (@Composable () -> Unit)? = null
 ) {
-    OutlinedCard(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+    SectionCard(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 28.dp),
+                .padding(vertical = Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             leading()

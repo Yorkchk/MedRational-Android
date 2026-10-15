@@ -65,4 +65,6 @@
         <item quantity="many">Donner %d étoiles</item>
         <item quantity="other">Donner %d étoiles</item>
     </plurals>
+    <string name="favorite_add_short">Favori</string>
+    <string name="file_in_favorites">Dans vos favoris</string>
 </resources>

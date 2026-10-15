@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">MedRational-Android</string>
+    <string name="app_name" translatable="false">SWISRA</string>
+    <!-- What the name stands for; the same in every language -->
+    <string name="brand_tagline" translatable="false">Study With Scome Rabat</string>
 </resources>

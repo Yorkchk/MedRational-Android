@@ -1,28 +1,35 @@
 package com.example.medrational_android.ui.auth
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.OtpCodeField
+import com.example.medrational_android.ui.components.PrimaryButton
+import com.example.medrational_android.ui.components.StatusBanner
 import com.example.medrational_android.ui.text.asString
+import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.AuthUiState
 import com.example.medrational_android.viewmodel.AuthViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
@@ -32,14 +39,17 @@ fun LoginScreen(
     onNavigateToForgotPassword: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val focusManager = LocalFocusManager.current
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var otpCode by remember { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var otpCode by rememberSaveable { mutableStateOf("") }
+    // Remembered so the code step survives Loading and Error; derived below for the current frame
+    var otpEmail by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(uiState) { otpEmail = otpStepEmail(otpEmail, uiState) }
 
-    val isOtpStep = uiState is AuthUiState.OtpSent
     val isLoading = uiState is AuthUiState.Loading
+    val canSendCode = !isLoading && email.isNotBlank() && password.isNotBlank()
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.LoginSuccess) {
@@ -53,142 +63,86 @@ fun LoginScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (isOtpStep) stringResource(R.string.login_verify_title) else stringResource(R.string.auth_log_in)) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (isOtpStep) viewModel.resetState() else onBackClick()
-                    }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+    val sendCode = {
+        focusManager.clearFocus()
+        viewModel.requestLoginOtp(email, password)
+    }
+
+    val codeEmail = otpStepEmail(otpEmail, uiState)
+    if (codeEmail == null) {
+        AuthLayout(
+            title = stringResource(R.string.login_welcome_back),
+            subtitle = stringResource(R.string.login_subtitle),
+            onBackClick = onBackClick
         ) {
-            if (!isOtpStep) {
-                Text(
-                    text = stringResource(R.string.login_welcome_back),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.login_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.auth_email_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.auth_password_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        val description = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password)
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = icon, contentDescription = description)
-                        }
-                    }
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { viewModel.requestLoginOtp(email, password) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text(stringResource(R.string.login_send_code))
-                    }
-                }
-            } else {
-                val currentEmail = (uiState as? AuthUiState.OtpSent)?.email ?: email
-                Text(
-                    text = stringResource(R.string.login_enter_code),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.login_code_sent_to, currentEmail),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedTextField(
-                    value = otpCode,
-                    onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpCode = it },
-                    label = { Text(stringResource(R.string.login_otp_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { viewModel.verifyLoginOtp(currentEmail, otpCode) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    enabled = !isLoading && otpCode.length == 6
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text(stringResource(R.string.login_verify_continue))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                TextButton(onClick = { viewModel.resetState() }) {
-                    Text(stringResource(R.string.login_back_to_login))
-                }
-            }
-
-            if (uiState is AuthUiState.Error) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = (uiState as AuthUiState.Error).error.asString(),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            // Inside LoginScreen.kt:
-            TextButton(
-                onClick = onNavigateToForgotPassword,
-                modifier = Modifier.align(Alignment.End)
-            ) {
+            AuthTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = stringResource(R.string.auth_email_label),
+                leadingIcon = Icons.Outlined.Email,
+                keyboardType = KeyboardType.Email
+            )
+            AuthTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = stringResource(R.string.auth_password_label),
+                leadingIcon = Icons.Outlined.Lock,
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+                onImeAction = { if (canSendCode) sendCode() },
+                isPassword = true
+            )
+            TextButton(onClick = onNavigateToForgotPassword, modifier = Modifier.align(Alignment.End)) {
                 Text(stringResource(R.string.login_forgot_password))
             }
+            ErrorBanner(uiState)
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            PrimaryButton(
+                text = stringResource(R.string.login_send_code),
+                onClick = sendCode,
+                enabled = canSendCode,
+                loading = isLoading
+            )
         }
+    } else {
+        val verify = { viewModel.verifyLoginOtp(codeEmail, otpCode) }
+        val leaveCodeStep = {
+            otpEmail = null
+            otpCode = ""
+            viewModel.resetState()
+        }
+        AuthLayout(
+            title = stringResource(R.string.login_enter_code),
+            subtitle = stringResource(R.string.login_code_sent_to, codeEmail),
+            // Back from the code goes back to the credentials, not out of sign-in
+            onBackClick = leaveCodeStep
+        ) {
+            OtpCodeField(
+                value = otpCode,
+                onValueChange = { otpCode = it },
+                onDone = verify,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+            ErrorBanner(uiState)
+            PrimaryButton(
+                text = stringResource(R.string.login_verify_continue),
+                onClick = verify,
+                enabled = otpCode.length == 6,
+                loading = isLoading
+            )
+            TextButton(onClick = leaveCodeStep, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text(stringResource(R.string.login_back_to_login))
+            }
+        }
+    }
+}
+
+/** The auth error, if any, as a banner with some space below it. */
+@Composable
+internal fun ErrorBanner(uiState: AuthUiState) {
+    if (uiState is AuthUiState.Error) {
+        StatusBanner(message = uiState.error.asString())
+        Spacer(modifier = Modifier.height(Spacing.md))
     }
 }
