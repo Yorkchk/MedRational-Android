@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     // Per-app language (French by default, English from the profile)
     implementation(libs.androidx.appcompat)
     implementation(platform(libs.androidx.compose.bom))
