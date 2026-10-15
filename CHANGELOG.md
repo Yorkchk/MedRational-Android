@@ -6,7 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
-- Share button on a file's page: send the file to your email, Google Drive, OneDrive, Quick Share or any other app on your phone, to open it on your laptop or tablet. A shared file also appears in Recent downloads.
+- Share files to your email, Google Drive, OneDrive, Quick Share or any other app on your phone, to open them on your laptop or tablet:
+  - One file: the Share button on its page, or Share in its ⋮ menu.
+  - Several files: long-press a file (or pick Select in its ⋮ menu), tick the others, then tap Share. They are sent as separate files.
+  - A whole reasoning: Share all (zip) in its ⋮ menu. A whole category: the Share icon at the top, which sends one zip with a folder per reasoning.
+  - Shared files (not zips) also appear in Recent downloads.
 - A push notification announces each new project as soon as an admin creates it, while it is still upcoming. Tap it to open the project; the registration link appears there once registration opens.
 - Statistics for admins, reached from the home screen's side menu, kept short so they read at a glance:
   - This week: active students (and their share of registered students), new students, downloads and file views, each compared with the previous 7 days, and a 30-day chart of downloads and views.

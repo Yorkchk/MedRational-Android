@@ -72,4 +72,12 @@
     <string name="share_preparing">Préparation du fichier…</string>
     <string name="share_failed">Impossible de partager ce fichier.</string>
     <string name="share_no_app">Aucune application ne peut recevoir ce fichier.</string>
+    <string name="share_selected">Partager la sélection</string>
+    <string name="share_preparing_files">Préparation des fichiers… %1$d / %2$d</string>
+    <string name="share_preparing_zip">Préparation du zip…</string>
+    <plurals name="share_partial">
+        <item quantity="one">%d fichier n’a pas pu être récupéré.</item>
+        <item quantity="many">%d fichiers n’ont pas pu être récupérés.</item>
+        <item quantity="other">%d fichiers n’ont pas pu être récupérés.</item>
+    </plurals>
 </resources>

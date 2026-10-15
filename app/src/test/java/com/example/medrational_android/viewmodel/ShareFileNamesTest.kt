@@ -46,4 +46,20 @@ class ShareFileNamesTest {
         assertEquals("application/octet-stream", shareMimeType(null, "archive.xyz"))
         assertEquals("application/octet-stream", shareMimeType("weird", "noextension"))
     }
+
+    @Test
+    fun `one type is kept as it is`() {
+        assertEquals("application/pdf", commonMimeType(listOf("application/pdf")))
+        assertEquals("application/pdf", commonMimeType(listOf("application/pdf", "application/pdf")))
+    }
+
+    @Test
+    fun `types of one family share their family`() {
+        assertEquals("image/*", commonMimeType(listOf("image/png", "image/jpeg")))
+    }
+
+    @Test
+    fun `mixed types fall back to any type`() {
+        assertEquals("*/*", commonMimeType(listOf("application/pdf", "image/png")))
+    }
 }
