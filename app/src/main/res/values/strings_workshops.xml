@@ -19,7 +19,6 @@
     <string name="workshop_type_motivation">Lettre de motivation</string>
     <string name="workshop_type_fcfs_description">Inscrivez-vous dès l’ouverture des inscriptions : les places reviennent aux premiers inscrits.</string>
     <string name="workshop_type_motivation_description">Postulez via le lien d’inscription avec une lettre de motivation. Le comité décide qui est retenu.</string>
-    <string name="workshop_retry_preview">Réessayer l’aperçu</string>
     <string name="attachment_type">%1$s</string>
     <string name="attachment_meta">%1$s · %2$s</string>
     <string name="attachment_image">Image</string>

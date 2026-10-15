@@ -19,7 +19,6 @@
     <string name="workshop_type_motivation">Motivation letter</string>
     <string name="workshop_type_fcfs_description">Register as soon as registration opens: spots go to the first to sign up.</string>
     <string name="workshop_type_motivation_description">Apply through the registration link with a motivation letter. The committee decides who is accepted.</string>
-    <string name="workshop_retry_preview">Retry preview</string>
     <string name="attachment_type">%1$s</string>
     <string name="attachment_meta">%1$s · %2$s</string>
     <string name="attachment_image">Image</string>

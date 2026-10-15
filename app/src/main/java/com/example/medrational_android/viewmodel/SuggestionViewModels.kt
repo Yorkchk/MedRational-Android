@@ -3,11 +3,15 @@ package com.example.medrational_android.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.medrational_android.R
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.SuggestionDetail
-import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.SuggestionSummary
+import com.example.medrational_android.data.model.isImageFile
+import com.example.medrational_android.data.preview.saveToCache
 import com.example.medrational_android.ui.text.UiText
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +22,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import java.io.File
 import java.io.IOException
 
 const val MAX_SUGGESTION_TITLE_LENGTH = 150
@@ -25,7 +30,6 @@ private val NETWORK_ERROR = UiText.Res(R.string.error_network)
 
 // Turns the backend's suggestion error codes into something a user can act on
 internal fun suggestionErrorMessage(code: Int): UiText = when (code) {
-    409 -> UiText.Res(R.string.suggestion_error_closed)
     413 -> UiText.Res(R.string.error_file_too_large)
     415 -> UiText.Res(R.string.suggestion_error_file_type)
     400 -> UiText.Res(R.string.suggestion_error_fields)
@@ -35,7 +39,7 @@ internal fun suggestionErrorMessage(code: Int): UiText = when (code) {
 
 private fun String.toTextPart(): RequestBody = toRequestBody("text/plain".toMediaType())
 
-// --- List ----------------------------------------------------------------------------------------
+// --- Admin inbox ---------------------------------------------------------------------------------
 
 sealed interface SuggestionListUiState {
     data object Loading : SuggestionListUiState
@@ -43,30 +47,16 @@ sealed interface SuggestionListUiState {
     data class Error(val message: UiText) : SuggestionListUiState
 }
 
-/** Admins see the inbox of every user's suggestions; users see their own. Tabs: PENDING and CLOSED (archived). */
-class SuggestionListViewModel(
-    private val api: MedRationalApi,
-    private val isAdmin: Boolean
-) : ViewModel() {
-
-    private val _tab = MutableStateFlow(SuggestionStatus.PENDING)
-    val tab: StateFlow<SuggestionStatus> = _tab.asStateFlow()
+/** Admin only: every suggestion users sent, newest activity first. */
+class SuggestionListViewModel(private val api: MedRationalApi) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SuggestionListUiState>(SuggestionListUiState.Loading)
     val uiState: StateFlow<SuggestionListUiState> = _uiState.asStateFlow()
 
-    fun selectTab(status: SuggestionStatus) {
-        if (status == _tab.value) return
-        _tab.value = status
-        _uiState.value = SuggestionListUiState.Loading
-        load()
-    }
-
     fun load() {
-        val status = _tab.value
         viewModelScope.launch {
-            val result = try {
-                val response = if (isAdmin) api.getSuggestionInbox(status) else api.getMySuggestions(status)
+            _uiState.value = try {
+                val response = api.getSuggestionInbox()
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
                     SuggestionListUiState.Success(body.content)
@@ -78,8 +68,6 @@ class SuggestionListViewModel(
             } catch (e: HttpException) {
                 SuggestionListUiState.Error(suggestionErrorMessage(e.code()))
             }
-            // Ignore a slow response for a tab the user already left
-            if (status == _tab.value) _uiState.value = result
         }
     }
 }
@@ -89,7 +77,7 @@ class SuggestionListViewModel(
 sealed interface NewSuggestionUiState {
     data object Idle : NewSuggestionUiState
     data object Sending : NewSuggestionUiState
-    data class Sent(val suggestionId: Long) : NewSuggestionUiState
+    data object Sent : NewSuggestionUiState
     data class Error(val message: UiText) : NewSuggestionUiState
 }
 
@@ -111,9 +99,8 @@ class NewSuggestionViewModel(private val api: MedRationalApi) : ViewModel() {
                     description.trim().toTextPart(),
                     attachment
                 )
-                val body = response.body()
-                if (response.isSuccessful && body != null) {
-                    NewSuggestionUiState.Sent(body.id)
+                if (response.isSuccessful) {
+                    NewSuggestionUiState.Sent
                 } else {
                     NewSuggestionUiState.Error(suggestionErrorMessage(response.code()))
                 }
@@ -131,104 +118,88 @@ class NewSuggestionViewModel(private val api: MedRationalApi) : ViewModel() {
     }
 }
 
-// --- Detail and conversation ---------------------------------------------------------------------
+// --- Admin detail --------------------------------------------------------------------------------
 
 sealed interface SuggestionDetailUiState {
     data object Loading : SuggestionDetailUiState
     data class Success(
         val suggestion: SuggestionDetail,
-        // A reply or the close request is in flight
+        // The delete request is in flight
         val busy: Boolean = false
-    ) : SuggestionDetailUiState {
-        val canPost: Boolean get() = suggestion.status == SuggestionStatus.PENDING
-    }
+    ) : SuggestionDetailUiState
+    data object Deleted : SuggestionDetailUiState
     data class Error(val message: UiText) : SuggestionDetailUiState
 }
 
-class SuggestionDetailViewModel(private val api: MedRationalApi) : ViewModel() {
+/** Admin only: one suggestion with its sender's details and a preview of its attachment. */
+class SuggestionDetailViewModel(
+    private val api: MedRationalApi,
+    // Converted PDFs are cached here as suggestion-{id}.pdf so reopening a suggestion is instant
+    private val previewDir: File,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SuggestionDetailUiState>(SuggestionDetailUiState.Loading)
     val uiState: StateFlow<SuggestionDetailUiState> = _uiState.asStateFlow()
 
-    // One-shot feedback for a failed action, cleared by onMessageShown()
+    // null while loading, or when the suggestion has no attachment
+    private val _preview = MutableStateFlow<PreviewState?>(null)
+    val preview: StateFlow<PreviewState?> = _preview.asStateFlow()
+
+    // One-shot feedback for a failed delete, cleared by onMessageShown()
     private val _message = MutableStateFlow<UiText?>(null)
     val message: StateFlow<UiText?> = _message.asStateFlow()
 
-    private var suggestionId: Long? = null
-
     fun load(id: Long) {
-        suggestionId = id
-        // Keep the conversation on screen while refreshing
-        if (_uiState.value !is SuggestionDetailUiState.Success) {
-            _uiState.value = SuggestionDetailUiState.Loading
-        }
+        _uiState.value = SuggestionDetailUiState.Loading
+        _preview.value = null
         viewModelScope.launch {
-            val result = fetch(id)
-            _uiState.value = when {
-                result is SuggestionDetailUiState.Error && _uiState.value is SuggestionDetailUiState.Success -> {
-                    _message.value = result.message
-                    (_uiState.value as SuggestionDetailUiState.Success).copy(busy = false)
-                }
-                else -> result
-            }
-        }
-    }
-
-    fun refresh() {
-        suggestionId?.let(::load)
-    }
-
-    /** [onSent] runs once the reply is saved, so the screen can clear its composer. */
-    fun sendMessage(body: String, attachment: MultipartBody.Part?, onSent: () -> Unit = {}) {
-        val current = _uiState.value as? SuggestionDetailUiState.Success ?: return
-        if (body.isBlank() || current.busy || !current.canPost) return
-        _uiState.value = current.copy(busy = true)
-        viewModelScope.launch {
-            try {
-                val response = api.postSuggestionMessage(current.suggestion.id, body.trim().toTextPart(), attachment)
-                val message = response.body()
-                if (response.isSuccessful && message != null) {
-                    _uiState.update { state ->
-                        if (state is SuggestionDetailUiState.Success) {
-                            state.copy(
-                                suggestion = state.suggestion.copy(
-                                    messages = state.suggestion.messages + message,
-                                    lastActivityAt = message.createdAt ?: state.suggestion.lastActivityAt
-                                ),
-                                busy = false
-                            )
-                        } else {
-                            state
-                        }
-                    }
-                    onSent()
+            val state = try {
+                val response = api.getSuggestion(id)
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
+                    SuggestionDetailUiState.Success(body)
                 } else {
-                    fail(suggestionErrorMessage(response.code()))
-                    // Closed meanwhile: reload so the composer is replaced by the archived banner
-                    if (response.code() == 409) refresh()
+                    SuggestionDetailUiState.Error(suggestionErrorMessage(response.code()))
                 }
             } catch (e: IOException) {
-                fail(NETWORK_ERROR)
+                SuggestionDetailUiState.Error(NETWORK_ERROR)
             } catch (e: HttpException) {
-                fail(suggestionErrorMessage(e.code()))
+                SuggestionDetailUiState.Error(suggestionErrorMessage(e.code()))
             }
+            _uiState.value = state
+            if (state is SuggestionDetailUiState.Success) startPreview(state.suggestion)
         }
     }
 
-    // Admin only; permanent
-    fun close() {
+    fun retryPreview() {
+        val suggestion = (_uiState.value as? SuggestionDetailUiState.Success)?.suggestion ?: return
+        if (_preview.value !is PreviewState.Unavailable) return
+        _preview.value = PreviewState.Loading
+        loadPdf(suggestion.id)
+    }
+
+    // The cached PDF couldn't be opened (e.g. truncated); drop it so a retry downloads it again
+    fun onPreviewCorrupted() {
+        val preview = _preview.value as? PreviewState.Pdf ?: return
+        preview.file.delete()
+        _preview.value = PreviewState.Unavailable(UiText.Res(R.string.preview_error_corrupted))
+    }
+
+    // Permanent; the screen confirms first
+    fun delete() {
         val current = _uiState.value as? SuggestionDetailUiState.Success ?: return
-        if (current.busy || !current.canPost) return
+        if (current.busy) return
         _uiState.value = current.copy(busy = true)
         viewModelScope.launch {
             try {
-                val response = api.closeSuggestion(current.suggestion.id)
-                val closed = response.body()
-                if (response.isSuccessful && closed != null) {
-                    _uiState.value = SuggestionDetailUiState.Success(closed)
+                val response = api.deleteSuggestion(current.suggestion.id)
+                // Already gone counts as deleted
+                if (response.isSuccessful || response.code() == 404) {
+                    cachedPdf(current.suggestion.id).delete()
+                    _uiState.value = SuggestionDetailUiState.Deleted
                 } else {
                     fail(suggestionErrorMessage(response.code()))
-                    if (response.code() == 409) refresh()
                 }
             } catch (e: IOException) {
                 fail(NETWORK_ERROR)
@@ -242,18 +213,42 @@ class SuggestionDetailViewModel(private val api: MedRationalApi) : ViewModel() {
         _message.value = null
     }
 
-    private suspend fun fetch(id: Long): SuggestionDetailUiState = try {
-        val response = api.getSuggestion(id)
-        val body = response.body()
-        if (response.isSuccessful && body != null) {
-            SuggestionDetailUiState.Success(body)
-        } else {
-            SuggestionDetailUiState.Error(suggestionErrorMessage(response.code()))
+    private fun cachedPdf(suggestionId: Long) = File(previewDir, "suggestion-$suggestionId.pdf")
+
+    private fun startPreview(suggestion: SuggestionDetail) {
+        val attachment = suggestion.attachment
+        _preview.value = when {
+            attachment == null -> null
+            isImageFile(attachment.fileName, attachment.contentType) ->
+                PreviewState.Image(ApiClient.suggestionAttachmentPreviewUrl(suggestion.id))
+            attachment.previewable -> PreviewState.Loading
+            else -> PreviewState.NotSupported
         }
-    } catch (e: IOException) {
-        SuggestionDetailUiState.Error(NETWORK_ERROR)
-    } catch (e: HttpException) {
-        SuggestionDetailUiState.Error(suggestionErrorMessage(e.code()))
+        if (_preview.value == PreviewState.Loading) loadPdf(suggestion.id)
+    }
+
+    private fun loadPdf(suggestionId: Long) {
+        viewModelScope.launch {
+            val cached = cachedPdf(suggestionId)
+            if (cached.exists() && cached.length() > 0) {
+                _preview.value = PreviewState.Pdf(cached)
+                return@launch
+            }
+            _preview.value = try {
+                val response = api.getSuggestionAttachmentPreview(suggestionId)
+                val body = response.body()
+                when {
+                    response.isSuccessful && body != null -> PreviewState.Pdf(saveToCache(body, cached, ioDispatcher))
+                    response.code() == 415 -> PreviewState.NotSupported
+                    response.code() == 503 -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_busy))
+                    else -> PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(response.code())))
+                }
+            } catch (e: IOException) {
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_network))
+            } catch (e: HttpException) {
+                PreviewState.Unavailable(UiText.Res(R.string.preview_error_http, listOf(e.code())))
+            }
+        }
     }
 
     private fun fail(message: UiText) {

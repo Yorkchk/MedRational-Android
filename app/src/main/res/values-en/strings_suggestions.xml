@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="suggestion_error_closed">This suggestion was closed and archived, so no more messages can be added.</string>
     <string name="error_file_too_large">Files must be 10 MB or smaller.</string>
     <string name="suggestion_error_file_type">This file type isn\'t supported. Use PDF, images, Office documents, TXT or CSV.</string>
     <string name="suggestion_error_fields">Please fill in every field.</string>
@@ -9,41 +8,23 @@
     <string name="attachment_error_read">Couldn\'t read the selected file.</string>
     <string name="attachment_error_read_named">Couldn\'t read %1$s.</string>
     <string name="suggestion_new">New suggestion</string>
-    <string name="suggestion_new_intro">Tell the admins what you\'d like to see improved. They\'ll reply here.</string>
+    <string name="suggestion_new_intro">Have an idea or found something missing? Tell the admins.</string>
     <string name="suggestion_title_label">Title</string>
     <string name="suggestion_description_label">Description</string>
     <string name="suggestion_attach_optional">Attach a file (optional, max 10 MB)</string>
     <string name="suggestion_send">Send suggestion</string>
     <string name="attachment_remove_named">Remove %1$s</string>
-    <string name="suggestion_status_closed">Closed</string>
-    <string name="suggestion_status_pending">Pending</string>
+    <string name="suggestion_thanks_title">Thank you for your suggestion!</string>
+    <string name="suggestion_thanks_body">We\'ll get back to you soon.</string>
+    <string name="suggestion_back_home">Back to home</string>
     <string name="suggestion_default_title">Suggestion</string>
     <string name="common_refresh">Refresh</string>
-    <string name="suggestion_close">Close suggestion</string>
-    <string name="suggestion_close_confirm_title">Close this suggestion?</string>
-    <string name="suggestion_close_confirm_body">It will be archived and neither you nor the user will be able to add messages. This can\'t be undone.</string>
     <string name="suggestion_sent_on">Sent %1$s</string>
-    <string name="suggestion_no_replies_admin">No replies yet. Answer the user below.</string>
-    <string name="suggestion_no_replies_user">No replies yet. The admins will answer here.</string>
     <string name="suggestion_sent_by">Sent by</string>
-    <string name="suggestion_author_you">You</string>
-    <string name="suggestion_author_admin">Admin</string>
-    <string name="suggestion_author_user">User</string>
-    <string name="suggestion_attach_max">Attach a file (max 10 MB)</string>
-    <string name="suggestion_write_message">Write a message</string>
-    <string name="suggestion_archived_banner">This suggestion was closed and archived.</string>
-    <string name="suggestion_my_suggestions">My suggestions</string>
-    <string name="suggestion_tab_pending">Pending</string>
-    <string name="suggestion_tab_archived">Archived</string>
-    <string name="suggestion_no_replies">No replies yet</string>
-    <string name="suggestion_empty_archived">No archived suggestions.</string>
-    <string name="suggestion_empty_pending">No pending suggestions.</string>
-    <string name="suggestion_empty">No suggestions yet.</string>
-    <string name="suggestion_empty_archived_hint">Closed suggestions are kept here.</string>
+    <string name="suggestion_delete">Delete suggestion</string>
+    <string name="suggestion_delete_confirm_title">Delete this suggestion?</string>
+    <string name="suggestion_delete_confirm_body">It will be deleted along with its attachment. This can\'t be undone.</string>
+    <string name="suggestion_deleted">Suggestion deleted.</string>
+    <string name="suggestion_empty_pending">No suggestions yet.</string>
     <string name="suggestion_empty_admin_hint">Suggestions sent by users will appear here.</string>
-    <string name="suggestion_empty_user_hint">Have an idea or found something missing? Send a suggestion to the admins.</string>
-    <plurals name="suggestion_reply_count">
-        <item quantity="one">%d reply</item>
-        <item quantity="other">%d replies</item>
-    </plurals>
 </resources>
