@@ -2,10 +2,11 @@ package com.example.medrational_android.viewmodel
 
 import com.example.medrational_android.MainDispatcherRule
 import com.example.medrational_android.TestStrings.en
+import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.PageResponse
+import com.example.medrational_android.data.model.SuggestionAttachment
 import com.example.medrational_android.data.model.SuggestionDetail
-import com.example.medrational_android.data.model.SuggestionMessage
 import com.example.medrational_android.data.model.SuggestionSender
 import com.example.medrational_android.data.model.SuggestionStatus
 import com.example.medrational_android.data.model.SuggestionSummary
@@ -13,9 +14,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CompletableDeferred
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
 import org.junit.Assert.assertEquals
@@ -24,7 +27,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import retrofit2.Response
+import java.io.File
 import java.io.IOException
 
 class SuggestionViewModelsTest {
@@ -32,77 +37,47 @@ class SuggestionViewModelsTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    @get:Rule
+    val tempFolder = TemporaryFolder()
+
     private val api: MedRationalApi = mockk()
 
     private fun <T> error(code: Int): Response<T> = Response.error(code, "".toResponseBody(null))
 
     private fun RequestBody.text(): String = Buffer().also { writeTo(it) }.readUtf8()
 
-    private fun summary(id: Long, status: SuggestionStatus = SuggestionStatus.PENDING) = SuggestionSummary(
-        id = id, title = "Suggestion $id", status = status, createdAt = null, lastActivityAt = null,
-        senderName = "Sara", senderEmail = "sara@example.com"
+    private fun summary(id: Long) = SuggestionSummary(
+        id = id, title = "Suggestion $id", createdAt = null, senderName = "Sara", senderEmail = "sara@example.com"
     )
 
-    private fun detail(status: SuggestionStatus = SuggestionStatus.PENDING, messages: List<SuggestionMessage> = emptyList()) =
-        SuggestionDetail(
-            id = ID, title = "Add ECG atlas", description = "Please", status = status,
-            createdAt = "2026-10-10T09:00:00", lastActivityAt = "2026-10-10T09:00:00", closedAt = null,
-            attachment = null, sender = SuggestionSender(1, "Sara", "sara@example.com", null), messages = messages
-        )
-
-    private fun message(id: Long, body: String = "Reply $id") = SuggestionMessage(
-        id = id, fromAdmin = false, authorName = "Sara", body = body, attachment = null,
-        createdAt = "2026-10-10T10:00:00"
+    private fun detail(attachment: SuggestionAttachment? = null) = SuggestionDetail(
+        id = ID, title = "Add ECG atlas", description = "Please", createdAt = "2026-10-10T09:00:00",
+        attachment = attachment, sender = SuggestionSender(1, "Sara", "sara@example.com", "0600000000")
     )
+
+    private fun attachment(fileName: String, previewable: Boolean = true, contentType: String? = null) =
+        SuggestionAttachment(fileName = fileName, contentType = contentType, sizeBytes = 4, previewable = previewable)
 
     private fun page(vararg items: SuggestionSummary) =
         Response.success(PageResponse(content = items.toList(), totalElements = items.size.toLong(), totalPages = 1, number = 0))
 
-    // --- list --------------------------------------------------------------------------------------
+    // --- admin inbox -------------------------------------------------------------------------------
 
     @Test
-    fun `admins load the inbox`() {
+    fun `inbox loads pending suggestions`() {
         coEvery { api.getSuggestionInbox(SuggestionStatus.PENDING, any()) } returns page(summary(1))
 
-        val viewModel = SuggestionListViewModel(api, isAdmin = true)
+        val viewModel = SuggestionListViewModel(api)
         viewModel.load()
 
         assertEquals(SuggestionListUiState.Success(listOf(summary(1))), viewModel.uiState.value)
-        coVerify(exactly = 0) { api.getMySuggestions(any(), any()) }
     }
 
     @Test
-    fun `users load only their own suggestions and never the admin inbox`() {
-        coEvery { api.getMySuggestions(SuggestionStatus.PENDING, any()) } returns page(summary(2))
+    fun `inbox network failure is an Error`() {
+        coEvery { api.getSuggestionInbox(any(), any()) } throws IOException("offline")
 
-        val viewModel = SuggestionListViewModel(api, isAdmin = false)
-        viewModel.load()
-
-        assertEquals(SuggestionListUiState.Success(listOf(summary(2))), viewModel.uiState.value)
-        coVerify(exactly = 0) { api.getSuggestionInbox(any(), any()) }
-    }
-
-    @Test
-    fun `switching to the archived tab loads closed suggestions`() {
-        coEvery { api.getMySuggestions(SuggestionStatus.PENDING, any()) } returns page(summary(1))
-        coEvery { api.getMySuggestions(SuggestionStatus.CLOSED, any()) } returns page(summary(9, SuggestionStatus.CLOSED))
-
-        val viewModel = SuggestionListViewModel(api, isAdmin = false)
-        viewModel.load()
-        viewModel.selectTab(SuggestionStatus.CLOSED)
-
-        assertEquals(SuggestionStatus.CLOSED, viewModel.tab.value)
-        assertEquals(
-            SuggestionListUiState.Success(listOf(summary(9, SuggestionStatus.CLOSED))),
-            viewModel.uiState.value
-        )
-    }
-
-    @Test
-    fun `list network failure is an Error`() {
-        coEvery { api.getMySuggestions(any(), any()) } throws IOException("offline")
-
-        val viewModel = SuggestionListViewModel(api, isAdmin = false)
+        val viewModel = SuggestionListViewModel(api)
         viewModel.load()
 
         assertTrue(viewModel.uiState.value is SuggestionListUiState.Error)
@@ -131,7 +106,7 @@ class SuggestionViewModelsTest {
     }
 
     @Test
-    fun `sending trims the fields and passes the attachment`() {
+    fun `sending trims the fields, passes the attachment and ends in Sent`() {
         val title = slot<RequestBody>()
         val description = slot<RequestBody>()
         val file = MultipartBody.Part.createFormData("file", "notes.pdf", "%PDF".toByteArray().toRequestBody())
@@ -140,7 +115,7 @@ class SuggestionViewModelsTest {
         val viewModel = NewSuggestionViewModel(api)
         viewModel.submit("  Add ECG atlas ", " Please add more ECGs ", file)
 
-        assertEquals(NewSuggestionUiState.Sent(ID), viewModel.uiState.value)
+        assertEquals(NewSuggestionUiState.Sent, viewModel.uiState.value)
         assertEquals("Add ECG atlas", title.captured.text())
         assertEquals("Please add more ECGs", description.captured.text())
     }
@@ -167,116 +142,202 @@ class SuggestionViewModelsTest {
         assertTrue(en((viewModel.uiState.value as NewSuggestionUiState.Error).message)!!.contains("file type"))
     }
 
-    // --- detail ------------------------------------------------------------------------------------
+    // --- admin detail ------------------------------------------------------------------------------
 
-    private fun loadedDetail(state: SuggestionDetail = detail()): SuggestionDetailViewModel {
-        coEvery { api.getSuggestion(ID) } returns Response.success(state)
-        return SuggestionDetailViewModel(api).apply { load(ID) }
+    private val previewDir by lazy { tempFolder.newFolder("previews") }
+    private val pdfBytes = "%PDF-1.7 fake".toByteArray()
+
+    private fun newDetailViewModel() = SuggestionDetailViewModel(api, previewDir, mainDispatcherRule.dispatcher)
+
+    private fun loadedDetail(suggestion: SuggestionDetail = detail()): SuggestionDetailViewModel {
+        coEvery { api.getSuggestion(ID) } returns Response.success(suggestion)
+        return newDetailViewModel().apply { load(ID) }
     }
 
     private fun SuggestionDetailViewModel.success() = uiState.value as SuggestionDetailUiState.Success
 
     @Test
-    fun `detail loads the conversation`() {
-        val viewModel = loadedDetail(detail(messages = listOf(message(1))))
+    fun `detail loads the suggestion with its sender`() {
+        val viewModel = loadedDetail()
 
-        assertEquals(listOf(message(1)), viewModel.success().suggestion.messages)
-        assertTrue(viewModel.success().canPost)
+        assertEquals(detail(), viewModel.success().suggestion)
+        assertEquals("0600000000", viewModel.success().suggestion.sender.phoneNumber)
     }
 
     @Test
     fun `detail failure is an Error`() {
         coEvery { api.getSuggestion(ID) } returns error(404)
 
-        val viewModel = SuggestionDetailViewModel(api)
+        val viewModel = newDetailViewModel()
         viewModel.load(ID)
 
         assertEquals("This suggestion no longer exists.", en((viewModel.uiState.value as SuggestionDetailUiState.Error).message))
     }
 
     @Test
-    fun `sent reply is appended and the composer is told to clear`() {
+    fun `deleting ends in Deleted`() {
         val viewModel = loadedDetail()
-        coEvery { api.postSuggestionMessage(ID, any(), null) } returns Response.success(message(5, "Any update?"))
-        var cleared = false
+        coEvery { api.deleteSuggestion(ID) } returns Response.success(Unit)
 
-        viewModel.sendMessage("Any update?", null) { cleared = true }
+        viewModel.delete()
 
-        assertEquals(listOf(message(5, "Any update?")), viewModel.success().suggestion.messages)
-        assertFalse(viewModel.success().busy)
-        assertTrue(cleared)
+        assertEquals(SuggestionDetailUiState.Deleted, viewModel.uiState.value)
     }
 
     @Test
-    fun `blank reply makes no request`() {
+    fun `deleting a suggestion that is already gone counts as deleted`() {
         val viewModel = loadedDetail()
+        coEvery { api.deleteSuggestion(ID) } returns error(404)
 
-        viewModel.sendMessage("   ", null)
+        viewModel.delete()
 
-        coVerify(exactly = 0) { api.postSuggestionMessage(any(), any(), any()) }
+        assertEquals(SuggestionDetailUiState.Deleted, viewModel.uiState.value)
     }
 
     @Test
-    fun `closed suggestion never sends replies`() {
-        val viewModel = loadedDetail(detail(status = SuggestionStatus.CLOSED))
+    fun `failed delete keeps the suggestion and reports it`() {
+        val viewModel = loadedDetail()
+        coEvery { api.deleteSuggestion(ID) } returns error(500)
 
-        assertFalse(viewModel.success().canPost)
-        viewModel.sendMessage("Hello?", null)
+        viewModel.delete()
 
-        coVerify(exactly = 0) { api.postSuggestionMessage(any(), any(), any()) }
-    }
-
-    @Test
-    fun `reply rejected because it was closed meanwhile reloads into the archived state`() {
-        coEvery { api.getSuggestion(ID) } returnsMany listOf(
-            Response.success(detail()),
-            Response.success(detail(status = SuggestionStatus.CLOSED))
-        )
-        coEvery { api.postSuggestionMessage(ID, any(), any()) } returns error(409)
-        val viewModel = SuggestionDetailViewModel(api).apply { load(ID) }
-        var cleared = false
-
-        viewModel.sendMessage("Hello?", null) { cleared = true }
-
-        assertFalse(viewModel.success().canPost)
-        assertTrue(en(viewModel.message.value)!!.contains("closed"))
-        assertFalse(cleared)
-    }
-
-    @Test
-    fun `network failure while replying keeps the conversation and reports it`() {
-        val viewModel = loadedDetail(detail(messages = listOf(message(1))))
-        coEvery { api.postSuggestionMessage(ID, any(), any()) } throws IOException("offline")
-
-        viewModel.sendMessage("Hello?", null)
-
-        assertEquals(listOf(message(1)), viewModel.success().suggestion.messages)
+        assertEquals(detail(), viewModel.success().suggestion)
         assertFalse(viewModel.success().busy)
-        assertTrue(en(viewModel.message.value)!!.contains("Network"))
+        assertTrue(en(viewModel.message.value)!!.contains("HTTP 500"))
         viewModel.onMessageShown()
         assertNull(viewModel.message.value)
     }
 
     @Test
-    fun `closing archives the suggestion`() {
+    fun `network failure while deleting keeps the suggestion and reports it`() {
         val viewModel = loadedDetail()
-        coEvery { api.closeSuggestion(ID) } returns Response.success(detail(status = SuggestionStatus.CLOSED))
+        coEvery { api.deleteSuggestion(ID) } throws IOException("offline")
 
-        viewModel.close()
+        viewModel.delete()
 
-        assertEquals(SuggestionStatus.CLOSED, viewModel.success().suggestion.status)
-        assertFalse(viewModel.success().canPost)
+        assertFalse(viewModel.success().busy)
+        assertTrue(en(viewModel.message.value)!!.contains("Network"))
     }
 
     @Test
-    fun `failed close keeps the suggestion open and reports it`() {
+    fun `a second delete while one is in flight makes no request`() {
         val viewModel = loadedDetail()
-        coEvery { api.closeSuggestion(ID) } returns error(500)
+        val response = CompletableDeferred<Response<Unit>>()
+        coEvery { api.deleteSuggestion(ID) } coAnswers { response.await() }
 
-        viewModel.close()
+        viewModel.delete()
+        assertTrue(viewModel.success().busy)
+        viewModel.delete()
+        response.complete(Response.success(Unit))
 
-        assertTrue(viewModel.success().canPost)
-        assertTrue(en(viewModel.message.value)!!.contains("HTTP 500"))
+        coVerify(exactly = 1) { api.deleteSuggestion(ID) }
+        assertEquals(SuggestionDetailUiState.Deleted, viewModel.uiState.value)
+    }
+
+    // --- attachment preview ------------------------------------------------------------------------
+
+    private fun previewError(code: Int) = Response.error<ResponseBody>(code, "".toResponseBody(null))
+
+    @Test
+    fun `no attachment means no preview`() {
+        val viewModel = loadedDetail()
+
+        assertNull(viewModel.preview.value)
+        coVerify(exactly = 0) { api.getSuggestionAttachmentPreview(any()) }
+    }
+
+    @Test
+    fun `a pdf preview is downloaded and cached`() {
+        coEvery { api.getSuggestionAttachmentPreview(ID) } returns Response.success(pdfBytes.toResponseBody(null))
+
+        val viewModel = loadedDetail(detail(attachment("idea.docx")))
+
+        val preview = viewModel.preview.value as PreviewState.Pdf
+        assertEquals(File(previewDir, "suggestion-$ID.pdf"), preview.file)
+        assertTrue(preview.file.readBytes().contentEquals(pdfBytes))
+    }
+
+    @Test
+    fun `a cached preview is reused without a request`() {
+        File(previewDir, "suggestion-$ID.pdf").writeBytes(pdfBytes)
+
+        val viewModel = loadedDetail(detail(attachment("idea.pdf")))
+
+        assertTrue(viewModel.preview.value is PreviewState.Pdf)
+        coVerify(exactly = 0) { api.getSuggestionAttachmentPreview(any()) }
+    }
+
+    @Test
+    fun `an image loads from the preview url without a request`() {
+        val viewModel = loadedDetail(detail(attachment("screen.png", contentType = "image/png")))
+
+        assertEquals(PreviewState.Image(ApiClient.suggestionAttachmentPreviewUrl(ID)), viewModel.preview.value)
+        coVerify(exactly = 0) { api.getSuggestionAttachmentPreview(any()) }
+    }
+
+    @Test
+    fun `a file that can't be previewed makes no request`() {
+        val viewModel = loadedDetail(detail(attachment("notes.txt", previewable = false)))
+
+        assertEquals(PreviewState.NotSupported, viewModel.preview.value)
+        coVerify(exactly = 0) { api.getSuggestionAttachmentPreview(any()) }
+    }
+
+    @Test
+    fun `a 415 from the backend means no preview`() {
+        coEvery { api.getSuggestionAttachmentPreview(ID) } returns previewError(415)
+
+        val viewModel = loadedDetail(detail(attachment("idea.pdf")))
+
+        assertEquals(PreviewState.NotSupported, viewModel.preview.value)
+    }
+
+    @Test
+    fun `a busy converter is reported and retrying fetches again`() {
+        coEvery { api.getSuggestionAttachmentPreview(ID) } returnsMany listOf(
+            previewError(503),
+            Response.success(pdfBytes.toResponseBody(null))
+        )
+        val viewModel = loadedDetail(detail(attachment("idea.pptx")))
+
+        val unavailable = viewModel.preview.value as PreviewState.Unavailable
+        assertTrue(en(unavailable.message)!!.isNotBlank())
+
+        viewModel.retryPreview()
+
+        assertTrue(viewModel.preview.value is PreviewState.Pdf)
+        coVerify(exactly = 2) { api.getSuggestionAttachmentPreview(ID) }
+    }
+
+    @Test
+    fun `a network failure makes the preview unavailable`() {
+        coEvery { api.getSuggestionAttachmentPreview(ID) } throws IOException("offline")
+
+        val viewModel = loadedDetail(detail(attachment("idea.pdf")))
+
+        assertTrue(viewModel.preview.value is PreviewState.Unavailable)
+    }
+
+    @Test
+    fun `a corrupted cached preview is deleted`() {
+        val cached = File(previewDir, "suggestion-$ID.pdf").apply { writeBytes(pdfBytes) }
+        val viewModel = loadedDetail(detail(attachment("idea.pdf")))
+
+        viewModel.onPreviewCorrupted()
+
+        assertFalse(cached.exists())
+        assertTrue(viewModel.preview.value is PreviewState.Unavailable)
+    }
+
+    @Test
+    fun `deleting the suggestion drops its cached preview`() {
+        val cached = File(previewDir, "suggestion-$ID.pdf").apply { writeBytes(pdfBytes) }
+        val viewModel = loadedDetail(detail(attachment("idea.pdf")))
+        coEvery { api.deleteSuggestion(ID) } returns Response.success(Unit)
+
+        viewModel.delete()
+
+        assertFalse(cached.exists())
     }
 
     private companion object {

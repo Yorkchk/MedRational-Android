@@ -49,6 +49,13 @@ object ApiClient {
     fun workshopAttachmentDownloadUrl(attachmentId: Long): String =
         workshopAttachmentUrl(BASE_URL, attachmentId, "download")
 
+    // Admin only, like every suggestion endpoint but sending one
+    fun suggestionAttachmentPreviewUrl(suggestionId: Long): String =
+        "${BASE_URL}api/v1/suggestions/$suggestionId/attachment/preview"
+
+    fun suggestionAttachmentDownloadUrl(suggestionId: Long): String =
+        "${BASE_URL}api/v1/suggestions/$suggestionId/attachment"
+
     // Inside ApiClient.kt
     private val authInterceptor = Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()

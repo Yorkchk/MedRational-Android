@@ -101,15 +101,16 @@ data class NoveltiesFeed(
 
 // --- Suggestions: mirror the backend Suggestion*DTOs ---
 
-// PENDING: open conversation. CLOSED: archived by an admin, read-only for both sides
+// The app only lists PENDING ones: suggestions are no longer closed (archived)
 enum class SuggestionStatus { PENDING, CLOSED }
 
-// Metadata only; the file is downloaded from /suggestions/{id}/attachment or
-// /suggestions/{id}/messages/{messageId}/attachment
+// Metadata only; the file is downloaded from /suggestions/{id}/attachment
 data class SuggestionAttachment(
     val fileName: String,
     val contentType: String?,
-    val sizeBytes: Long?
+    val sizeBytes: Long?,
+    // PDF, DOCX, PPTX, XLSX or an image: /suggestions/{id}/attachment/preview can show it
+    val previewable: Boolean = false
 )
 
 data class SuggestionSender(
@@ -119,23 +120,11 @@ data class SuggestionSender(
     val phoneNumber: String?
 )
 
-data class SuggestionMessage(
-    val id: Long,
-    val fromAdmin: Boolean,
-    val authorName: String?,
-    val body: String,
-    val attachment: SuggestionAttachment?,
-    val createdAt: String?
-)
-
 data class SuggestionSummary(
     val id: Long,
     val title: String,
-    val status: SuggestionStatus,
     val createdAt: String?,
-    val lastActivityAt: String?,
-    val messageCount: Int = 0,
-    // The other side posted since you last opened it
+    // No admin opened it yet
     val unread: Boolean = false,
     val senderName: String?,
     val senderEmail: String?
@@ -145,14 +134,9 @@ data class SuggestionDetail(
     val id: Long,
     val title: String,
     val description: String,
-    val status: SuggestionStatus,
     val createdAt: String?,
-    val lastActivityAt: String?,
-    val closedAt: String?,
     val attachment: SuggestionAttachment?,
-    val sender: SuggestionSender,
-    // Oldest first
-    val messages: List<SuggestionMessage> = emptyList()
+    val sender: SuggestionSender
 )
 
 data class AuthMessageResponse(

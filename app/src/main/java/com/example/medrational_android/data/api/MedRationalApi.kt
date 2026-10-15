@@ -142,8 +142,8 @@ interface MedRationalApi {
         @Query("size") size: Int = 1000 // fetch all favorites so every heart reflects its state
     ): Response<PageResponse<FavoriteResponse>>
 
-    // Suggestions: private to the sender and admins. Attachments are optional (max 10 MB);
-    // a null @Part is left out of the request. 409 once a suggestion is closed
+    // Suggestions are one-way: users send one, admins read and delete them. Attachments are
+    // optional (max 10 MB); a null @Part is left out of the request
     @Multipart
     @POST("api/v1/suggestions")
     suspend fun createSuggestion(
@@ -152,33 +152,25 @@ interface MedRationalApi {
         @Part file: MultipartBody.Part?
     ): Response<SuggestionDetail>
 
-    @GET("api/v1/suggestions/mine")
-    suspend fun getMySuggestions(
-        @Query("status") status: SuggestionStatus,
-        @Query("size") size: Int = 100
-    ): Response<PageResponse<SuggestionSummary>>
-
     // Admin only: a 403 here would log a regular user out, so only call it when TokenManager.isAdmin()
     @GET("api/v1/suggestions")
     suspend fun getSuggestionInbox(
-        @Query("status") status: SuggestionStatus,
+        @Query("status") status: SuggestionStatus = SuggestionStatus.PENDING,
         @Query("size") size: Int = 100
     ): Response<PageResponse<SuggestionSummary>>
 
+    // Admin only; marks it read for the admin
     @GET("api/v1/suggestions/{id}")
     suspend fun getSuggestion(@Path("id") id: Long): Response<SuggestionDetail>
 
-    @Multipart
-    @POST("api/v1/suggestions/{id}/messages")
-    suspend fun postSuggestionMessage(
-        @Path("id") id: Long,
-        @Part("body") body: RequestBody,
-        @Part file: MultipartBody.Part?
-    ): Response<SuggestionMessage>
+    // Admin only. PDF rendition of the attachment (images as-is); 415 when the format can't be previewed
+    @Streaming
+    @GET("api/v1/suggestions/{id}/attachment/preview")
+    suspend fun getSuggestionAttachmentPreview(@Path("id") id: Long): Response<ResponseBody>
 
     // Admin only
-    @POST("api/v1/suggestions/{id}/close")
-    suspend fun closeSuggestion(@Path("id") id: Long): Response<SuggestionDetail>
+    @DELETE("api/v1/suggestions/{id}")
+    suspend fun deleteSuggestion(@Path("id") id: Long): Response<Unit>
 
     // Newest first, each file once; the backend records single-file downloads itself.
     // A null limit uses the backend default (10)
