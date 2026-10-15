@@ -39,7 +39,7 @@ class StringResourcesParityTest {
     // Workshop pushes name these keys (WorkshopNotificationServiceImpl.pushLocalizationKey in the backend)
     @Test
     fun `every workshop push has a title and a body`() {
-        listOf("opening_soon", "opened", "closing_soon", "closed").forEach { event ->
+        listOf("created", "opening_soon", "opened", "closing_soon", "closed").forEach { event ->
             listOf("fcfs", "motivation").forEach { type ->
                 listOf("title", "body").forEach { part ->
                     val key = "push_${event}_${type}_$part"
