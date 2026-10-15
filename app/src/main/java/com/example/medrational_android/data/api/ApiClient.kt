@@ -25,6 +25,10 @@ internal fun authorizeImageRequest(request: Request, token: String?, baseUrl: St
         request
     }
 
+/** Responses that are files rather than JSON: given a long read timeout and never body-logged. */
+internal fun isBinaryPath(encodedPath: String): Boolean =
+    encodedPath.endsWith("/preview") || encodedPath.contains("/api/v1/downloads/")
+
 internal fun workshopAttachmentUrl(baseUrl: String, attachmentId: Long, action: String): String =
     "${baseUrl}api/v1/workshops/attachments/$attachmentId/$action"
 
@@ -79,9 +83,11 @@ object ApiClient {
 
     private const val PREVIEW_READ_TIMEOUT_SECONDS = 120
 
-    private fun Interceptor.Chain.isPreview() = request().url.encodedPath.endsWith("/preview")
+    // Previews and shared files: binary bodies that can be large or slow to produce
+    private fun Interceptor.Chain.isPreview() = isBinaryPath(request().url.encodedPath)
 
-    // First-time Office-to-PDF conversion on the backend can take longer than the default timeout
+    // First-time Office-to-PDF conversion on the backend can take longer than the default timeout,
+    // and so can fetching a large file to share
     private val previewTimeoutInterceptor = Interceptor { chain ->
         if (chain.isPreview()) {
             chain.withReadTimeout(PREVIEW_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS).proceed(chain.request())
@@ -95,7 +101,7 @@ object ApiClient {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
     }
 
-    // Preview PDFs are only header-logged: dumping megabytes of binary into logcat takes seconds
+    // Preview PDFs and shared files are only header-logged: dumping megabytes of binary into logcat takes seconds
     private val headerLogger = HttpLoggingInterceptor().apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE
     }

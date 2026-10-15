@@ -68,4 +68,8 @@
     <string name="favorite_add_short">Favori</string>
     <string name="file_in_favorites">Dans vos favoris</string>
     <string name="preview_retry">Réessayer l’aperçu</string>
+    <string name="share_chooser_title">Envoyer le fichier vers…</string>
+    <string name="share_preparing">Préparation du fichier…</string>
+    <string name="share_failed">Impossible de partager ce fichier.</string>
+    <string name="share_no_app">Aucune application ne peut recevoir ce fichier.</string>
 </resources>
