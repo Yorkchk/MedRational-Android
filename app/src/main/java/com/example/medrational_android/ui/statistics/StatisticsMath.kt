@@ -1,5 +1,6 @@
 package com.example.medrational_android.ui.statistics
 
+import com.example.medrational_android.data.model.CategoryActivity
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -53,3 +54,26 @@ fun chartFractions(values: List<Long>, ceiling: Long): List<Float> =
 
 /** "1 234" in French, "1,234" in English. */
 fun formatCount(value: Long, locale: Locale): String = NumberFormat.getIntegerInstance(locale).format(value)
+
+/** How many files and categories the "Most popular" lists show. */
+const val TOP_LIMIT = 5
+
+/** A category's row in "Most popular": its share of all activity and its bar against the busiest. */
+data class CategoryShare(val name: String, val percent: Int, val fraction: Float)
+
+/**
+ * The first [limit] categories (the backend sends them busiest first). Activity is downloads, views
+ * and favorites added up; the percentage is out of every category, not only the ones shown.
+ */
+fun topCategoryShares(categories: List<CategoryActivity>, limit: Int = TOP_LIMIT): List<CategoryShare> {
+    val totals = categories.map { it.downloads + it.views + it.favorites }
+    val sum = totals.sum()
+    val busiest = totals.maxOrNull() ?: 0L
+    return categories.take(limit).mapIndexed { index, category ->
+        CategoryShare(
+            name = category.categoryName,
+            percent = percentOf(totals[index], sum),
+            fraction = chartFractions(listOf(totals[index]), busiest).first()
+        )
+    }
+}

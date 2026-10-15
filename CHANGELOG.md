@@ -6,13 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
-- Statistics for admins, reached from the home screen's side menu:
-  - Students: registered students and new sign-ups this week, students active in the last 7 days and today, stickiness, and activation (students who opened or downloaded at least one file). Weekly sign-up and active-student charts cover 12 weeks.
-  - Usage: downloads and file views this week, compared with the previous week, and a 30-day chart of both.
-  - Trending files and categories: what rose most against the previous week, to spot exam-season spikes.
-  - Most downloaded, viewed and favorited files, activity per category, and the most downloaded hashtags, over the last 7 days or all time.
-  - Engagement and community: favorites and ratings given, average rating, highest rated files, new files and files never downloaded, open suggestions and projects.
-  - Tap a file to open it, and use the refresh button for the latest figures.
+- Statistics for admins, reached from the home screen's side menu, kept short so they read at a glance:
+  - This week: active students (and their share of registered students), new students, downloads and file views, each compared with the previous 7 days, and a 30-day chart of downloads and views.
+  - Most popular: the most downloaded files and the busiest categories, over the last 7 days or all time. Tap a file to open it.
+  - Needs attention: unread suggestions, projects open for registration and files never downloaded.
+  - Use the refresh button for the latest figures.
 - Opening a file is counted as a view for these statistics (signed-in students only; reopening it within 30 minutes counts once).
 - The app is in French by default, and English can be picked in the Profile screen (on Android 13+ also in the system's app language settings). Everything the app writes is translated, including errors, dates, file sizes and workshop push notifications; what admins write (titles, descriptions, hashtags, projects) is shown as written.
 - Profile, reached from the home screen's side menu when signed in: see your first name, last name, email and phone, and edit your names and phone directly. Changing your password sends a 6-digit code to your email, and changing your email sends a code to the new address; you stay signed in after either change.

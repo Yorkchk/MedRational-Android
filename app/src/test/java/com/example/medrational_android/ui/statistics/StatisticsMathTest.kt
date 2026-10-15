@@ -1,6 +1,8 @@
 package com.example.medrational_android.ui.statistics
 
+import com.example.medrational_android.data.model.CategoryActivity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Locale
 
@@ -64,5 +66,36 @@ class StatisticsMathTest {
         assertEquals("1,234", formatCount(1234, Locale.ENGLISH))
         assertEquals("1234", formatCount(1234, Locale.FRENCH).filter { it.isDigit() })
         assertEquals(5, formatCount(1234, Locale.FRENCH).length)
+    }
+
+    @Test
+    fun `top categories keep the first five, with shares out of every category`() {
+        val categories = listOf(
+            CategoryActivity(categoryName = "Cardio", downloads = 30, views = 10),
+            CategoryActivity(categoryName = "Neuro", downloads = 10, views = 5, favorites = 5),
+            CategoryActivity(categoryName = "Pneumo", downloads = 10),
+            CategoryActivity(categoryName = "Gastro", views = 10),
+            CategoryActivity(categoryName = "Nephro", downloads = 5, views = 5),
+            CategoryActivity(categoryName = "Derm", downloads = 10)
+        )
+
+        val shares = topCategoryShares(categories)
+
+        assertEquals(listOf("Cardio", "Neuro", "Pneumo", "Gastro", "Nephro"), shares.map { it.name })
+        // 40 out of 100, Derm's 10 included in the total
+        assertEquals(40, shares[0].percent)
+        assertEquals(20, shares[1].percent)
+        assertEquals(1f, shares[0].fraction)
+        assertEquals(0.5f, shares[1].fraction)
+        assertEquals(0.25f, shares[4].fraction)
+    }
+
+    @Test
+    fun `top categories without activity show no share and no bar`() {
+        val shares = topCategoryShares(listOf(CategoryActivity(categoryName = "Cardio")))
+
+        assertEquals(0, shares.single().percent)
+        assertEquals(0f, shares.single().fraction)
+        assertTrue(topCategoryShares(emptyList()).isEmpty())
     }
 }

@@ -19,9 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -43,38 +41,6 @@ import java.util.Locale
 data class ChartSeries(val label: String, val points: List<StatPoint>, val color: Color)
 
 private val ChartHeight = 140.dp
-
-/** Bars for a single series, e.g. sign-ups per week. */
-@Composable
-fun BarChart(
-    title: String,
-    series: ChartSeries,
-    modifier: Modifier = Modifier
-) {
-    val values = series.points.map { it.value }
-    val ceiling = chartCeiling(values.maxOrNull() ?: 0L)
-    val fractions = chartFractions(values, ceiling)
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
-
-    ChartFrame(title = title, series = listOf(series), ceiling = ceiling, modifier = modifier) { canvasModifier ->
-        Canvas(modifier = canvasModifier) {
-            drawGrid(gridColor)
-            if (fractions.isEmpty()) return@Canvas
-            val slot = size.width / fractions.size
-            val barWidth = slot * 0.6f
-            fractions.forEachIndexed { index, fraction ->
-                val barHeight = size.height * fraction
-                if (barHeight <= 0f) return@forEachIndexed
-                drawRoundRect(
-                    color = series.color,
-                    topLeft = Offset(index * slot + (slot - barWidth) / 2, size.height - barHeight),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                )
-            }
-        }
-    }
-}
 
 /** Lines sharing one scale, e.g. daily downloads and views. Series must have the same periods. */
 @Composable
