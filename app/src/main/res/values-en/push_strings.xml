@@ -3,6 +3,10 @@
      project title as %1$s, and Android shows them in the app's language. The names must match
      WorkshopNotificationServiceImpl.pushLocalizationKey in the backend. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <string name="push_created_fcfs_title">New Project: %1$s</string>
+    <string name="push_created_fcfs_body">\'%1$s\' is coming up. Registration opens soon, check the dates in the app.</string>
+    <string name="push_created_motivation_title">New Project: %1$s</string>
+    <string name="push_created_motivation_body">Applications for \'%1$s\' open soon. Check the dates and prepare your motivation letter.</string>
     <string name="push_opening_soon_fcfs_title">First-Come-First-Served Opening in 10 Min: %1$s</string>
     <string name="push_opening_soon_fcfs_body">Spots are limited! Registration for \'%1$s\' opens in 10 minutes.</string>
     <string name="push_opening_soon_motivation_title">Application Submissions Open in 10 Min: %1$s</string>

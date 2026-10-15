@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- A push notification announces each new project as soon as an admin creates it, while it is still upcoming. Tap it to open the project; the registration link appears there once registration opens.
 - Statistics for admins, reached from the home screen's side menu, kept short so they read at a glance:
   - This week: active students (and their share of registered students), new students, downloads and file views, each compared with the previous 7 days, and a 30-day chart of downloads and views.
   - Most popular: the most downloaded files and the busiest categories, over the last 7 days or all time. Tap a file to open it.
