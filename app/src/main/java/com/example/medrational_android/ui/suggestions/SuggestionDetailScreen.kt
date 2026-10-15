@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.SuggestionAttachment
@@ -155,7 +156,7 @@ fun SuggestionDetailScreen(
                 .padding(innerPadding)
         ) {
             when (val state = uiState) {
-                is SuggestionDetailUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is SuggestionDetailUiState.Loading -> LoadingState()
                 is SuggestionDetailUiState.Error -> Column(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally

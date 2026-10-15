@@ -57,13 +57,40 @@ class HomeDrawerEntriesTest {
     }
 
     @Test
-    fun `admins also get statistics, before their profile`() {
+    fun `admins also get statistics, in their own block before sign out`() {
         val userSections = destinations(isAdmin = false, isLoggedIn = true)
         val adminSections = destinations(isAdmin = true, isLoggedIn = true)
 
         assertEquals(userSections, adminSections - DrawerDestination.STATISTICS)
-        assertEquals(DrawerDestination.STATISTICS, adminSections[adminSections.indexOf(DrawerDestination.PROFILE) - 1])
+        assertEquals(DrawerDestination.STATISTICS, adminSections[adminSections.indexOf(DrawerDestination.SIGN_OUT) - 1])
         assertEquals(R.string.drawer_statistics, label(DrawerDestination.STATISTICS, isAdmin = true))
+        val adminGroup = homeDrawerGroups(isAdmin = true, isLoggedIn = true).single { it.title == R.string.drawer_group_admin }
+        assertEquals(listOf(DrawerDestination.STATISTICS), adminGroup.entries.map { it.destination })
+    }
+
+    @Test
+    fun `entries are grouped under Explore, My space, Admin, then an untitled sign-out block`() {
+        val groups = homeDrawerGroups(isAdmin = true, isLoggedIn = true)
+
+        assertEquals(
+            listOf(R.string.drawer_group_explore, R.string.drawer_group_mine, R.string.drawer_group_admin, null),
+            groups.map { it.title }
+        )
+        assertEquals(
+            listOf(DrawerDestination.HOME, DrawerDestination.SEARCH, DrawerDestination.NOVELTIES, DrawerDestination.WORKSHOPS),
+            groups.first().entries.map { it.destination }
+        )
+        assertEquals(listOf(DrawerDestination.SIGN_OUT), groups.last().entries.map { it.destination })
+    }
+
+    // A block with nothing in it would leave a lonely heading
+    @Test
+    fun `empty blocks are left out`() {
+        val signedOut = homeDrawerGroups(isAdmin = false, isLoggedIn = false)
+        val student = homeDrawerGroups(isAdmin = false, isLoggedIn = true)
+
+        assertEquals(listOf(R.string.drawer_group_explore, R.string.drawer_group_mine), signedOut.map { it.title })
+        assertFalse(student.any { it.title == R.string.drawer_group_admin })
     }
 
     // Its endpoint answers 403 to anyone else, which signs them out

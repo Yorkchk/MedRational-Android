@@ -42,6 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.RecentDownload
 import com.example.medrational_android.data.model.formatIsoDate
@@ -86,16 +88,9 @@ fun RecentDownloadsScreen(
                 .padding(innerPadding)
         ) {
             when (val state = uiState) {
-                is RecentDownloadsUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is RecentDownloadsUiState.Loading -> LoadingState()
                 is RecentDownloadsUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = viewModel::load) { Text(stringResource(R.string.common_retry)) }
-                    }
+                    ErrorState(message = state.message, onRetry = viewModel::load)
                 }
                 is RecentDownloadsUiState.Success -> {
                     if (state.downloads.isEmpty()) {

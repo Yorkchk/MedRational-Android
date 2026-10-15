@@ -30,11 +30,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Backend URL configurable per build type through `local.properties`.
 
 ### Changed
-- The home screen has a ☰ side menu with Home, Search, What's new, Projects, Favorites, Recent downloads, Suggestions, Statistics (admins), Profile and Sign out, plus the signed-in user's name and email. Only Search stays in the top bar.
+- The app is now **SWISRA** (Study With Scome Rabat), with its own logo as the launcher icon (also as a themed icon on Android 13+) and on a new splash screen.
+- New look: SWISRA red and slate colors, Plus Jakarta Sans and Inter fonts, rounded cards, and a light and a dark look. The app opens in light mode; pick Light, Dark or Like the phone under Appearance in the profile. Screens now draw behind the status and navigation bars.
+- Redesigned welcome screen, with the logo and what the app offers.
+- Redesigned sign-in, sign-up and password reset: the brand at the top, icons in the fields, and the keyboard's Next and Done keys move through the form and submit it. Errors show in a banner.
+- Redesigned home screen: a greeting with your first name, a search bar, a "What's new" banner when files are waiting, and categories as a grid of cards.
+- The ☰ side menu shows the logo and groups its sections under Explore (Home, Search, What's new, Projects), My space (Favorites, Recent downloads, Suggestions, Profile) and Administration (Statistics, for admins), with Sign out at the bottom.
+- Redesigned reasoning screen: each reasoning is a card whose long text folds behind "Read more", and each file shows its type, rating and size, with a favorite button and a menu to download it.
+- Redesigned file page: a header with the file's type, reasoning, details and Download and Favorite buttons, then the rating, hashtags and preview in cards.
+- Loading, error and empty screens look the same everywhere, with a Retry button on errors.
 - Release builds are minified and resource-shrunk with R8.
 - HTTP bodies are logged in debug builds only.
 
 ### Fixed
+- Signing in, signing up and resetting a password no longer jump back to the first step while the emailed code is being checked or after a wrong code; the code step stays open so you can correct it.
+- Deleting a category, reasoning or file now asks for confirmation first. It used to happen on a single tap.
 - Image previews and thumbnails (JPG, PNG and other images) now load. They were requested from private storage and came back blank. Images now also cover BMP, HEIC/HEIF and AVIF, GIFs animate, and an image that can't be displayed shows a Download button instead of an empty box.
 - The app no longer crashes on launch when its saved sign-in can't be read (for example after restoring the phone from a backup). You're signed out and can log in again.
 - File downloads now send the signed-in user's token, so the backend can record them.

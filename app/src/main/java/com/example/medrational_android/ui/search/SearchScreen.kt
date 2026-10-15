@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FileRatingSummary
@@ -130,7 +131,7 @@ fun SearchScreen(
                             Text(stringResource(R.string.search_idle), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    is SearchUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    is SearchUiState.Loading -> LoadingState()
                     is SearchUiState.Error -> {
                         Text(state.message.asString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
                     }

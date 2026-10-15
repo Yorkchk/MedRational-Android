@@ -19,18 +19,14 @@
     <string name="auth_password_min_length">6 caractères minimum</string>
     <string name="auth_invalid_email">Veuillez saisir une adresse e-mail valide</string>
     <string name="auth_log_in">Se connecter</string>
-    <string name="auth_sign_up">S’inscrire</string>
-    <string name="login_verify_title">Vérifier la connexion</string>
     <string name="login_welcome_back">Bon retour</string>
     <string name="login_subtitle">Saisissez vos identifiants pour recevoir un code d’authentification.</string>
     <string name="login_send_code">Recevoir le code de connexion</string>
     <string name="login_enter_code">Saisissez le code à 6 chiffres</string>
     <string name="login_code_sent_to">Nous avons envoyé un code à %1$s</string>
-    <string name="login_otp_label">Code de vérification</string>
     <string name="login_verify_continue">Vérifier et continuer</string>
     <string name="login_back_to_login">Retour à la connexion</string>
     <string name="login_forgot_password">Mot de passe oublié ?</string>
-    <string name="signup_verify_title">Vérifier le compte</string>
     <string name="signup_title">Créer un compte</string>
     <string name="signup_first_name">Prénom</string>
     <string name="signup_last_name">Nom</string>
@@ -41,8 +37,6 @@
     <string name="signup_verify_email">Vérifiez votre e-mail</string>
     <string name="signup_code_sent_to">Nous avons envoyé un code à 6 chiffres à %1$s</string>
     <string name="signup_complete">Vérifier et terminer l’inscription</string>
-    <string name="forgot_verify_title">Vérifier le code</string>
-    <string name="forgot_title">Réinitialiser le mot de passe</string>
     <string name="forgot_heading">Mot de passe oublié</string>
     <string name="forgot_subtitle">Saisissez votre e-mail et votre nouveau mot de passe. Nous vous enverrons un code pour confirmer votre identité.</string>
     <string name="forgot_registered_email">E-mail du compte</string>
@@ -54,4 +48,10 @@
     <string name="forgot_code_sent_to">Un code de confirmation à 6 chiffres a été envoyé à %1$s</string>
     <string name="forgot_confirm_update">Confirmer et changer le mot de passe</string>
     <string name="welcome_tagline">Plateforme d’aide à la décision clinique et de raisonnement médical</string>
+    <string name="welcome_point_browse">Parcourez les raisonnements cliniques par spécialité</string>
+    <string name="welcome_point_keep">Gardez vos fichiers favoris et téléchargés à portée de main</string>
+    <string name="welcome_point_projects">Suivez les projets et ateliers du comité</string>
+    <string name="signup_subtitle">Quelques informations et c’est parti : un code de vérification vous sera envoyé par e-mail.</string>
+    <string name="signup_phone_placeholder">ex. 0661234567</string>
+    <string name="signup_edit_details">Modifier mes informations</string>
 </resources>

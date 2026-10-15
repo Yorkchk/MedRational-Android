@@ -8,8 +8,10 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,7 @@ import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.locale.AppLanguage
+import com.example.medrational_android.data.settings.AppTheme
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.push.WorkshopPush
 import com.example.medrational_android.data.push.projectIdFromPush
@@ -54,7 +57,7 @@ import com.example.medrational_android.ui.statistics.StatisticsScreen
 import com.example.medrational_android.ui.suggestions.NewSuggestionScreen
 import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
 import com.example.medrational_android.ui.suggestions.SuggestionListScreen
-import com.example.medrational_android.ui.theme.MedRationalAndroidTheme
+import com.example.medrational_android.ui.theme.SwisraTheme
 import com.example.medrational_android.ui.welcome.WelcomeScreen
 import com.example.medrational_android.ui.workshops.EditWorkshopScreen
 import com.example.medrational_android.ui.workshops.NewWorkshopScreen
@@ -86,7 +89,13 @@ class MainActivity : AppCompatActivity() {
     private var pushProjectId by mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super.onCreate, so the first frame already has the picked light or dark look
+        AppTheme.apply(this)
+        // Before super.onCreate: swaps the starting theme (logo on the brand background) for Theme.Swisra
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Screens draw behind the status and navigation bars; Scaffolds pad their content
+        enableEdgeToEdge()
         AppLanguage.ensureDefault()
         ApiClient.initialize(this)
         WorkshopPush.ensureChannel(this)
@@ -105,7 +114,7 @@ class MainActivity : AppCompatActivity() {
                 .build()
         )
         setContent {
-            MedRationalAndroidTheme {
+            SwisraTheme {
                 MedRationalApp(
                     pushProjectId = pushProjectId,
                     onPushProjectOpened = { pushProjectId = null }

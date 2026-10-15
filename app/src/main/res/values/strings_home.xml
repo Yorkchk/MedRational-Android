@@ -4,8 +4,6 @@
     <string name="categories_title">Catégories médicales</string>
     <string name="home_open_menu_new">Ouvrir le menu, nouveaux fichiers disponibles</string>
     <string name="home_open_menu">Ouvrir le menu</string>
-    <string name="categories_search_files">Rechercher des fichiers</string>
-    <string name="categories_add">Ajouter une catégorie</string>
     <string name="home_sign_out">Se déconnecter</string>
     <string name="home_sign_out_confirm">Voulez-vous vraiment vous déconnecter ?</string>
     <string name="categories_delete">Supprimer la catégorie</string>
@@ -23,4 +21,14 @@
     <string name="drawer_profile">Profil</string>
     <string name="drawer_statistics">Statistiques</string>
     <string name="drawer_admin">Admin</string>
+    <string name="drawer_group_explore">Explorer</string>
+    <string name="drawer_group_mine">Mon espace</string>
+    <string name="drawer_group_admin">Administration</string>
+    <string name="home_greeting">Bonjour, %1$s</string>
+    <string name="home_greeting_anonymous">Bonjour</string>
+    <string name="home_greeting_subtitle">Que révisez-vous aujourd’hui ?</string>
+    <string name="home_search_hint">Rechercher un fichier ou un hashtag</string>
+    <string name="categories_empty">Aucune catégorie pour l’instant</string>
+    <string name="categories_empty_admin_hint">Créez la première avec le bouton « Nouvelle catégorie ».</string>
+    <string name="categories_delete_confirm">Supprimer « %1$s » ainsi que tous ses raisonnements et fichiers ? Cette action est définitive.</string>
 </resources>

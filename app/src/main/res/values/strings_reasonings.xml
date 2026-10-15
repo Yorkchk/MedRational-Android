@@ -16,7 +16,6 @@
     <string name="download_category_zip_name">%1$s_Documents.zip</string>
     <string name="download_reasoning_zip_name">%1$s_Fichiers.zip</string>
     <string name="reasonings_download_category">Télécharger la catégorie (ZIP)</string>
-    <string name="reasonings_add">Ajouter un raisonnement clinique</string>
     <string name="reasonings_empty">Aucun raisonnement pour cette catégorie.</string>
     <string name="upload_dialog_title">Envoyer un fichier</string>
     <string name="upload_dialog_confirm">Envoyer</string>
@@ -29,8 +28,6 @@
     <string name="reasoning_upload_file">Envoyer un fichier</string>
     <string name="reasoning_delete">Supprimer le raisonnement</string>
     <string name="reasoning_attached_files">Fichiers joints (%1$d)</string>
-    <string name="file_tap_to_preview">" · Appuyez pour l’aperçu"</string>
-    <string name="file_tap_to_open">" · Appuyez pour ouvrir"</string>
     <string name="favorite_remove">Retirer des favoris</string>
     <string name="favorite_add">Ajouter aux favoris</string>
     <string name="file_delete">Supprimer le fichier</string>
@@ -70,5 +67,15 @@
         <item quantity="one">Étiqueter %d fichier</item>
         <item quantity="many">Étiqueter %d fichiers</item>
         <item quantity="other">Étiqueter %d fichiers</item>
+    </plurals>
+    <string name="reasoning_new_short">Nouveau raisonnement</string>
+    <string name="reasoning_show_more">Lire la suite</string>
+    <string name="reasoning_show_less">Réduire</string>
+    <string name="reasoning_delete_confirm">Supprimer « %1$s » et tous ses fichiers ? Cette action est définitive.</string>
+    <string name="file_delete_confirm">Supprimer « %1$s » ? Cette action est définitive.</string>
+    <plurals name="reasonings_count">
+        <item quantity="one">%d raisonnement clinique</item>
+        <item quantity="many">%d raisonnements cliniques</item>
+        <item quantity="other">%d raisonnements cliniques</item>
     </plurals>
 </resources>

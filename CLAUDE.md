@@ -110,9 +110,15 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 
 ## Code Conventions & Guidelines
 
+- **SWISRA look (`ui/theme/`, `ui/components/`):** the app is branded SWISRA (Study With Scome RAbat); logo, colors and fonts are described in `docs/brand/README.md`.
+  - Wrap UI in `SwisraTheme`. It has light and dark palettes, and dynamic color is off on purpose so the brand stays. Light is the default: `data/settings/AppTheme` stores the choice made in the profile (Light, Dark, Like the phone) and applies it through AppCompat's night mode in `MainActivity.onCreate`, so `isSystemInDarkTheme()` and the `values-night` resources follow it.
+  - Use `MaterialTheme.colorScheme`, `MaterialTheme.typography`, `MaterialTheme.shapes` (`Shape.kt`) and `Spacing` (`Dimens.kt`). No raw colors, `RoundedCornerShape` literals or font sizes in screens. White cards are `surfaceContainerLowest` on the `background`.
+  - Reuse the shared components: `LoadingState`, `ErrorState`, `EmptyState`, `StatusBanner`, `PrimaryButton`/`SecondaryButton`, `SwisraTopBar`, `SectionHeader`, `ListRowCard`, `FileTypeBadge`, `MonogramTile`, `SwisraLogo`/`BrandHeader`. Auth screens use `AuthLayout` and `AuthTextField`.
+  - Decorative tints (category monograms, file-type badges) come from `SwisraTints`, so they match the theme.
+  - Destructive actions (deleting a category, reasoning or file) always confirm in a dialog.
+  - Logo assets are generated from `docs/brand/swisra-logo.svg`; regenerate every drawable and mipmap together when it changes.
 - **Kotlin & Compose Standards:**
   - Write pure declarative Jetpack Compose UI without XML layouts.
-  - Avoid raw color hex values in screens; reference `MaterialTheme.colorScheme` or tokens from `ui/theme/Color.kt`.
   - Prefix event callback parameters with `on` (e.g., `onCategoryClick: (Long) -> Unit`, `onDismissRequest: () -> Unit`).
   - Pass `Modifier` as the first optional parameter to custom composables and chain modifications cleanly.
 - **Error Handling:**

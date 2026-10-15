@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.FavoriteResponse
@@ -70,16 +72,9 @@ fun FavoritesScreen(
                 .padding(innerPadding)
         ) {
             when (val state = uiState) {
-                is FavoriteUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is FavoriteUiState.Loading -> LoadingState()
                 is FavoriteUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(state.message.asString(), color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadFavorites() }) { Text(stringResource(R.string.common_retry)) }
-                    }
+                    ErrorState(message = state.message, onRetry = { viewModel.loadFavorites() })
                 }
                 is FavoriteUiState.Success -> {
                     if (state.favorites.isEmpty()) {

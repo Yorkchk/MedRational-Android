@@ -48,4 +48,9 @@
     <string name="profile_new_password">Nouveau mot de passe</string>
     <string name="profile_password_min">Au moins 6 caractères</string>
     <string name="profile_repeat_password">Confirmer le nouveau mot de passe</string>
+    <string name="profile_theme">Apparence</string>
+    <string name="profile_theme_hint">Clair par défaut. Le changement s’applique tout de suite.</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="theme_system">Comme le téléphone</string>
 </resources>
