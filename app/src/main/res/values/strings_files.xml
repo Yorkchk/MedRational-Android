@@ -67,4 +67,5 @@
     </plurals>
     <string name="favorite_add_short">Favori</string>
     <string name="file_in_favorites">Dans vos favoris</string>
+    <string name="preview_retry">Réessayer l’aperçu</string>
 </resources>

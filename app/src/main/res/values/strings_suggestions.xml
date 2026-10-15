@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
-    <string name="suggestion_error_closed">Cette suggestion a été clôturée et archivée : il n’est plus possible d’ajouter des messages.</string>
     <string name="error_file_too_large">Les fichiers doivent faire 10 Mo au maximum.</string>
     <string name="suggestion_error_file_type">Ce type de fichier n’est pas pris en charge. Utilisez un PDF, une image, un document Office, un TXT ou un CSV.</string>
     <string name="suggestion_error_fields">Veuillez remplir tous les champs.</string>
@@ -9,42 +8,23 @@
     <string name="attachment_error_read">Impossible de lire le fichier sélectionné.</string>
     <string name="attachment_error_read_named">Impossible de lire %1$s.</string>
     <string name="suggestion_new">Nouvelle suggestion</string>
-    <string name="suggestion_new_intro">Dites aux admins ce que vous aimeriez voir amélioré. Ils vous répondront ici.</string>
+    <string name="suggestion_new_intro">Une idée ou quelque chose qui manque ? Dites-le aux admins.</string>
     <string name="suggestion_title_label">Titre</string>
     <string name="suggestion_description_label">Description</string>
     <string name="suggestion_attach_optional">Joindre un fichier (facultatif, 10 Mo max.)</string>
     <string name="suggestion_send">Envoyer la suggestion</string>
     <string name="attachment_remove_named">Retirer %1$s</string>
-    <string name="suggestion_status_closed">Clôturée</string>
-    <string name="suggestion_status_pending">En attente</string>
+    <string name="suggestion_thanks_title">Merci pour votre suggestion !</string>
+    <string name="suggestion_thanks_body">Nous reviendrons vers vous bientôt.</string>
+    <string name="suggestion_back_home">Retour à l’accueil</string>
     <string name="suggestion_default_title">Suggestion</string>
     <string name="common_refresh">Actualiser</string>
-    <string name="suggestion_close">Clôturer la suggestion</string>
-    <string name="suggestion_close_confirm_title">Clôturer cette suggestion ?</string>
-    <string name="suggestion_close_confirm_body">Elle sera archivée et ni vous ni l’utilisateur ne pourrez plus ajouter de messages. Cette action est irréversible.</string>
     <string name="suggestion_sent_on">Envoyée le %1$s</string>
-    <string name="suggestion_no_replies_admin">Pas encore de réponse. Répondez à l’utilisateur ci-dessous.</string>
-    <string name="suggestion_no_replies_user">Pas encore de réponse. Les admins vous répondront ici.</string>
     <string name="suggestion_sent_by">Envoyée par</string>
-    <string name="suggestion_author_you">Vous</string>
-    <string name="suggestion_author_admin">Admin</string>
-    <string name="suggestion_author_user">Utilisateur</string>
-    <string name="suggestion_attach_max">Joindre un fichier (10 Mo max.)</string>
-    <string name="suggestion_write_message">Écrire un message</string>
-    <string name="suggestion_archived_banner">Cette suggestion a été clôturée et archivée.</string>
-    <string name="suggestion_my_suggestions">Mes suggestions</string>
-    <string name="suggestion_tab_pending">En attente</string>
-    <string name="suggestion_tab_archived">Archivées</string>
-    <string name="suggestion_no_replies">Pas encore de réponse</string>
-    <string name="suggestion_empty_archived">Aucune suggestion archivée.</string>
-    <string name="suggestion_empty_pending">Aucune suggestion en attente.</string>
-    <string name="suggestion_empty">Aucune suggestion pour l’instant.</string>
-    <string name="suggestion_empty_archived_hint">Les suggestions clôturées sont conservées ici.</string>
+    <string name="suggestion_delete">Supprimer la suggestion</string>
+    <string name="suggestion_delete_confirm_title">Supprimer cette suggestion ?</string>
+    <string name="suggestion_delete_confirm_body">Elle sera supprimée avec sa pièce jointe. Cette action est irréversible.</string>
+    <string name="suggestion_deleted">Suggestion supprimée.</string>
+    <string name="suggestion_empty_pending">Aucune suggestion pour l’instant.</string>
     <string name="suggestion_empty_admin_hint">Les suggestions envoyées par les utilisateurs apparaîtront ici.</string>
-    <string name="suggestion_empty_user_hint">Une idée ou quelque chose qui manque ? Envoyez une suggestion aux admins.</string>
-    <plurals name="suggestion_reply_count">
-        <item quantity="one">%d réponse</item>
-        <item quantity="many">%d réponses</item>
-        <item quantity="other">%d réponses</item>
-    </plurals>
 </resources>

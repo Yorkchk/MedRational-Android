@@ -1,4 +1,4 @@
-package com.example.medrational_android.ui.workshops
+package com.example.medrational_android.ui.files
 
 import com.example.medrational_android.R
 import com.example.medrational_android.TestStrings.en

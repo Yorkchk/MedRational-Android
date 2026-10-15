@@ -12,19 +12,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,21 +32,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.upload.PickedFile
+import com.example.medrational_android.ui.components.EmptyState
+import com.example.medrational_android.ui.components.PrimaryButton
+import com.example.medrational_android.ui.components.SwisraTopBar
 import com.example.medrational_android.ui.text.asString
+import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.MAX_SUGGESTION_TITLE_LENGTH
 import com.example.medrational_android.viewmodel.NewSuggestionUiState
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Users send a suggestion to the admins; once sent, a thank-you replaces the form. */
 @Composable
 fun NewSuggestionScreen(
     viewModel: NewSuggestionViewModel,
-    onSent: (suggestionId: Long) -> Unit,
+    onDoneClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -67,36 +65,35 @@ fun NewSuggestionScreen(
     val sending = uiState == NewSuggestionUiState.Sending
 
     LaunchedEffect(uiState) {
-        when (val state = uiState) {
-            is NewSuggestionUiState.Sent -> onSent(state.suggestionId)
-            is NewSuggestionUiState.Error -> {
-                Toast.makeText(context, state.message.asString(context), Toast.LENGTH_LONG).show()
-                viewModel.onErrorShown()
-            }
-            else -> Unit
+        (uiState as? NewSuggestionUiState.Error)?.let { state ->
+            Toast.makeText(context, state.message.asString(context), Toast.LENGTH_LONG).show()
+            viewModel.onErrorShown()
         }
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.suggestion_new), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                }
-            )
-        }
+        topBar = { SwisraTopBar(title = stringResource(R.string.suggestion_new), onBackClick = onBackClick) }
     ) { innerPadding ->
+        if (uiState == NewSuggestionUiState.Sent) {
+            EmptyState(
+                title = stringResource(R.string.suggestion_thanks_title),
+                icon = Icons.Outlined.CheckCircle,
+                hint = stringResource(R.string.suggestion_thanks_body),
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                PrimaryButton(text = stringResource(R.string.suggestion_back_home), onClick = onDoneClick)
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             Text(
                 text = stringResource(R.string.suggestion_new_intro),
@@ -133,7 +130,8 @@ fun NewSuggestionScreen(
                 }
             }
 
-            Button(
+            PrimaryButton(
+                text = stringResource(R.string.suggestion_send),
                 onClick = {
                     scope.launch {
                         readAttachment(context, attachment).onSuccess { part ->
@@ -141,15 +139,9 @@ fun NewSuggestionScreen(
                         }
                     }
                 },
-                enabled = !sending && viewModel.canSubmit(title, description),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (sending) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Text(stringResource(R.string.suggestion_send))
-                }
-            }
+                enabled = viewModel.canSubmit(title, description),
+                loading = sending
+            )
         }
     }
 }

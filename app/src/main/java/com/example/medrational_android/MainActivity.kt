@@ -81,6 +81,7 @@ import com.example.medrational_android.viewmodel.EditWorkshopViewModel
 import com.example.medrational_android.viewmodel.NewWorkshopViewModel
 import com.example.medrational_android.viewmodel.WorkshopDetailViewModel
 import com.example.medrational_android.viewmodel.WorkshopListViewModel
+import java.io.File
 
 // AppCompatActivity applies the language picked in the profile (AppLanguage)
 class MainActivity : AppCompatActivity() {
@@ -329,47 +330,44 @@ fun MedRationalApp(
             )
         }
 
-        // Admins get the inbox of every user's suggestions; users get their own
+        // Suggestions are one-way: admins get the inbox, users get the form to send one
         composable("suggestions") {
             val isAdmin = remember { tokenManager.isAdmin() }
-            val suggestionListViewModel: SuggestionListViewModel = viewModel {
-                SuggestionListViewModel(ApiClient.api, isAdmin)
+            if (isAdmin) {
+                val suggestionListViewModel: SuggestionListViewModel = viewModel {
+                    SuggestionListViewModel(ApiClient.api)
+                }
+
+                SuggestionListScreen(
+                    viewModel = suggestionListViewModel,
+                    onSuggestionClick = { id -> navController.navigate("suggestions/$id") },
+                    onBackClick = { navController.popBackStack() }
+                )
+            } else {
+                val newSuggestionViewModel: NewSuggestionViewModel = viewModel { NewSuggestionViewModel(ApiClient.api) }
+
+                NewSuggestionScreen(
+                    viewModel = newSuggestionViewModel,
+                    onDoneClick = { navController.popBackStack() },
+                    onBackClick = { navController.popBackStack() }
+                )
             }
-
-            SuggestionListScreen(
-                viewModel = suggestionListViewModel,
-                isAdmin = isAdmin,
-                onSuggestionClick = { id -> navController.navigate("suggestions/$id") },
-                onNewSuggestionClick = { navController.navigate("suggestions/new") },
-                onBackClick = { navController.popBackStack() }
-            )
         }
 
-        composable("suggestions/new") {
-            val newSuggestionViewModel: NewSuggestionViewModel = viewModel { NewSuggestionViewModel(ApiClient.api) }
-
-            NewSuggestionScreen(
-                viewModel = newSuggestionViewModel,
-                // Replace the form with the new conversation so Back returns to the list
-                onSent = { id ->
-                    navController.navigate("suggestions/$id") { popUpTo("suggestions/new") { inclusive = true } }
-                },
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
+        // Admin only
         composable(
             route = "suggestions/{suggestionId}",
             arguments = listOf(navArgument("suggestionId") { type = NavType.LongType })
         ) { backStackEntry ->
+            val context = LocalContext.current
             val suggestionDetailViewModel: SuggestionDetailViewModel = viewModel {
-                SuggestionDetailViewModel(ApiClient.api)
+                SuggestionDetailViewModel(ApiClient.api, File(context.cacheDir, "previews"))
             }
 
             SuggestionDetailScreen(
                 suggestionId = backStackEntry.arguments?.getLong("suggestionId") ?: 0L,
                 viewModel = suggestionDetailViewModel,
-                isAdmin = remember { tokenManager.isAdmin() },
+                onDeleted = { navController.popBackStack() },
                 onBackClick = { navController.popBackStack() }
             )
         }
