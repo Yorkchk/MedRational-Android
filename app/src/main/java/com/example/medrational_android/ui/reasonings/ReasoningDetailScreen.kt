@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LabelOff
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -98,6 +100,7 @@ import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.components.SwisraTopBar
 import com.example.medrational_android.ui.components.TintedTile
+import com.example.medrational_android.ui.files.ShareEffects
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
@@ -109,6 +112,8 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.HashtagCatalogViewModel
 import com.example.medrational_android.viewmodel.ReasoningUiState
 import com.example.medrational_android.viewmodel.ReasoningViewModel
+import com.example.medrational_android.viewmodel.ShareViewModel
+import java.io.File
 
 // Long protocols are folded to this many lines so the files stay in sight
 private const val CONTENT_PREVIEW_LINES = 4
@@ -162,8 +167,11 @@ fun ReasoningDetailScreen(
         BulkHashtagViewModel(ApiClient.api)
     }
     val bulkState by bulkViewModel.uiState.collectAsState()
+    val shareViewModel: ShareViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+        ShareViewModel(ApiClient.api, File(context.cacheDir, "shared"))
+    }
 
-    // Admin bulk selection; a List so it can be saved across rotation
+    // Selection for sharing (everyone) and bulk hashtags (admins); a List so it can be saved across rotation
     var selectedFileIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
     val selectionMode = selectedFileIds.isNotEmpty()
     val toggleSelection: (Long) -> Unit = { id ->
@@ -171,6 +179,8 @@ fun ReasoningDetailScreen(
     }
     var showBulkAddDialog by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = selectionMode) { selectedFileIds = emptyList() }
+    // The selection ends once the share sheet has opened
+    ShareEffects(shareViewModel, onShared = { selectedFileIds = emptyList() })
 
     val uploadMessage by viewModel.message.collectAsState()
     val bulkMessage by bulkViewModel.message.collectAsState()
@@ -209,6 +219,15 @@ fun ReasoningDetailScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                            val files = (uiState as? ReasoningUiState.Success)?.reasonings.orEmpty()
+                                .flatMap { it.files.orEmpty() }
+                                .associateBy { it.id }
+                            shareViewModel.shareFiles(selectedFileIds.mapNotNull { files[it] })
+                        }) {
+                            Icon(imageVector = Icons.Outlined.Share, contentDescription = stringResource(R.string.share_selected))
+                        }
+                        if (!isAdmin) return@TopAppBar
                         if (busy) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = Spacing.lg).size(24.dp))
                         } else {
@@ -232,6 +251,11 @@ fun ReasoningDetailScreen(
                 )
             } else {
                 SwisraTopBar(title = categoryName, onBackClick = onBackClick) {
+                    IconButton(onClick = {
+                        shareViewModel.shareCategory(categoryId, context.getString(R.string.download_category_zip_name, categoryName))
+                    }) {
+                        Icon(imageVector = Icons.Outlined.Share, contentDescription = stringResource(R.string.category_share))
+                    }
                     IconButton(onClick = {
                         val categoryZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/category/$categoryId/zip"
                         val zipName = context.getString(R.string.download_category_zip_name, categoryName)
@@ -287,8 +311,8 @@ fun ReasoningDetailScreen(
                                     onFileClick = { file ->
                                         if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
                                     },
-                                    // Long-press starts bulk hashtag selection (admins only)
-                                    onFileLongClick = { file -> if (isAdmin) toggleSelection(file.id) },
+                                    // Long-press starts selection, to share several files (or tag them, for admins)
+                                    onFileLongClick = { file -> toggleSelection(file.id) },
                                     onDeleteReasoning = { reasoningToDelete = reasoning },
                                     onAddFile = {
                                         activeUploadReasoningId = reasoning.id
@@ -305,7 +329,15 @@ fun ReasoningDetailScreen(
                                         val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
                                         downloader.downloadFile(singleFileUrl, file.fileName)
                                         Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
-                                    }
+                                    },
+                                    onShareReasoningZip = {
+                                        shareViewModel.shareReasoning(
+                                            reasoning.id,
+                                            context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                        )
+                                    },
+                                    onShareSingleFile = { file -> shareViewModel.shareFiles(listOf(file)) },
+                                    onSelectFile = { file -> toggleSelection(file.id) }
                                 )
                             }
                         }
@@ -415,7 +447,10 @@ fun ReasoningItemCard(
     onAddFile: () -> Unit,
     onDeleteFile: (StudyFile) -> Unit,
     onDownloadReasoningZip: () -> Unit,
-    onDownloadSingleFile: (StudyFile) -> Unit
+    onDownloadSingleFile: (StudyFile) -> Unit,
+    onShareReasoningZip: () -> Unit,
+    onShareSingleFile: (StudyFile) -> Unit,
+    onSelectFile: (StudyFile) -> Unit
 ) {
     val files = reasoning.files.orEmpty()
     var expanded by rememberSaveable(reasoning.id) { mutableStateOf(false) }
@@ -442,6 +477,7 @@ fun ReasoningItemCard(
                     hasFiles = files.isNotEmpty(),
                     isAdmin = isAdmin,
                     onDownloadAll = onDownloadReasoningZip,
+                    onShareAll = onShareReasoningZip,
                     onAddFile = onAddFile,
                     onDelete = onDeleteReasoning
                 )
@@ -485,7 +521,9 @@ fun ReasoningItemCard(
                         selectionMode = selectedFileIds.isNotEmpty(),
                         isSelected = file.id in selectedFileIds,
                         onDeleteFile = { onDeleteFile(file) },
-                        onDownloadFile = { onDownloadSingleFile(file) }
+                        onDownloadFile = { onDownloadSingleFile(file) },
+                        onShareFile = { onShareSingleFile(file) },
+                        onSelectFile = { onSelectFile(file) }
                     )
                 }
             }
@@ -499,6 +537,7 @@ private fun ReasoningMenu(
     hasFiles: Boolean,
     isAdmin: Boolean,
     onDownloadAll: () -> Unit,
+    onShareAll: () -> Unit,
     onAddFile: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -516,6 +555,14 @@ private fun ReasoningMenu(
                     onClick = {
                         open = false
                         onDownloadAll()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reasoning_share_all)) },
+                    leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                    onClick = {
+                        open = false
+                        onShareAll()
                     }
                 )
             }
@@ -551,6 +598,8 @@ fun StudyFileRow(
     onClick: () -> Unit,
     onDeleteFile: () -> Unit,
     onDownloadFile: () -> Unit,
+    onShareFile: () -> Unit,
+    onSelectFile: () -> Unit,
     // Latest rating from the shared store; the file's own figures are used until there is one
     knownRating: FileRatingSummary? = null,
     onLongClick: () -> Unit = {},
@@ -628,6 +677,23 @@ fun StudyFileRow(
                         onClick = {
                             menuOpen = false
                             onDownloadFile()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_share)) },
+                        leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onShareFile()
+                        }
+                    )
+                    // Same as a long-press, for students who don't know that gesture
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.file_select)) },
+                        leadingIcon = { Icon(Icons.Default.CheckBox, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onSelectFile()
                         }
                     )
                     if (isAdmin) {

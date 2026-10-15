@@ -78,4 +78,7 @@
         <item quantity="many">%d raisonnements cliniques</item>
         <item quantity="other">%d raisonnements cliniques</item>
     </plurals>
+    <string name="reasoning_share_all">Partager tout (zip)</string>
+    <string name="category_share">Partager la catégorie (zip)</string>
+    <string name="file_select">Sélectionner</string>
 </resources>

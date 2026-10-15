@@ -48,6 +48,17 @@
                 android:value="true" />
         </service>
 
+        <!-- Hands a study file to Gmail, Drive… from the file page's Share button -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Used by pushes that arrive while the app is closed and name no channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
