@@ -53,4 +53,16 @@
     <string name="theme_light">Clair</string>
     <string name="theme_dark">Sombre</string>
     <string name="theme_system">Comme le téléphone</string>
+
+    <!-- Account deletion -->
+    <string name="profile_delete_account">Supprimer mon compte</string>
+    <string name="profile_delete_account_hint">Supprime définitivement votre compte et vos données</string>
+    <string name="profile_delete_account_what">Votre compte sera supprimé définitivement : nom, e-mail, téléphone, mot de passe, favoris, téléchargements récents, suggestions et notifications. Cette action est irréversible.</string>
+    <string name="profile_delete_account_kept">Les nombres de téléchargements et de consultations ainsi que vos notes restent, sans aucun lien avec vous.</string>
+    <string name="profile_delete_account_code_to">Pour confirmer qu’il s’agit bien de vous, nous enverrons un code à 6 chiffres à %1$s.</string>
+    <string name="profile_delete_account_confirm">Supprimer mon compte</string>
+    <string name="profile_delete_account_dialog_title">Supprimer votre compte ?</string>
+    <string name="profile_delete_account_dialog_message">Votre compte et vos données personnelles seront supprimés définitivement. Vous ne pourrez pas les récupérer.</string>
+    <string name="profile_account_deleted">Votre compte a été supprimé</string>
+    <string name="profile_error_delete_account">Impossible de supprimer votre compte (HTTP %1$d).</string>
 </resources>

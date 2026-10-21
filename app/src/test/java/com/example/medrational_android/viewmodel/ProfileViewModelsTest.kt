@@ -13,6 +13,7 @@ import com.example.medrational_android.data.model.ConfirmCodeRequest
 import com.example.medrational_android.data.model.RequestEmailChangeRequest
 import com.example.medrational_android.data.model.UpdateProfileRequest
 import com.example.medrational_android.data.model.UserProfile
+import com.example.medrational_android.ui.text.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -288,6 +289,98 @@ class ProfileViewModelsTest {
         val state = viewModel.uiState.value as ChangePasswordUiState.EnterCode
         assertEquals("Invalid or expired verification code.", en(state.error))
         assertNull(state.notice)
+    }
+
+    // --- Account deletion ---
+
+    private fun deleteViewModelAtCodeStep(): DeleteAccountViewModel {
+        coEvery { api.requestDeleteAccountCode() } returns sent
+        return DeleteAccountViewModel(api).apply { requestCode() }
+    }
+
+    @Test
+    fun `requesting a deletion code moves to the code step`() {
+        val viewModel = deleteViewModelAtCodeStep()
+
+        assertEquals(DeleteAccountUiState.EnterCode(), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `an offline deletion code request stays on the first step`() {
+        coEvery { api.requestDeleteAccountCode() } throws IOException("offline")
+        val viewModel = DeleteAccountViewModel(api)
+
+        viewModel.requestCode()
+
+        val state = viewModel.uiState.value as DeleteAccountUiState.RequestCode
+        assertEquals(UiText.Res(R.string.error_network), state.error)
+    }
+
+    @Test
+    fun `a failed deletion code request shows the status code`() {
+        coEvery { api.requestDeleteAccountCode() } returns Response.error(500, "".toResponseBody())
+        val viewModel = DeleteAccountViewModel(api)
+
+        viewModel.requestCode()
+
+        val state = viewModel.uiState.value as DeleteAccountUiState.RequestCode
+        assertEquals(UiText.Res(R.string.profile_error_send_code, listOf(500)), state.error)
+    }
+
+    @Test
+    fun `an incomplete code never reaches the server`() {
+        val viewModel = deleteViewModelAtCodeStep()
+
+        viewModel.confirm("12 3")
+
+        assertEquals("Please enter the 6-digit code.", en((viewModel.uiState.value as DeleteAccountUiState.EnterCode).error))
+        coVerify(exactly = 0) { api.deleteMyAccount(any()) }
+    }
+
+    @Test
+    fun `the right code deletes the account`() {
+        val viewModel = deleteViewModelAtCodeStep()
+        coEvery { api.deleteMyAccount(ConfirmCodeRequest("123456")) } returns Response.success(204, Unit)
+
+        viewModel.confirm(" 123456 ")
+
+        assertEquals(DeleteAccountUiState.Deleted, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `a wrong deletion code is reported and keeps the account`() {
+        val viewModel = deleteViewModelAtCodeStep()
+        coEvery { api.deleteMyAccount(any()) } returns badRequest("Invalid verification code.")
+
+        viewModel.confirm("000000")
+
+        val state = viewModel.uiState.value as DeleteAccountUiState.EnterCode
+        assertEquals("Invalid or expired verification code.", en(state.error))
+        assertEquals("Code de vérification incorrect ou expiré.", fr(state.error))
+        assertEquals(false, state.isBusy)
+    }
+
+    @Test
+    fun `a server error while deleting shows the status code`() {
+        val viewModel = deleteViewModelAtCodeStep()
+        coEvery { api.deleteMyAccount(any()) } returns Response.error(500, "".toResponseBody())
+
+        viewModel.confirm("123456")
+
+        val state = viewModel.uiState.value as DeleteAccountUiState.EnterCode
+        assertEquals("Couldn't delete your account (HTTP 500).", en(state.error))
+        assertEquals("Impossible de supprimer votre compte (HTTP 500).", fr(state.error))
+    }
+
+    @Test
+    fun `resending the deletion code says so`() {
+        val viewModel = deleteViewModelAtCodeStep()
+
+        viewModel.resendCode()
+
+        val state = viewModel.uiState.value as DeleteAccountUiState.EnterCode
+        assertEquals(UiText.Res(R.string.profile_code_resent), state.notice)
+        coVerify(exactly = 2) { api.requestDeleteAccountCode() }
     }
 
     // --- Error parsing ---

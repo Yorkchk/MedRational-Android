@@ -49,6 +49,7 @@ import com.example.medrational_android.ui.favorites.FavoritesScreen
 import com.example.medrational_android.ui.novelties.NoveltiesScreen
 import com.example.medrational_android.ui.profile.ChangeEmailScreen
 import com.example.medrational_android.ui.profile.ChangePasswordScreen
+import com.example.medrational_android.ui.profile.DeleteAccountScreen
 import com.example.medrational_android.ui.profile.ProfileScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
@@ -67,6 +68,7 @@ import com.example.medrational_android.viewmodel.AuthViewModel
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.ChangeEmailViewModel
 import com.example.medrational_android.viewmodel.ChangePasswordViewModel
+import com.example.medrational_android.viewmodel.DeleteAccountViewModel
 import com.example.medrational_android.viewmodel.ProfileViewModel
 import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
@@ -183,6 +185,15 @@ fun MedRationalApp(
         }
     }
 
+    // Signing out from the menu, or after deleting the account
+    val signOut: () -> Unit = {
+        tokenManager.clearToken()
+        // The store holds this user's own scores
+        FileRatingStore.shared.clear()
+        // The phone stays subscribed to workshop pushes; tapping one leads to login
+        navController.navigate("welcome") { popUpTo(navController.graph.id) { inclusive = true } }
+    }
+
     NavHost(navController = navController, startDestination = startScreen) {
 
         // 1. Welcome Landing Screen (2 buttons: Log In & Sign Up)
@@ -251,13 +262,7 @@ fun MedRationalApp(
             CategoryListScreen(
                 viewModel = categoryViewModel,
                 onCategoryClick = { id, name -> navController.navigate("reasonings/$id/${Uri.encode(name)}") },
-                onSignOut = {
-                    tokenManager.clearToken()
-                    // The store holds this user's own scores
-                    FileRatingStore.shared.clear()
-                    // The phone stays subscribed to workshop pushes; tapping one leads to login
-                    navController.navigate("welcome") { popUpTo("categories") { inclusive = true } }
-                },
+                onSignOut = signOut,
                 onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToFavorites = { navController.navigate("favorites") }, // <-- Add this
                 onNavigateToDownloads = { navController.navigate("downloads") },
@@ -277,6 +282,7 @@ fun MedRationalApp(
                 viewModel = profileViewModel,
                 onChangeEmailClick = { navController.navigate("profile/email") },
                 onChangePasswordClick = { navController.navigate("profile/password") },
+                onDeleteAccountClick = { navController.navigate("profile/delete") },
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -304,6 +310,20 @@ fun MedRationalApp(
                 onPasswordChanged = {
                     Toast.makeText(context, R.string.profile_password_changed, Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("profile/delete") {
+            val deleteAccountViewModel: DeleteAccountViewModel = viewModel { DeleteAccountViewModel(ApiClient.api) }
+
+            DeleteAccountScreen(
+                viewModel = deleteAccountViewModel,
+                email = remember { tokenManager.getEmail() },
+                onAccountDeleted = {
+                    Toast.makeText(context, R.string.profile_account_deleted, Toast.LENGTH_LONG).show()
+                    signOut()
                 },
                 onBackClick = { navController.popBackStack() }
             )
