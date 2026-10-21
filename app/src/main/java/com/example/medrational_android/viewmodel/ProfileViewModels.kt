@@ -329,3 +329,79 @@ class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
         UiText.Res(R.string.profile_error_send_code, listOf(e.code()))
     }
 }
+
+sealed interface DeleteAccountUiState {
+    data class RequestCode(val isSending: Boolean = false, val error: UiText? = null) : DeleteAccountUiState
+    data class EnterCode(
+        val isBusy: Boolean = false,
+        val error: UiText? = null,
+        val notice: UiText? = null
+    ) : DeleteAccountUiState
+    data object Deleted : DeleteAccountUiState
+}
+
+/**
+ * A code goes to the current address; sending it back deletes the account. The token stops
+ * working right after, so the screen signs out on [DeleteAccountUiState.Deleted].
+ */
+class DeleteAccountViewModel(private val api: MedRationalApi) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<DeleteAccountUiState>(DeleteAccountUiState.RequestCode())
+    val uiState: StateFlow<DeleteAccountUiState> = _uiState.asStateFlow()
+
+    fun requestCode() {
+        _uiState.value = DeleteAccountUiState.RequestCode(isSending = true)
+        viewModelScope.launch {
+            _uiState.value = when (val failure = sendCode()) {
+                null -> DeleteAccountUiState.EnterCode()
+                else -> DeleteAccountUiState.RequestCode(error = failure)
+            }
+        }
+    }
+
+    fun resendCode() {
+        val state = _uiState.value as? DeleteAccountUiState.EnterCode ?: return
+        _uiState.value = state.copy(isBusy = true, error = null, notice = null)
+        viewModelScope.launch {
+            _uiState.value = when (val failure = sendCode()) {
+                null -> state.copy(isBusy = false, error = null, notice = UiText.Res(R.string.profile_code_resent))
+                else -> state.copy(isBusy = false, error = failure, notice = null)
+            }
+        }
+    }
+
+    fun confirm(code: String) {
+        val state = _uiState.value as? DeleteAccountUiState.EnterCode ?: return
+        if (!CODE_REGEX.matches(code.trim())) {
+            _uiState.value = state.copy(error = ENTER_CODE, notice = null)
+            return
+        }
+        _uiState.value = state.copy(isBusy = true, error = null, notice = null)
+        viewModelScope.launch {
+            _uiState.value = try {
+                val response = api.deleteMyAccount(ConfirmCodeRequest(code.trim()))
+                if (response.isSuccessful) {
+                    DeleteAccountUiState.Deleted
+                } else {
+                    state.copy(
+                        isBusy = false,
+                        error = profileErrorMessage(response, R.string.profile_error_delete_account, R.string.auth_error_invalid_code)
+                    )
+                }
+            } catch (e: IOException) {
+                state.copy(isBusy = false, error = NETWORK_ERROR)
+            } catch (e: HttpException) {
+                state.copy(isBusy = false, error = UiText.Res(R.string.profile_error_delete_account, listOf(e.code())))
+            }
+        }
+    }
+
+    private suspend fun sendCode(): UiText? = try {
+        val response = api.requestDeleteAccountCode()
+        if (response.isSuccessful) null else profileErrorMessage(response, R.string.profile_error_send_code)
+    } catch (e: IOException) {
+        NETWORK_ERROR
+    } catch (e: HttpException) {
+        UiText.Res(R.string.profile_error_send_code, listOf(e.code()))
+    }
+}

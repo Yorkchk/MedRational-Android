@@ -138,6 +138,13 @@ interface MedRationalApi {
     @PUT("api/v1/users/me/email")
     suspend fun confirmEmailChange(@Body request: ConfirmCodeRequest): Response<AuthResponse>
 
+    // Account deletion: a code emailed to the current address, then the delete (204)
+    @POST("api/v1/users/me/delete/code")
+    suspend fun requestDeleteAccountCode(): Response<AuthMessageResponse>
+
+    @HTTP(method = "DELETE", path = "api/v1/users/me", hasBody = true)
+    suspend fun deleteMyAccount(@Body request: ConfirmCodeRequest): Response<Unit>
+
     @GET("api/v1/search/files")
     suspend fun searchFiles(
         @Query("query") query: String?,

@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
@@ -54,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -77,6 +79,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onChangeEmailClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
+    onDeleteAccountClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -151,7 +154,8 @@ fun ProfileScreen(
                         }
                         SecurityCard(
                             onChangeEmailClick = onChangeEmailClick,
-                            onChangePasswordClick = onChangePasswordClick
+                            onChangePasswordClick = onChangePasswordClick,
+                            onDeleteAccountClick = onDeleteAccountClick
                         )
                         LanguageCard()
                         ThemeCard()
@@ -270,6 +274,7 @@ private fun EditProfileCard(
 private fun SecurityCard(
     onChangeEmailClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
+    onDeleteAccountClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -291,6 +296,14 @@ private fun SecurityCard(
                 subtitle = stringResource(R.string.profile_change_password_hint),
                 onClick = onChangePasswordClick
             )
+            HorizontalDivider()
+            SecurityRow(
+                icon = Icons.Default.DeleteForever,
+                title = stringResource(R.string.profile_delete_account),
+                subtitle = stringResource(R.string.profile_delete_account_hint),
+                onClick = onDeleteAccountClick,
+                iconTint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
@@ -301,7 +314,8 @@ private fun SecurityRow(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconTint: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = modifier
@@ -310,7 +324,7 @@ private fun SecurityRow(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Icon(icon, contentDescription = null, tint = iconTint)
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
