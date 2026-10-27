@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
 
+# A new push to a PR cancels its previous run
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +23,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Lint, unit tests, and debug build
+      # assembleRelease runs R8 (minify + resource shrinking), which can strip classes the app
+      # reads by reflection (Gson models). It builds unsigned here, which is enough to catch that.
+      - name: Lint, unit tests, coverage, debug and release builds
         run: |
           chmod +x gradlew
-          ./gradlew lint testDebugUnitTest assembleDebug
+          ./gradlew lint testDebugUnitTest koverXmlReportDebug koverHtmlReportDebug assembleDebug assembleRelease
 
       - name: Upload lint report
         if: always()
@@ -29,3 +36,31 @@ jobs:
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
+
+      # Which tests failed and why, without rerunning locally
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: app/build/reports/kover/
+          if-no-files-found: ignore
+
+      # The last LINE counter in Kover's XML is the total for the whole app
+      - name: Coverage summary
+        if: always()
+        run: |
+          xml=app/build/reports/kover/reportDebug.xml
+          if [ -f "$xml" ]; then
+            grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/>' "$xml" | tail -1 \
+              | sed -E 's/.*missed="([0-9]+)" covered="([0-9]+)".*/\1 \2/' \
+              | awk '{ printf "### Line coverage: %.1f%% (%d of %d lines)\n", 100 * $2 / ($1 + $2), $2, $1 + $2 }' \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi

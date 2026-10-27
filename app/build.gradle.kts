@@ -4,6 +4,27 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    // Unit-test coverage: koverHtmlReportDebug / koverXmlReportDebug (app/build/reports/kover)
+    alias(libs.plugins.kover)
+}
+
+// Generated code and pure styling would only dilute the coverage numbers
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*.BuildConfig",
+                    "*.R",
+                    "*.R$*",
+                    "*ComposableSingletons*",
+                    "*_Factory",
+                )
+                packages("com.example.medrational_android.ui.theme")
+                annotatedBy("androidx.compose.ui.tooling.preview.Preview")
+            }
+        }
+    }
 }
 
 // Push notifications (Firebase Cloud Messaging) need app/google-services.json from the Firebase
