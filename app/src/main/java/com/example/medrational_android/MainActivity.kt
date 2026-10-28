@@ -187,6 +187,8 @@ fun MedRationalApp(
 
     // Signing out from the menu, or after deleting the account
     val signOut: () -> Unit = {
+        // So the session can't be renewed any more; reads the refresh token before it's cleared
+        ApiClient.endSessionOnServer()
         tokenManager.clearToken()
         // The store holds this user's own scores
         FileRatingStore.shared.clear()
@@ -302,7 +304,7 @@ fun MedRationalApp(
         }
 
         composable("profile/password") {
-            val changePasswordViewModel: ChangePasswordViewModel = viewModel { ChangePasswordViewModel(ApiClient.api) }
+            val changePasswordViewModel: ChangePasswordViewModel = viewModel { ChangePasswordViewModel(ApiClient.api, tokenManager) }
 
             ChangePasswordScreen(
                 viewModel = changePasswordViewModel,

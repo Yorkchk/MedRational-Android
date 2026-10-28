@@ -42,14 +42,16 @@ class AuthViewModelTest {
                 userId = 7L,
                 email = "a@b.c",
                 fullName = "Amina Ben Ali",
-                message = "Authentication successful"
+                message = "Authentication successful",
+                refreshToken = "refresh-1"
             )
         )
 
         viewModel.login(" a@b.c ", "secret")
 
         assertEquals(AuthUiState.LoginSuccess(role = "ROLE_USER"), viewModel.uiState.value)
-        verify { tokenManager.saveAuth("jwt", "ROLE_USER", 7L, "a@b.c", "Amina Ben Ali") }
+        // The refresh token keeps this device signed in once the JWT expires
+        verify { tokenManager.saveAuth("jwt", "refresh-1", "ROLE_USER", 7L, "a@b.c", "Amina Ben Ali") }
     }
 
     @Test
@@ -60,7 +62,7 @@ class AuthViewModelTest {
 
         assertEquals("Invalid email or password.", en(error()))
         assertEquals("E-mail ou mot de passe incorrect.", fr(error()))
-        verify(exactly = 0) { tokenManager.saveAuth(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { tokenManager.saveAuth(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test

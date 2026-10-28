@@ -9,7 +9,7 @@ import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.KeyStore
 
-class TokenManager(context: Context) {
+class TokenManager(context: Context) : SessionStore {
 
     private val sharedPreferences: SharedPreferences = openRecovering(
         open = { openEncryptedPrefs(context) },
@@ -46,9 +46,14 @@ class TokenManager(context: Context) {
         sharedPreferences.edit().putString(KEY_JWT_TOKEN, token).apply()
     }
 
-    fun saveAuth(token: String, role: String, userId: Long, email: String, fullName: String?) {
+    /**
+     * After signing in. [refreshToken] keeps the device signed in once the short-lived [token]
+     * expires; null when the backend started no session.
+     */
+    fun saveAuth(token: String, refreshToken: String?, role: String, userId: Long, email: String, fullName: String?) {
         sharedPreferences.edit()
             .putString(KEY_JWT_TOKEN, token)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
             .putString(KEY_USER_ROLE, role)
             .putLong(KEY_USER_ID, userId)
             .putString(KEY_USER_EMAIL, email)
@@ -61,8 +66,21 @@ class TokenManager(context: Context) {
         sharedPreferences.edit().putString(KEY_USER_NAME, fullName ?: "").apply()
     }
 
-    fun getToken(): String? {
+    override fun getToken(): String? {
         return sharedPreferences.getString(KEY_JWT_TOKEN, null)
+    }
+
+    override fun getRefreshToken(): String? {
+        return sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
+    }
+
+    // A renewal or a password change: same user, new tokens. The role is the server's current one
+    override fun saveRenewedSession(token: String, refreshToken: String, role: String) {
+        sharedPreferences.edit()
+            .putString(KEY_JWT_TOKEN, token)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .putString(KEY_USER_ROLE, role)
+            .apply()
     }
 
     fun getRole(): String? {
@@ -90,7 +108,7 @@ class TokenManager(context: Context) {
         return !getToken().isNullOrBlank()
     }
 
-    fun clearToken() {
+    override fun clearToken() {
         sharedPreferences.edit().clear().apply()
     }
 
@@ -99,6 +117,7 @@ class TokenManager(context: Context) {
         const val PREFS_NAME = "medrational_secure_prefs"
         private const val TAG = "TokenManager"
         private const val KEY_JWT_TOKEN = "jwt_token"
+        private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_USER_EMAIL = "user_email"

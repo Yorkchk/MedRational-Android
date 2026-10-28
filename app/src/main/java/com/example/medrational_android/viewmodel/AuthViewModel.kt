@@ -62,6 +62,8 @@ class AuthViewModel(
 
                     tokenManager.saveAuth(
                         token = auth.token,
+                        // Keeps this device signed in after the token expires
+                        refreshToken = auth.refreshToken,
                         role = userRole,
                         userId = auth.userId,
                         email = auth.email,

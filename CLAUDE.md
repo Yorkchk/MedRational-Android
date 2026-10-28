@@ -65,7 +65,7 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - The topic, the channel (`workshop_reminders`) and the data key (`projectId`) must match the backend.
 - **Profile:** `/api/v1/users/me` (GET, PUT) takes the user from the JWT and is reached from the side menu when signed in. `ProfileViewModels.kt` holds its ViewModels.
   - First name, last name and phone save without a code. The backend keeps `fullName` as "first last", and `TokenManager.saveUserName` updates the menu header.
-  - Password: `POST .../password/code` emails a code to the current address, then `PUT .../password {code, newPassword}`.
+  - Password: `POST .../password/code` emails a code to the current address, then `PUT .../password {code, newPassword}`. It signs every other device out and returns new tokens for this one, saved with `saveRenewedSession`.
   - Email: `POST .../email/code {newEmail}` emails a code to the new address, then `PUT .../email {code}` returns a new `AuthResponse`. The JWT subject is the email, so the app must save that token with `saveAuth`, because the old one stops working.
   - Wrong or expired codes, and an email already in use, answer 400, never 401/403, so they don't sign the user out.
   - Delete account (`profile/delete`, `DeleteAccountViewModel`): `POST .../delete/code` emails a code to the current address, then `DELETE /api/v1/users/me {code}` (204, sent with `@HTTP(hasBody = true)`). The token stops working right away, so the screen calls the shared `signOut()` in `MedRationalApp`, the same one the side menu uses. The backend deletes what identifies the user and keeps download/view counts, ratings and an admin's projects and replies with no author, so `WorkshopProject.authorId`/`authorEmail` can be null. The backend's public `/delete-account` page is the deletion link for the Play Console.
@@ -80,8 +80,13 @@ Package root: `app/src/main/java/com/example/medrational_android`
 Single-module (`:app`) project following MVVM without external DI frameworks (no Hilt/Koin):
 
 - **`ApiClient`:** Singleton object holding OkHttp and Retrofit instances. `MainActivity.onCreate()` must call `ApiClient.initialize(context)` before any network dispatch.
-- **Authentication & Interception:** `AuthInterceptor` attaches `Authorization: Bearer <jwt>` via `TokenManager`. On a **401 or 403 response**, all stored tokens and sessions are immediately invalidated, forcing a re-login on the next app cycle.
-- **`TokenManager`:** Persists JWT, roles, `userId`, `email`, and `name` using `EncryptedSharedPreferences`. Admin role check is `isAdmin()` matching either `ROLE_ADMIN` or `ADMIN`.
+- **Authentication & Interception:** the auth interceptor in `ApiClient` attaches `Authorization: Bearer <jwt>` via `TokenManager`.
+  - **401** (missing or expired JWT, which lasts 1 hour): `TokenRefreshAuthenticator` asks `SessionRenewer` (`data/auth/`) to trade the refresh token at `POST /auth/refresh` through `SessionApi` (a bare client, so a refused renewal can't trigger another), stores the new pair and retries once. Requests that fail together renew once. Only a refused renewal (401) clears the session; offline or a server error keeps it, so being offline never signs anyone out.
+  - **403** (signed in but not allowed, e.g. a student on an admin endpoint) clears the stored session, forcing a re-login on the next app cycle.
+  - Coil's `imageHttpClient` renews too, but leaves the sign-out to the API client.
+  - `AndroidDownloader` hands the token to the system `DownloadManager`, which can't renew it, so it runs in the background and calls `ApiClient.freshAccessToken()` first (renews when the JWT expires within 5 minutes, read from its `exp` claim).
+  - Signing out calls `ApiClient.endSessionOnServer()` (`POST /auth/logout`, best effort) before clearing locally.
+- **`TokenManager`:** Persists JWT, refresh token, roles, `userId`, `email`, and `name` using `EncryptedSharedPreferences`; it is the `SessionStore` the renewer uses. Admin role check is `isAdmin()` matching either `ROLE_ADMIN` or `ADMIN`.
 - **UI RBAC:** Role-based access control is handled client-side. Screens query `TokenManager.isAdmin()` to conditionally display admin CRUD buttons, dialogs, and deletion actions. There are no standalone admin dashboards.
 - **ViewModels & State:**
   - ViewModels expose immutable `StateFlow<*UiState>` collected with `collectAsStateWithLifecycle()` or `collectAsState()` in Compose.
@@ -105,7 +110,7 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 ## Core Workflows
 
 - **Auth:**
-  - Sign-in is email + password only: `/auth/login` returns the user payload + JWT right away, persisted via `TokenManager.saveAuth(...)`. 401 means wrong credentials, and 403 means the sign-up code was never entered (no token is stored yet, so it logs nobody out).
+  - Sign-in is email + password only: `/auth/login` returns the user payload + JWT right away, persisted with its `refreshToken` via `TokenManager.saveAuth(...)`. The device then stays signed in until the session is unused for 60 days, ended by sign-out, or ended by a password change, password reset or email change elsewhere. 401 means wrong credentials, and 403 means the sign-up code was never entered (no token is stored yet, so it logs nobody out).
   - Emailed 6-digit codes are only for sign-up (`/auth/user/register` → `/auth/user/verify-registration`), forgot password (`/auth/forgot-password` → `/auth/reset-password`) and the profile flows (password, email change, account deletion). Signing up with the email of a confirmed account answers 409.
 - **Optimistic Favorites:**
   - Toggling favorites immediately mutates local UI state in `FavoriteViewModel`, followed by the network call to `/api/v1/users/{userId}/favorites`. Rolls back or resyncs on failure.
@@ -131,7 +136,7 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 ## Common Pitfalls & Troubleshooting
 
 - **Connection Refused (`ECONNREFUSED`):** Verify the Spring Boot backend is running locally on port 8080. If testing on a physical device, confirm the device and computer share the same Wi-Fi subnet and set `api.baseUrl` in `local.properties` to the computer's LAN IP.
-- **Unexpected Logouts:** A 403 Forbidden on an expired token or missing endpoint permissions will trigger `TokenManager.clear()`, wiping the stored token. Check backend security filters and Spring logs if requests trigger logout loops.
+- **Unexpected Logouts:** A 403 Forbidden (missing endpoint permissions) or a refused session renewal (401 from `/auth/refresh`) clears the stored session. Check backend security filters and Spring logs if requests trigger logout loops.
 - **Context Initialization Crash:** If `ApiClient.api` throws `IllegalStateException` or `UninitializedPropertyAccessException`, verify `ApiClient.initialize(applicationContext)` ran inside `MainActivity.onCreate()`.
 
 ## Git workflow

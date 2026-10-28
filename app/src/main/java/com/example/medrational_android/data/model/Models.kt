@@ -163,8 +163,13 @@ data class AuthResponse(
     val userId: Long,
     val email: String,
     val fullName: String,
-    val message: String
+    val message: String,
+    // Traded for a new token when this one expires (POST /auth/refresh). Last, with a default, so
+    // older backends that don't send it still parse
+    val refreshToken: String? = null
 )
+
+data class RefreshTokenRequest(val refreshToken: String)
 // Under medrational_android/data/model/Models.kt
 
 

@@ -124,8 +124,9 @@ interface MedRationalApi {
     @POST("api/v1/users/me/password/code")
     suspend fun requestPasswordChangeCode(): Response<AuthMessageResponse>
 
+    // Signs the other devices out and returns new tokens for this one
     @PUT("api/v1/users/me/password")
-    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<AuthMessageResponse>
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<AuthResponse>
 
     // Emails a code to the new address
     @POST("api/v1/users/me/email/code")

@@ -221,6 +221,7 @@ class ChangeEmailViewModel(
                     // The old token named the old email and no longer works
                     tokenManager.saveAuth(
                         token = auth.token,
+                        refreshToken = auth.refreshToken,
                         role = auth.role,
                         userId = auth.userId,
                         email = auth.email,
@@ -263,7 +264,11 @@ sealed interface ChangePasswordUiState {
 }
 
 /** A code goes to the current address; it is sent with the new password. */
-class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
+/** A code goes to the current address. The change signs other devices out; this one gets new tokens. */
+class ChangePasswordViewModel(
+    private val api: MedRationalApi,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ChangePasswordUiState>(ChangePasswordUiState.RequestCode())
     val uiState: StateFlow<ChangePasswordUiState> = _uiState.asStateFlow()
@@ -305,6 +310,12 @@ class ChangePasswordViewModel(private val api: MedRationalApi) : ViewModel() {
             _uiState.value = try {
                 val response = api.changePassword(ChangePasswordRequest(code.trim(), newPassword))
                 if (response.isSuccessful) {
+                    // The change ended this device's session too; the response carries a new one
+                    val auth = response.body()
+                    val refreshToken = auth?.refreshToken
+                    if (auth != null && refreshToken != null) {
+                        tokenManager.saveRenewedSession(auth.token, refreshToken, auth.role)
+                    }
                     ChangePasswordUiState.Done
                 } else {
                     state.copy(

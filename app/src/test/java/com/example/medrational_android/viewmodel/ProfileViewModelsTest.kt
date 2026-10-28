@@ -175,7 +175,7 @@ class ProfileViewModelsTest {
         every { tokenManager.getEmail() } returns "old@example.com"
         coEvery { api.requestEmailChangeCode(any()) } returns sent
         coEvery { api.confirmEmailChange(ConfirmCodeRequest("123456")) } returns Response.success(
-            AuthResponse("new-token", "ROLE_USER", 1L, "new@example.com", "Amina Ben Ali", "Email updated")
+            AuthResponse("new-token", "ROLE_USER", 1L, "new@example.com", "Amina Ben Ali", "Email updated", "refresh-2")
         )
         val viewModel = ChangeEmailViewModel(api, tokenManager)
         viewModel.requestCode("new@example.com")
@@ -183,7 +183,7 @@ class ProfileViewModelsTest {
         viewModel.confirm("123456")
 
         assertEquals(ChangeEmailUiState.Done, viewModel.uiState.value)
-        verify { tokenManager.saveAuth("new-token", "ROLE_USER", 1L, "new@example.com", "Amina Ben Ali") }
+        verify { tokenManager.saveAuth("new-token", "refresh-2", "ROLE_USER", 1L, "new@example.com", "Amina Ben Ali") }
     }
 
     @Test
@@ -199,7 +199,7 @@ class ProfileViewModelsTest {
         val state = viewModel.uiState.value as ChangeEmailUiState.EnterCode
         assertEquals("new@example.com", state.newEmail)
         assertEquals("Invalid or expired verification code.", en(state.error))
-        verify(exactly = 0) { tokenManager.saveAuth(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { tokenManager.saveAuth(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -233,7 +233,7 @@ class ProfileViewModelsTest {
 
     private fun passwordViewModelAtCodeStep(): ChangePasswordViewModel {
         coEvery { api.requestPasswordChangeCode() } returns sent
-        return ChangePasswordViewModel(api).apply { requestCode() }
+        return ChangePasswordViewModel(api, tokenManager).apply { requestCode() }
     }
 
     @Test
@@ -246,7 +246,7 @@ class ProfileViewModelsTest {
     @Test
     fun `a failed password code request stays on the first step`() {
         coEvery { api.requestPasswordChangeCode() } throws IOException("offline")
-        val viewModel = ChangePasswordViewModel(api)
+        val viewModel = ChangePasswordViewModel(api, tokenManager)
 
         viewModel.requestCode()
 
@@ -271,12 +271,25 @@ class ProfileViewModelsTest {
     @Test
     fun `the right code changes the password`() {
         val viewModel = passwordViewModelAtCodeStep()
-        coEvery { api.changePassword(ChangePasswordRequest("123456", "secret1")) } returns
-            Response.success(AuthMessageResponse("Password updated successfully."))
+        coEvery { api.changePassword(ChangePasswordRequest("123456", "secret1")) } returns Response.success(
+            AuthResponse("jwt-2", "ROLE_USER", 1L, "old@example.com", "Amina Ben Ali", "Password updated successfully.", "refresh-2")
+        )
 
         viewModel.confirm("123456", "secret1", "secret1")
 
         assertEquals(ChangePasswordUiState.Done, viewModel.uiState.value)
+        // The change ends every session, this one included: keep the new one so the user stays signed in
+        verify { tokenManager.saveRenewedSession("jwt-2", "refresh-2", "ROLE_USER") }
+    }
+
+    @Test
+    fun `a wrong password code keeps the current session`() {
+        val viewModel = passwordViewModelAtCodeStep()
+        coEvery { api.changePassword(any()) } returns badRequest("Invalid verification code.")
+
+        viewModel.confirm("000000", "secret1", "secret1")
+
+        verify(exactly = 0) { tokenManager.saveRenewedSession(any(), any(), any()) }
     }
 
     @Test
