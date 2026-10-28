@@ -27,6 +27,7 @@ kover {
     }
 }
 
+
 // Push notifications (Firebase Cloud Messaging) need app/google-services.json from the Firebase
 // console. Without it the app still builds, and push is simply off (see data/push/WorkshopPush.kt)
 if (file("google-services.json").exists()) {
@@ -42,6 +43,10 @@ val localProps = Properties().apply {
 }
 val debugBaseUrl = localProps.getProperty("api.baseUrl", "http://10.0.2.2:8080/")
 val releaseBaseUrl = localProps.getProperty("api.releaseBaseUrl", debugBaseUrl)
+// FCM topic for workshop pushes; it must match push.workshops-topic of the backend the build talks to
+// (workshops-dev, workshops-uat or workshops), so each environment only reaches its own phones
+val debugPushTopic = localProps.getProperty("push.topic", "workshops-dev")
+val releasePushTopic = localProps.getProperty("push.releaseTopic", "workshops")
 
 android {
     namespace = "com.example.medrational_android"
@@ -60,9 +65,11 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+            buildConfigField("String", "WORKSHOPS_TOPIC", "\"$debugPushTopic\"")
         }
         release {
             buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
+            buildConfigField("String", "WORKSHOPS_TOPIC", "\"$releasePushTopic\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

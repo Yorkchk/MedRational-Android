@@ -62,6 +62,10 @@ Compose screens ──► ViewModels (StateFlow UI state) ──► ApiClient (R
    api.baseUrl=http://192.168.1.20:8080/
    # URL baked into release builds (defaults to api.baseUrl)
    api.releaseBaseUrl=https://api.example.com/
+   # FCM topic for workshop pushes, matching the backend's push.workshops-topic
+   # Defaults: workshops-dev (debug) and workshops (release); use workshops-uat against UAT
+   push.topic=workshops-dev
+   push.releaseTopic=workshops
    ```
    On a physical device, use your computer's LAN IP; the phone must be on the same network.
 3. Run the `app` configuration, or from the command line:

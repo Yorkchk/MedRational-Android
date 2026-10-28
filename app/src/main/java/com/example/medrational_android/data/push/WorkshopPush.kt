@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.R
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,8 +18,12 @@ import java.util.IllegalFormatException
  */
 object WorkshopPush {
 
-    // Must match PushNotificationService.WORKSHOPS_TOPIC on the backend
-    const val TOPIC = "workshops"
+    // Must match push.workshops-topic of the backend this build talks to; set per build type in
+    // app/build.gradle.kts (workshops-dev for debug, workshops for release)
+    val TOPIC: String = BuildConfig.WORKSHOPS_TOPIC
+
+    // Every environment's topic, so a phone that switched builds stops hearing the old backend
+    val ENVIRONMENT_TOPICS = listOf("workshops", "workshops-uat", "workshops-dev")
 
     // Must match FcmPushNotificationService.ANDROID_CHANNEL_ID on the backend
     const val CHANNEL_ID = "workshop_reminders"
@@ -39,8 +44,13 @@ object WorkshopPush {
      */
     fun subscribe(context: Context) {
         if (!available(context)) return
-        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
+        val messaging = FirebaseMessaging.getInstance()
+        messaging.subscribeToTopic(TOPIC)
             .addOnFailureListener { Log.w(TAG, "Couldn't subscribe to $TOPIC", it) }
+        topicsToLeave(TOPIC).forEach { topic ->
+            messaging.unsubscribeFromTopic(topic)
+                .addOnFailureListener { Log.w(TAG, "Couldn't unsubscribe from $topic", it) }
+        }
     }
 
     /** The channel pushes are shown on; it must exist before the first push arrives. */
@@ -54,6 +64,9 @@ object WorkshopPush {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }
+
+/** The other environments' topics, which a phone listening to [topic] must not stay subscribed to. */
+fun topicsToLeave(topic: String): List<String> = WorkshopPush.ENVIRONMENT_TOPICS - topic
 
 /** The project a push is about, or null when it doesn't name a valid one. */
 fun projectIdFromPush(data: Map<String, String?>): Long? =

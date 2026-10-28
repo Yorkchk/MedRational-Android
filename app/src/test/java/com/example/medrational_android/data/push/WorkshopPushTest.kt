@@ -3,6 +3,7 @@ package com.example.medrational_android.data.push
 import com.example.medrational_android.TestStrings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkshopPushTest {
@@ -38,11 +39,30 @@ class WorkshopPushTest {
         assertEquals("workshops/12", workshopRoute(12))
     }
 
-    // Must match the backend's PushNotificationService and FcmPushNotificationService
+    // Must match the backend's FcmPushNotificationService
     @Test
-    fun `topic and channel match the backend`() {
-        assertEquals("workshops", WorkshopPush.TOPIC)
+    fun `channel matches the backend`() {
         assertEquals("workshop_reminders", WorkshopPush.CHANNEL_ID)
+    }
+
+    // Must match push.workshops-topic in the backend's application-{prod,uat,dev}.yaml
+    @Test
+    fun `environment topics match the backend profiles`() {
+        assertEquals(listOf("workshops", "workshops-uat", "workshops-dev"), WorkshopPush.ENVIRONMENT_TOPICS)
+    }
+
+    // A phone that once ran a prod build must stop getting prod pushes on a dev build, and the reverse
+    @Test
+    fun `a build leaves the other environments' topics`() {
+        assertEquals(listOf("workshops-uat", "workshops-dev"), topicsToLeave("workshops"))
+        assertEquals(listOf("workshops", "workshops-uat"), topicsToLeave("workshops-dev"))
+    }
+
+    // Unit tests run against the debug build, which talks to the dev backend unless overridden
+    @Test
+    fun `the build's topic is one of the environments'`() {
+        assertTrue(WorkshopPush.TOPIC in WorkshopPush.ENVIRONMENT_TOPICS)
+        assertTrue(WorkshopPush.TOPIC !in topicsToLeave(WorkshopPush.TOPIC))
     }
 
     // A push shown while the app is open, translated like the ones Android shows by itself
