@@ -95,18 +95,15 @@ interface MedRationalApi {
     @GET("api/v1/admin/analytics/trending-hashtags")
     suspend fun getHashtagUsage(@Query("limit") limit: Int = 500): Response<List<HashtagUsage>>
 
+    // 1. Login: email + password, no code. 401 = wrong credentials, 403 = sign-up code never entered
     @POST("api/v1/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<AuthMessageResponse>
+    suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-    // 2. Unified Login OTP Verify -> /api/v1/auth/verify-otp
-    @POST("api/v1/auth/verify-otp")
-    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
-
-    // 3. User Register -> /api/v1/auth/user/register
+    // 2. User Register (409 when a verified account already has the email) -> /api/v1/auth/user/register
     @POST("api/v1/auth/user/register")
     suspend fun requestUserOtp(@Body request: UserRegisterRequest): Response<AuthMessageResponse>
 
-    // 4. User Register OTP Verify -> /api/v1/auth/user/verify-registration
+    // 3. User Register OTP Verify -> /api/v1/auth/user/verify-registration
     @POST("api/v1/auth/user/verify-registration")
     suspend fun verifyUserOtp(@Body request: UserVerifyOtpRequest): Response<UserAuthResponse>
 

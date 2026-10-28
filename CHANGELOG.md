@@ -35,6 +35,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Backend URL configurable per build type through `local.properties`.
 
 ### Changed
+- Signing in only needs your email and password; no more code by email each time. Codes are still sent when you sign up, reset a forgotten password, change your password or email, or delete your account.
+- Signing up with an email that already has an account now says so, instead of sending a code. Signing in before entering your sign-up code asks you to sign up again to get a new one.
 - The app is now **SWISRA** (Study With Scome Rabat), with its own logo as the launcher icon (also as a themed icon on Android 13+) and on a new splash screen.
 - New look: SWISRA red and slate colors, Plus Jakarta Sans and Inter fonts, rounded cards, and a light and a dark look. The app opens in light mode; pick Light, Dark or Like the phone under Appearance in the profile. Screens now draw behind the status and navigation bars.
 - Redesigned welcome screen, with the logo and what the app offers.

@@ -104,9 +104,9 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 
 ## Core Workflows
 
-- **Two-Step OTP Auth:**
-  1. Trigger step (`/auth/login`, `/auth/register`, `/auth/forgot-password`) sends an OTP code to the provided email.
-  2. Verify step (`/auth/verify-otp`) accepts the code and returns user payload + JWT, persisted via `TokenManager.saveAuth(...)`.
+- **Auth:**
+  - Sign-in is email + password only: `/auth/login` returns the user payload + JWT right away, persisted via `TokenManager.saveAuth(...)`. 401 means wrong credentials, and 403 means the sign-up code was never entered (no token is stored yet, so it logs nobody out).
+  - Emailed 6-digit codes are only for sign-up (`/auth/user/register` → `/auth/user/verify-registration`), forgot password (`/auth/forgot-password` → `/auth/reset-password`) and the profile flows (password, email change, account deletion). Signing up with the email of a confirmed account answers 409.
 - **Optimistic Favorites:**
   - Toggling favorites immediately mutates local UI state in `FavoriteViewModel`, followed by the network call to `/api/v1/users/{userId}/favorites`. Rolls back or resyncs on failure.
 

@@ -11,6 +11,8 @@
     <string name="auth_error_no_account">No account is registered with this email.</string>
     <string name="auth_error_reset_code_failed">Failed to send the reset code.</string>
     <string name="auth_error_reset_failed">Password reset failed.</string>
+    <string name="auth_error_email_not_verified">Your email hasn’t been confirmed yet. Sign up again to get a new code.</string>
+    <string name="auth_error_email_taken">An account already exists with this email. Sign in or reset your password.</string>
     <string name="auth_email_label">Email address</string>
     <string name="auth_password_label">Password</string>
     <string name="auth_show_password">Show password</string>
@@ -20,12 +22,7 @@
     <string name="auth_invalid_email">Please enter a valid email address</string>
     <string name="auth_log_in">Log In</string>
     <string name="login_welcome_back">Welcome back</string>
-    <string name="login_subtitle">Enter your credentials to receive an authentication code.</string>
-    <string name="login_send_code">Send login code</string>
-    <string name="login_enter_code">Enter the 6-digit code</string>
-    <string name="login_code_sent_to">We sent a code to %1$s</string>
-    <string name="login_verify_continue">Verify &amp; continue</string>
-    <string name="login_back_to_login">Back to login</string>
+    <string name="login_subtitle">Enter your email and password.</string>
     <string name="login_forgot_password">Forgot password?</string>
     <string name="signup_title">Create account</string>
     <string name="signup_first_name">First name</string>
