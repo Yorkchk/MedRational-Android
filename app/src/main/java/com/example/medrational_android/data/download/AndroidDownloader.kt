@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+import kotlin.concurrent.thread
 
 /** True when [url] points at the MedRational API, the only host that gets the user's token. */
 internal fun shouldSendToken(url: String, baseUrl: String): Boolean = url.startsWith(baseUrl)
@@ -23,7 +24,15 @@ class AndroidDownloader(private val context: Context) {
     private val downloadManager = context.getSystemService(DownloadManager::class.java)
     private val tokenManager = TokenManager(context)
 
-    fun downloadFile(url: String, fileName: String): Long {
+    /**
+     * Starts the download in the background: the token handed to DownloadManager can't be renewed,
+     * so it's renewed first when it's about to expire, which needs the network.
+     */
+    fun downloadFile(url: String, fileName: String) {
+        thread(name = "download-$fileName") { enqueue(url, fileName) }
+    }
+
+    private fun enqueue(url: String, fileName: String): Long {
         val cleanFileName = fileName.replace("[^a-zA-Z0-9._-]".toRegex(), "_")
 
         val request = DownloadManager.Request(Uri.parse(url))
@@ -38,7 +47,8 @@ class AndroidDownloader(private val context: Context) {
         // Lets the backend add single-file downloads to the user's recent downloads, and authorizes
         // workshop attachments. Only ever sent to our own API, never to another host
         if (shouldSendToken(url, ApiClient.BASE_URL)) {
-            tokenManager.getToken()?.let { request.addRequestHeader("Authorization", "Bearer $it") }
+            (ApiClient.freshAccessToken() ?: tokenManager.getToken())
+                ?.let { request.addRequestHeader("Authorization", "Bearer $it") }
         }
 
         val downloadId = downloadManager.enqueue(request)

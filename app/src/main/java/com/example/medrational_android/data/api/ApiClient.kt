@@ -3,15 +3,21 @@ package com.example.medrational_android.data.api
 import android.content.Context
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.BuildConfig
+import com.example.medrational_android.data.auth.RenewResult
+import com.example.medrational_android.data.auth.SessionRenewer
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.shouldSendToken
+import com.example.medrational_android.data.model.AuthResponse
+import com.example.medrational_android.data.model.RefreshTokenRequest
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import com.google.gson.GsonBuilder
 
 /**
@@ -32,15 +38,53 @@ internal fun isBinaryPath(encodedPath: String): Boolean =
 internal fun workshopAttachmentUrl(baseUrl: String, attachmentId: Long, action: String): String =
     "${baseUrl}api/v1/workshops/attachments/$attachmentId/$action"
 
+/** `POST /auth/refresh` as a [RenewResult]: only a 401 ends the session; anything else is retried later. */
+internal fun renewResultOf(code: Int, body: AuthResponse?): RenewResult {
+    val refreshToken = body?.refreshToken
+    return when {
+        code in 200..299 && refreshToken != null -> RenewResult.Renewed(body.token, refreshToken, body.role)
+        code == 401 -> RenewResult.Rejected
+        else -> RenewResult.Unavailable
+    }
+}
+
 object ApiClient {
     // Set per build type from local.properties (api.baseUrl / api.releaseBaseUrl), see app/build.gradle.kts.
     // Not `const`: a const would be inlined into every caller, and incremental builds would keep the old URL
     // after local.properties changes.
     val BASE_URL: String = BuildConfig.BASE_URL
     private var tokenManager: TokenManager? = null
+    private var sessionRenewer: SessionRenewer? = null
 
     fun initialize(context: Context) {
-        tokenManager = TokenManager(context.applicationContext)
+        val manager = TokenManager(context.applicationContext)
+        tokenManager = manager
+        sessionRenewer = SessionRenewer(manager, ::renewOverNetwork)
+    }
+
+    /**
+     * The access token, renewed first if it expires within minutes. Blocking: call it off the main
+     * thread. For the system DownloadManager, which gets a token once and can't renew it.
+     */
+    fun freshAccessToken(): String? = sessionRenewer?.freshToken()
+
+    /** Tells the backend this device signed out, so its session can't be renewed. Best effort. */
+    fun endSessionOnServer() {
+        val refreshToken = tokenManager?.getRefreshToken() ?: return
+        thread(name = "sign-out") {
+            try {
+                sessionApi.logout(RefreshTokenRequest(refreshToken)).execute()
+            } catch (e: IOException) {
+                // Offline: the session simply expires on the server after 60 days unused
+            }
+        }
+    }
+
+    private fun renewOverNetwork(refreshToken: String): RenewResult = try {
+        val response = sessionApi.refresh(RefreshTokenRequest(refreshToken)).execute()
+        renewResultOf(response.code(), response.body())
+    } catch (e: IOException) {
+        RenewResult.Unavailable
     }
 
     // Images are loaded through the backend: their publicUrl points at the private R2 bucket
@@ -60,7 +104,6 @@ object ApiClient {
     fun suggestionAttachmentDownloadUrl(suggestionId: Long): String =
         "${BASE_URL}api/v1/suggestions/$suggestionId/attachment"
 
-    // Inside ApiClient.kt
     private val authInterceptor = Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()
         val token = tokenManager?.getToken()
@@ -69,13 +112,17 @@ object ApiClient {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
 
+        // A 401 (expired token) never gets here unhandled: the authenticator renews the session and
+        // retries, and signs out itself when the session is over. Offline renewals keep the user
+        // signed in
         val response = chain.proceed(requestBuilder.build())
 
-        // If the server rejects the token (user deleted or revoked), clear the stored credentials
-        if (response.code == 401 || response.code == 403) {
+        // 403: signed in but not allowed, e.g. a student on an admin endpoint. Clears the stored
+        // credentials, as before
+        if (response.code == 403) {
             tokenManager?.clearToken()
-            // The phone stays subscribed to workshop pushes: an expired session mustn't make users
-            // miss a registration opening
+            // The phone stays subscribed to workshop pushes: a signed-out user mustn't miss a
+            // registration opening
         }
 
         response
@@ -114,6 +161,8 @@ object ApiClient {
         .addInterceptor(authInterceptor)
         .addInterceptor(previewTimeoutInterceptor)
         .addInterceptor(loggingInterceptor)
+        // On a 401: renew the session and retry once
+        .authenticator(TokenRefreshAuthenticator({ sessionRenewer }, BASE_URL))
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
@@ -127,6 +176,9 @@ object ApiClient {
             .addInterceptor { chain ->
                 chain.proceed(authorizeImageRequest(chain.request(), tokenManager?.getToken(), BASE_URL))
             }
+            // An expired token is renewed like on the API client, but a refused renewal leaves the
+            // sign-out to the API client
+            .authenticator(TokenRefreshAuthenticator({ sessionRenewer }, BASE_URL, signOutWhenOver = false))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
@@ -135,6 +187,22 @@ object ApiClient {
     private val gson = GsonBuilder()
         .setLenient()
         .create()
+
+    // Renewal and sign-out, without the authenticator: a refused renewal must not trigger another
+    private val sessionApi: SessionApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(
+                OkHttpClient.Builder()
+                    .addInterceptor(bodyLogger)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(SessionApi::class.java)
+    }
 
     val api: MedRationalApi by lazy {
         Retrofit.Builder()

@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- You stay signed in: the app renews your session in the background, so you only sign in again after 60 days without opening it. Being offline never signs you out.
+  - Signing out ends the session on the server too.
+  - Changing your password or email signs your other devices out, but keeps this one signed in.
 - Share files to your email, Google Drive, OneDrive, Quick Share or any other app on your phone, to open them on your laptop or tablet:
   - One file: the Share button on its page, or Share in its ⋮ menu.
   - Several files: long-press a file (or pick Select in its ⋮ menu), tick the others, then tap Share. They are sent as separate files.
