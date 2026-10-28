@@ -9,7 +9,6 @@ import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.LoginRequest
 import com.example.medrational_android.data.model.UserRegisterRequest
 import com.example.medrational_android.data.model.UserVerifyOtpRequest
-import com.example.medrational_android.data.model.VerifyOtpRequest
 import com.example.medrational_android.data.model.ResetPasswordRequest
 import com.example.medrational_android.data.model.ForgotPasswordRequest
 import com.example.medrational_android.ui.text.UiText
@@ -44,7 +43,8 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun requestLoginOtp(email: String, password: String) {
+    /** Email + password only: sign-in never asks for a code. */
+    fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_credentials_required))
             return
@@ -54,27 +54,6 @@ class AuthViewModel(
             _uiState.value = AuthUiState.Loading
             try {
                 val response = api.login(LoginRequest(email.trim(), password))
-                if (response.isSuccessful && response.body() != null) {
-                    _uiState.value = AuthUiState.OtpSent(email = email.trim())
-                } else {
-                    _uiState.value = AuthUiState.Error(UiText.Res(R.string.auth_error_invalid_credentials))
-                }
-            } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(NETWORK_ERROR)
-            }
-        }
-    }
-
-    fun verifyLoginOtp(email: String, code: String) {
-        if (code.isBlank() || code.length < 6) {
-            _uiState.value = AuthUiState.Error(ENTER_CODE)
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = AuthUiState.Loading
-            try {
-                val response = api.verifyOtp(VerifyOtpRequest(email.trim(), code.trim()))
                 if (response.isSuccessful && response.body() != null) {
                     val auth = response.body()!!
 
@@ -91,7 +70,11 @@ class AuthViewModel(
 
                     _uiState.value = AuthUiState.LoginSuccess(role = userRole)
                 } else {
-                    _uiState.value = AuthUiState.Error(INVALID_CODE)
+                    // 403: right password, but the sign-up code was never entered
+                    _uiState.value = AuthUiState.Error(
+                        if (response.code() == 403) UiText.Res(R.string.auth_error_email_not_verified)
+                        else UiText.Res(R.string.auth_error_invalid_credentials)
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(NETWORK_ERROR)
@@ -123,8 +106,11 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.OtpSent(email = email.trim())
                 } else {
                     _uiState.value = AuthUiState.Error(
-                        if (response.code() == 400) UiText.Res(R.string.auth_error_check_fields)
-                        else UiText.Res(R.string.auth_error_registration_failed)
+                        when (response.code()) {
+                            400 -> UiText.Res(R.string.auth_error_check_fields)
+                            409 -> UiText.Res(R.string.auth_error_email_taken)
+                            else -> UiText.Res(R.string.auth_error_registration_failed)
+                        }
                     )
                 }
             } catch (e: Exception) {

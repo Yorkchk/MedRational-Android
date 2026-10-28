@@ -1,7 +1,6 @@
 package com.example.medrational_android.ui.auth
 
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
@@ -22,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.medrational_android.R
-import com.example.medrational_android.ui.components.OtpCodeField
 import com.example.medrational_android.ui.components.PrimaryButton
 import com.example.medrational_android.ui.components.StatusBanner
 import com.example.medrational_android.ui.text.asString
@@ -43,13 +41,9 @@ fun LoginScreen(
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var otpCode by rememberSaveable { mutableStateOf("") }
-    // Remembered so the code step survives Loading and Error; derived below for the current frame
-    var otpEmail by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(uiState) { otpEmail = otpStepEmail(otpEmail, uiState) }
 
     val isLoading = uiState is AuthUiState.Loading
-    val canSendCode = !isLoading && email.isNotBlank() && password.isNotBlank()
+    val canSignIn = !isLoading && email.isNotBlank() && password.isNotBlank()
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.LoginSuccess) {
@@ -63,78 +57,44 @@ fun LoginScreen(
         }
     }
 
-    val sendCode = {
+    val signIn = {
         focusManager.clearFocus()
-        viewModel.requestLoginOtp(email, password)
+        viewModel.login(email, password)
     }
 
-    val codeEmail = otpStepEmail(otpEmail, uiState)
-    if (codeEmail == null) {
-        AuthLayout(
-            title = stringResource(R.string.login_welcome_back),
-            subtitle = stringResource(R.string.login_subtitle),
-            onBackClick = onBackClick
-        ) {
-            AuthTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = stringResource(R.string.auth_email_label),
-                leadingIcon = Icons.Outlined.Email,
-                keyboardType = KeyboardType.Email
-            )
-            AuthTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = stringResource(R.string.auth_password_label),
-                leadingIcon = Icons.Outlined.Lock,
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-                onImeAction = { if (canSendCode) sendCode() },
-                isPassword = true
-            )
-            TextButton(onClick = onNavigateToForgotPassword, modifier = Modifier.align(Alignment.End)) {
-                Text(stringResource(R.string.login_forgot_password))
-            }
-            ErrorBanner(uiState)
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            PrimaryButton(
-                text = stringResource(R.string.login_send_code),
-                onClick = sendCode,
-                enabled = canSendCode,
-                loading = isLoading
-            )
+    AuthLayout(
+        title = stringResource(R.string.login_welcome_back),
+        subtitle = stringResource(R.string.login_subtitle),
+        onBackClick = onBackClick
+    ) {
+        AuthTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = stringResource(R.string.auth_email_label),
+            leadingIcon = Icons.Outlined.Email,
+            keyboardType = KeyboardType.Email
+        )
+        AuthTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = stringResource(R.string.auth_password_label),
+            leadingIcon = Icons.Outlined.Lock,
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done,
+            onImeAction = { if (canSignIn) signIn() },
+            isPassword = true
+        )
+        TextButton(onClick = onNavigateToForgotPassword, modifier = Modifier.align(Alignment.End)) {
+            Text(stringResource(R.string.login_forgot_password))
         }
-    } else {
-        val verify = { viewModel.verifyLoginOtp(codeEmail, otpCode) }
-        val leaveCodeStep = {
-            otpEmail = null
-            otpCode = ""
-            viewModel.resetState()
-        }
-        AuthLayout(
-            title = stringResource(R.string.login_enter_code),
-            subtitle = stringResource(R.string.login_code_sent_to, codeEmail),
-            // Back from the code goes back to the credentials, not out of sign-in
-            onBackClick = leaveCodeStep
-        ) {
-            OtpCodeField(
-                value = otpCode,
-                onValueChange = { otpCode = it },
-                onDone = verify,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            ErrorBanner(uiState)
-            PrimaryButton(
-                text = stringResource(R.string.login_verify_continue),
-                onClick = verify,
-                enabled = otpCode.length == 6,
-                loading = isLoading
-            )
-            TextButton(onClick = leaveCodeStep, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text(stringResource(R.string.login_back_to_login))
-            }
-        }
+        ErrorBanner(uiState)
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        PrimaryButton(
+            text = stringResource(R.string.auth_log_in),
+            onClick = signIn,
+            enabled = canSignIn,
+            loading = isLoading
+        )
     }
 }
 

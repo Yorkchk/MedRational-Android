@@ -157,7 +157,6 @@ data class CreateReasoningRequest(
 )
 
 data class LoginRequest(val email: String, val password: String)
-data class VerifyOtpRequest(val email: String, val code: String)
 data class AuthResponse(
     val token: String,
     val role: String,

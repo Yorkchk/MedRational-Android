@@ -11,6 +11,8 @@
     <string name="auth_error_no_account">Aucun compte n’est associé à cet e-mail.</string>
     <string name="auth_error_reset_code_failed">Impossible d’envoyer le code de réinitialisation.</string>
     <string name="auth_error_reset_failed">La réinitialisation du mot de passe a échoué.</string>
+    <string name="auth_error_email_not_verified">Votre e-mail n’a pas encore été confirmé. Inscrivez-vous à nouveau pour recevoir un nouveau code.</string>
+    <string name="auth_error_email_taken">Un compte existe déjà avec cet e-mail. Connectez-vous ou réinitialisez votre mot de passe.</string>
     <string name="auth_email_label">Adresse e-mail</string>
     <string name="auth_password_label">Mot de passe</string>
     <string name="auth_show_password">Afficher le mot de passe</string>
@@ -20,12 +22,7 @@
     <string name="auth_invalid_email">Veuillez saisir une adresse e-mail valide</string>
     <string name="auth_log_in">Se connecter</string>
     <string name="login_welcome_back">Bon retour</string>
-    <string name="login_subtitle">Saisissez vos identifiants pour recevoir un code d’authentification.</string>
-    <string name="login_send_code">Recevoir le code de connexion</string>
-    <string name="login_enter_code">Saisissez le code à 6 chiffres</string>
-    <string name="login_code_sent_to">Nous avons envoyé un code à %1$s</string>
-    <string name="login_verify_continue">Vérifier et continuer</string>
-    <string name="login_back_to_login">Retour à la connexion</string>
+    <string name="login_subtitle">Saisissez votre e-mail et votre mot de passe.</string>
     <string name="login_forgot_password">Mot de passe oublié ?</string>
     <string name="signup_title">Créer un compte</string>
     <string name="signup_first_name">Prénom</string>
