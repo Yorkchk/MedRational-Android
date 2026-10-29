@@ -13,9 +13,11 @@ Users browse hierarchical educational materials: **Categories → Reasonings →
 Run these from the repository root (use `gradlew.bat` on Windows):
 
 ```bash
-./gradlew assembleDebug                 # Build debug APK
-./gradlew installDebug                  # Install debug APK on connected device/emulator
-./gradlew test                          # JVM unit tests (app/src/test)
+./gradlew assembleDevDebug              # Build debug APK (dev environment)
+./gradlew installDevDebug               # Install it on connected device/emulator
+./gradlew assembleUatRelease            # Prod-like build against UAT (needs api.uatUrl)
+./gradlew bundleProdRelease             # Play Store bundle (needs api.prodUrl and a signing key)
+./gradlew testDevDebugUnitTest          # JVM unit tests (app/src/test)
 ./gradlew connectedAndroidTest          # Instrumented tests (needs connected device/emulator)
 ./gradlew lint                          # Run Android lint
 ./gradlew test --tests "com.example.medrational_android.ExampleUnitTest" # Run single test class
@@ -43,7 +45,8 @@ Package root: `app/src/main/java/com/example/medrational_android`
 
 ## Backend Connection & Networking
 
-- **Local Host Mapping:** `ApiClient.BASE_URL` comes from `BuildConfig.BASE_URL`, set per build type in `app/build.gradle.kts` from `local.properties` (`api.baseUrl`, `api.releaseBaseUrl`). It defaults to `http://10.0.2.2:8080/` (reaches host machine from Android emulator). For physical devices, set `api.baseUrl` to the host machine's LAN IP (e.g., `http://192.168.x.x:8080/`). Ensure the Spring Boot backend in `../MedRational` is running.
+- **Environments (flavors):** the `env` flavor (`dev`, `uat`, `prod`) picks the backend and push topic, and the build type (debug/release) only how it's built, so `uatRelease` is a prod-like UAT build. dev and uat have their own application ID (`.dev`, `.uat`) and launcher name ("SWISRA Dev", "SWISRA UAT", from the manifest's `${appLabel}`), so they install next to the Play Store app; each ID is an Android app in the Firebase project and must be listed in `google-services.json`, or the build fails.
+- **Local Host Mapping:** `ApiClient.BASE_URL` comes from `BuildConfig.BASE_URL`, set per flavor in `app/build.gradle.kts` from `local.properties` (`api.devUrl`, `api.uatUrl`, `api.prodUrl`). dev defaults to `http://10.0.2.2:8080/` (reaches host machine from Android emulator); uat and prod have no default, and building them without their URL fails. For physical devices, set `api.devUrl` to the host machine's LAN IP (e.g., `http://192.168.x.x:8080/`). Ensure the Spring Boot backend in `../MedRational` is running.
 - **Cleartext Traffic:** Enabled in `AndroidManifest.xml` (`android:usesCleartextTraffic="true"`) for local HTTP development.
 - **DTO Mirroring:** Models in `data/model/Models.kt` mirror the Spring backend DTOs field-for-field using Gson serialization. Paginated endpoints return `PageResponse<T>` (extract records via `.content`). Always verify target endpoints in `../MedRational/src` before altering models.
 - **File Downloads:** Downloads bypass Retrofit. UI components assemble download URLs (`${ApiClient.BASE_URL}api/v1/downloads/file/{id}` or `.../downloads/category/{id}/zip`) and pass them to `AndroidDownloader`, which delegates to the system's `DownloadManager` with bearer token authentication headers. The backend uses that token to record single-file downloads for the Recent downloads screen (`GET /api/v1/users/{userId}/recent-downloads`), so the app never records them itself.
@@ -59,8 +62,8 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - Creating a project pushes to the environment's FCM topic right away (`WORKSHOP_CREATED`), so students hear about it while it is still UPCOMING.
   - The backend scheduler publishes to the same topic 10 minutes before opening, at opening, 10 minutes before closing and at closing (`PushNotificationService`). It needs `FIREBASE_CREDENTIALS` (path to the secret service-account key) in the backend `.env`. Without it, pushes are skipped with a warning.
   - A manual status change pushes too: OPEN sends the opened alert (`WORKSHOP_LAUNCH`) and CLOSED the closed one (`WORKSHOP_CLOSED`). Back to UPCOMING sends nothing. The scheduler skips alerts whose moment already passed, and closes a project whose whole window is past without alerting. A new project must open in the future, checked in both the app and the backend. Workshop times are always shown and picked in 24-hour format (e.g. "20 Oct 2026, 19:30"), whatever the phone's setting. Notifications only use the `NotifType` values; add a new value to the enum when one is needed.
-  - Each environment has its own topic, all in one Firebase project: `workshops` (prod), `workshops-uat`, `workshops-dev`, set by the backend's `push.workshops-topic` (`WORKSHOPS_PUSH_TOPIC`). The app's topic is `BuildConfig.WORKSHOPS_TOPIC`, set per build type from `local.properties` (`push.topic`, default `workshops-dev`; `push.releaseTopic`, default `workshops`), so it must match the backend in `BASE_URL`.
-  - The app subscribes to its topic at every start in `MainActivity.onCreate`, signed in or not (`data/push/WorkshopPush.kt`), and unsubscribes from the other environments' topics (`topicsToLeave`), so a phone that switched builds stops hearing the old backend. It never leaves its own topic: signing out or a 401/403 must not make users miss a registration opening.
+  - Each environment has its own topic, all in one Firebase project: `workshops` (prod), `workshops-uat`, `workshops-dev`, set by the backend's `push.workshops-topic` (`WORKSHOPS_PUSH_TOPIC`). The app picks its topic from its flavor (`workshopsTopicFor(BuildConfig.FLAVOR)`), so it always matches the backend in `BASE_URL`.
+  - The app subscribes to its topic at every start in `MainActivity.onCreate`, signed in or not (`data/push/WorkshopPush.kt`), and never unsubscribes: signing out or a 401/403 must not make users miss a registration opening.
   - The app asks for the Android 13+ notification permission at startup. Tapping a push opens `workshops/{projectId}`. When signed out it opens `login` first, and the project opens after sign-in (`routeForPushTap`, `pendingPushProjectId` in `MedRationalApp`).
   - Push needs `app/google-services.json` from the Firebase console (not secret, committed). Without it the app builds with push off.
   - The topic, the channel (`workshop_reminders`) and the data key (`projectId`) must match the backend.
@@ -136,13 +139,13 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 
 ## Common Pitfalls & Troubleshooting
 
-- **Connection Refused (`ECONNREFUSED`):** Verify the Spring Boot backend is running locally on port 8080. If testing on a physical device, confirm the device and computer share the same Wi-Fi subnet and set `api.baseUrl` in `local.properties` to the computer's LAN IP.
+- **Connection Refused (`ECONNREFUSED`):** Verify the Spring Boot backend is running locally on port 8080. If testing on a physical device, confirm the device and computer share the same Wi-Fi subnet and set `api.devUrl` in `local.properties` to the computer's LAN IP.
 - **Unexpected Logouts:** A 403 Forbidden (missing endpoint permissions) or a refused session renewal (401 from `/auth/refresh`) clears the stored session. Check backend security filters and Spring logs if requests trigger logout loops.
 - **Context Initialization Crash:** If `ApiClient.api` throws `IllegalStateException` or `UninitializedPropertyAccessException`, verify `ApiClient.initialize(applicationContext)` ran inside `MainActivity.onCreate()`.
 
 ## Git workflow
 
-`main` is protected: changes go through short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and pull requests that must pass the Android CI workflow (`.github/workflows/android-ci.yml`: `lint testDebugUnitTest assembleDebug`). PRs are squash-merged, so PR titles use Conventional Commits (`feat(favorites): …`). Record user-facing changes under `[Unreleased]` in `CHANGELOG.md`.
+`main` is protected: changes go through short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and pull requests that must pass the Android CI workflow (`.github/workflows/android-ci.yml`: `lint testDevDebugUnitTest assembleDevDebug assembleDevRelease`; only the dev flavor, since CI has no uat/prod URLs). PRs are squash-merged, so PR titles use Conventional Commits (`feat(favorites): …`). Record user-facing changes under `[Unreleased]` in `CHANGELOG.md`.
 
 ## Testing policy
 

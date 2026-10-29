@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
-- Test builds get the workshop notifications of the test server they talk to, and the store app only gets the real ones, so testing never notifies students.
+- Testers can install the UAT app ("SWISRA UAT") next to the real one. It talks to the test server and only gets its workshop notifications, so testing never notifies students.
 - You stay signed in: the app renews your session in the background, so you only sign in again after 60 days without opening it. Being offline never signs you out.
   - Signing out ends the session on the server too.
   - Changing your password or email signs your other devices out, but keeps this one signed in.

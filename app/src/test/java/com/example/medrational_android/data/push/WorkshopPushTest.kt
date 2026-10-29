@@ -1,9 +1,9 @@
 package com.example.medrational_android.data.push
 
+import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.TestStrings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkshopPushTest {
@@ -45,24 +45,23 @@ class WorkshopPushTest {
         assertEquals("workshop_reminders", WorkshopPush.CHANNEL_ID)
     }
 
-    // Must match push.workshops-topic in the backend's application-{prod,uat,dev}.yaml
+    // Must match push.workshops-topic in the backend's application-{dev,uat,prod}.yaml
     @Test
-    fun `environment topics match the backend profiles`() {
-        assertEquals(listOf("workshops", "workshops-uat", "workshops-dev"), WorkshopPush.ENVIRONMENT_TOPICS)
+    fun `each environment has the backend's topic`() {
+        assertEquals("workshops-dev", workshopsTopicFor("dev"))
+        assertEquals("workshops-uat", workshopsTopicFor("uat"))
+        assertEquals("workshops", workshopsTopicFor("prod"))
     }
 
-    // A phone that once ran a prod build must stop getting prod pushes on a dev build, and the reverse
-    @Test
-    fun `a build leaves the other environments' topics`() {
-        assertEquals(listOf("workshops-uat", "workshops-dev"), topicsToLeave("workshops"))
-        assertEquals(listOf("workshops", "workshops-uat"), topicsToLeave("workshops-dev"))
+    // A new flavor must not fall back to prod and notify real students
+    @Test(expected = IllegalArgumentException::class)
+    fun `an unknown environment has no topic`() {
+        workshopsTopicFor("staging")
     }
 
-    // Unit tests run against the debug build, which talks to the dev backend unless overridden
     @Test
-    fun `the build's topic is one of the environments'`() {
-        assertTrue(WorkshopPush.TOPIC in WorkshopPush.ENVIRONMENT_TOPICS)
-        assertTrue(WorkshopPush.TOPIC !in topicsToLeave(WorkshopPush.TOPIC))
+    fun `the build listens to its own environment's topic`() {
+        assertEquals(workshopsTopicFor(BuildConfig.FLAVOR), WorkshopPush.TOPIC)
     }
 
     // A push shown while the app is open, translated like the ones Android shows by itself

@@ -56,30 +56,40 @@ Compose screens ──► ViewModels (StateFlow UI state) ──► ApiClient (R
 **Requirements:** Android Studio (latest stable), JDK 17, and a running [MedRational backend](https://github.com/Yorkchk/MedRational) on port 8080.
 
 1. Clone the repo and open it in Android Studio.
-2. Optionally set the backend URL in `local.properties` (not committed):
+2. Optionally set the backend URLs in `local.properties` (not committed), one per environment:
    ```properties
    # Default: http://10.0.2.2:8080/ (your computer, as seen from the emulator)
-   api.baseUrl=http://192.168.1.20:8080/
-   # URL baked into release builds (defaults to api.baseUrl)
-   api.releaseBaseUrl=https://api.example.com/
-   # FCM topic for workshop pushes, matching the backend's push.workshops-topic
-   # Defaults: workshops-dev (debug) and workshops (release); use workshops-uat against UAT
-   push.topic=workshops-dev
-   push.releaseTopic=workshops
+   api.devUrl=http://192.168.1.20:8080/
+   # No defaults: only needed where uat or prod builds are made
+   api.uatUrl=https://uat.example.com/
+   api.prodUrl=https://api.example.com/
    ```
    On a physical device, use your computer's LAN IP; the phone must be on the same network.
-3. Run the `app` configuration, or from the command line:
+3. Pick the `devDebug` variant (View → Tool Windows → Build Variants) and run the `app` configuration, or from the command line:
    ```bash
-   ./gradlew installDebug
+   ./gradlew installDevDebug
    ```
+
+### Environments
+
+The environment is a flavor, separate from the build type, and sets the backend URL and the workshop push topic:
+
+| Flavor | Backend URL | Push topic | App name | Application ID |
+|---|---|---|---|---|
+| `dev` | `api.devUrl` | `workshops-dev` | SWISRA Dev | `com.example.medrational_android.dev` |
+| `uat` | `api.uatUrl` | `workshops-uat` | SWISRA UAT | `com.example.medrational_android.uat` |
+| `prod` | `api.prodUrl` | `workshops` | SWISRA | `com.example.medrational_android` |
+
+Each has its own application ID, so the three apps install side by side. Build UAT as a release (`./gradlew assembleUatRelease`) to test what production gets.
 
 ### Useful commands
 
 ```bash
-./gradlew assembleDebug        # build a debug APK
-./gradlew testDebugUnitTest    # unit tests
-./gradlew lint                 # Android lint
-./gradlew assembleRelease      # minified release build (needs a signing config to install)
+./gradlew assembleDevDebug       # build a debug APK
+./gradlew testDevDebugUnitTest   # unit tests
+./gradlew lint                   # Android lint
+./gradlew assembleUatRelease     # minified build against UAT (needs a signing config to install)
+./gradlew bundleProdRelease      # Play Store bundle
 ```
 
 ## Contributing
