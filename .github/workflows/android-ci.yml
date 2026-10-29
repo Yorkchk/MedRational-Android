@@ -23,19 +23,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # assembleRelease runs R8 (minify + resource shrinking), which can strip classes the app
+      # assembleDevRelease runs R8 (minify + resource shrinking), which can strip classes the app
       # reads by reflection (Gson models). It builds unsigned here, which is enough to catch that.
+      # Only the dev flavor is built: uat and prod need backend URLs that CI doesn't have.
       - name: Lint, unit tests, coverage, debug and release builds
         run: |
           chmod +x gradlew
-          ./gradlew lint testDebugUnitTest koverXmlReportDebug koverHtmlReportDebug assembleDebug assembleRelease
+          ./gradlew lint testDevDebugUnitTest koverXmlReportDevDebug koverHtmlReportDevDebug assembleDevDebug assembleDevRelease
 
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: app/build/reports/lint-results-debug.html
+          path: app/build/reports/lint-results-devDebug.html
 
       # Which tests failed and why, without rerunning locally
       - name: Upload test reports
@@ -57,7 +58,7 @@ jobs:
       - name: Coverage summary
         if: always()
         run: |
-          xml=app/build/reports/kover/reportDebug.xml
+          xml=app/build/reports/kover/reportDevDebug.xml
           if [ -f "$xml" ]; then
             grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/>' "$xml" | tail -1 \
               | sed -E 's/.*missed="([0-9]+)" covered="([0-9]+)".*/\1 \2/' \

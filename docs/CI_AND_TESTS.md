@@ -31,7 +31,7 @@ What happens automatically every time you open or update a pull request in **Med
 | Job name (status check) | `build` | `build` (required), `docker` |
 | Runs on | every PR (opened or new commits pushed) + every push to `main` | same |
 | Machine | GitHub-hosted `ubuntu-latest` VM, fresh every run | same, plus a PostgreSQL 16 container |
-| Main command | `./gradlew lint testDebugUnitTest koverXmlReportDebug koverHtmlReportDebug assembleDebug assembleRelease` | `./mvnw -B verify` (tests + JaCoCo); the `docker` job builds the `Dockerfile` without pushing |
+| Main command | `./gradlew lint testDevDebugUnitTest koverXmlReportDevDebug koverHtmlReportDevDebug assembleDevDebug assembleDevRelease` (dev flavor only: uat and prod need URLs CI doesn't have) | `./mvnw -B verify` (tests + JaCoCo); the `docker` job builds the `Dockerfile` without pushing |
 | First run duration | **5 min 28 s** | **1 min 20 s** |
 | First run result | ✅ pass | ✅ pass |
 | Output kept after the run | `lint-report`, `coverage-report` (Kover HTML/XML), and `test-reports` when tests fail | `coverage-report` (JaCoCo HTML/CSV), and `test-reports` (Surefire) when tests fail |
@@ -62,7 +62,7 @@ When the PR is merged, the push to `main` triggers the workflow once more. That 
 **Also on every run:**
 - **Coverage:** the run's summary page shows the line coverage of the unit tests, and the `coverage-report` artifact has the full HTML report (open `index.html`) showing which lines no test runs. It's a report only: there is no minimum yet.
 - **Failed tests:** the `test-reports` artifact holds the HTML (Android) or Surefire (backend) report, with each failing test's assertion and stack trace.
-- **Release build (Android):** `assembleRelease` runs R8, which shrinks and renames code. A class read by reflection (the Gson models in `data/model`) and missing a keep rule in `app/proguard-rules.pro` fails here, instead of crashing the released app. The APK is unsigned, since CI has no signing key.
+- **Release build (Android):** `assembleDevRelease` runs R8, which shrinks and renames code. A class read by reflection (the Gson models in `data/model`) and missing a keep rule in `app/proguard-rules.pro` fails here, instead of crashing the released app. The APK is unsigned, since CI has no signing key.
 - **Docker image (backend):** the `docker` job builds the `Dockerfile` on every PR, so a broken image is caught before the merge instead of in the publish workflow. It isn't a required check yet.
 - **Cancelled runs:** pushing new commits to a PR cancels the run still going for the older ones. Runs on `main` always finish.
 

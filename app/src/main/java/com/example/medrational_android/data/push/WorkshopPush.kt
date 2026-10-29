@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.R
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,8 +18,8 @@ import java.util.IllegalFormatException
  */
 object WorkshopPush {
 
-    // Must match PushNotificationService.WORKSHOPS_TOPIC on the backend
-    const val TOPIC = "workshops"
+    // The topic of the backend this build talks to, picked by its environment flavor
+    val TOPIC: String = workshopsTopicFor(BuildConfig.FLAVOR)
 
     // Must match FcmPushNotificationService.ANDROID_CHANNEL_ID on the backend
     const val CHANNEL_ID = "workshop_reminders"
@@ -53,6 +54,19 @@ object WorkshopPush {
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
+}
+
+/**
+ * The workshops topic of an environment flavor (app/build.gradle.kts). Must match push.workshops-topic
+ * in the backend's application-{dev,uat,prod}.yaml. Each environment is its own app (application ID),
+ * so it can never be subscribed to another environment's topic.
+ */
+fun workshopsTopicFor(env: String): String = when (env) {
+    "dev" -> "workshops-dev"
+    "uat" -> "workshops-uat"
+    "prod" -> "workshops"
+    // Never fall back to prod: a new flavor must not notify real students by accident
+    else -> throw IllegalArgumentException("No workshops topic for environment '$env'")
 }
 
 /** The project a push is about, or null when it doesn't name a valid one. */

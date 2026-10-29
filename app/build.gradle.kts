@@ -27,6 +27,7 @@ kover {
     }
 }
 
+
 // Push notifications (Firebase Cloud Messaging) need app/google-services.json from the Firebase
 // console. Without it the app still builds, and push is simply off (see data/push/WorkshopPush.kt)
 if (file("google-services.json").exists()) {
@@ -35,13 +36,15 @@ if (file("google-services.json").exists()) {
     logger.warn("app/google-services.json is missing: push notifications are disabled in this build")
 }
 
-// Backend URLs come from local.properties (not committed) so they never live in source.
-// Defaults target the backend on the host machine as seen from the Android emulator.
+// Backend URLs come from local.properties (not committed) so they never live in source, one per
+// environment flavor. The dev default targets the backend on the host machine as seen from the
+// Android emulator; uat and prod have none, so building them without their URL fails (see below).
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
-val debugBaseUrl = localProps.getProperty("api.baseUrl", "http://10.0.2.2:8080/")
-val releaseBaseUrl = localProps.getProperty("api.releaseBaseUrl", debugBaseUrl)
+val envUrlKeys = mapOf("dev" to "api.devUrl", "uat" to "api.uatUrl", "prod" to "api.prodUrl")
+fun envUrl(env: String): String? = localProps.getProperty(envUrlKeys.getValue(env))
+    ?: "http://10.0.2.2:8080/".takeIf { env == "dev" }
 
 android {
     namespace = "com.example.medrational_android"
@@ -57,12 +60,34 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        debug {
-            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+    // The environment (which backend and push topic) is a flavor, independent of the build type, so
+    // uatRelease is a prod-like build for UAT. dev and uat get their own application ID and launcher
+    // name, so testers keep the real app installed next to them; each ID must be an Android app in
+    // the Firebase project, listed in google-services.json. The topic is picked in WorkshopPush.
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["appLabel"] = "SWISRA Dev"
         }
+        create("uat") {
+            dimension = "env"
+            applicationIdSuffix = ".uat"
+            manifestPlaceholders["appLabel"] = "SWISRA UAT"
+        }
+        create("prod") {
+            dimension = "env"
+            // No suffix: the Play Store app's ID
+            manifestPlaceholders["appLabel"] = "SWISRA"
+        }
+    }
+    productFlavors.configureEach {
+        buildConfigField("String", "BASE_URL", "\"${envUrl(name).orEmpty()}\"")
+    }
+
+    buildTypes {
         release {
-            buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -88,6 +113,17 @@ android {
         language {
             enableSplit = false
         }
+    }
+}
+
+// Fails a uat or prod build up front when its URL is missing, instead of shipping an app with no
+// backend. Dev builds (and CI) never need one.
+gradle.taskGraph.whenReady {
+    val missing = envUrlKeys.filter { (env, _) ->
+        envUrl(env) == null && allTasks.any { it.project == project && it.name.contains(env.replaceFirstChar(Char::uppercase)) }
+    }
+    if (missing.isNotEmpty()) {
+        throw GradleException("Set ${missing.values.joinToString(" and ")} in local.properties to build ${missing.keys.joinToString(" and ")}")
     }
 }
 

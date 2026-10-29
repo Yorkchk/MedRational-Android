@@ -1,5 +1,6 @@
 package com.example.medrational_android.data.push
 
+import com.example.medrational_android.BuildConfig
 import com.example.medrational_android.TestStrings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -38,11 +39,29 @@ class WorkshopPushTest {
         assertEquals("workshops/12", workshopRoute(12))
     }
 
-    // Must match the backend's PushNotificationService and FcmPushNotificationService
+    // Must match the backend's FcmPushNotificationService
     @Test
-    fun `topic and channel match the backend`() {
-        assertEquals("workshops", WorkshopPush.TOPIC)
+    fun `channel matches the backend`() {
         assertEquals("workshop_reminders", WorkshopPush.CHANNEL_ID)
+    }
+
+    // Must match push.workshops-topic in the backend's application-{dev,uat,prod}.yaml
+    @Test
+    fun `each environment has the backend's topic`() {
+        assertEquals("workshops-dev", workshopsTopicFor("dev"))
+        assertEquals("workshops-uat", workshopsTopicFor("uat"))
+        assertEquals("workshops", workshopsTopicFor("prod"))
+    }
+
+    // A new flavor must not fall back to prod and notify real students
+    @Test(expected = IllegalArgumentException::class)
+    fun `an unknown environment has no topic`() {
+        workshopsTopicFor("staging")
+    }
+
+    @Test
+    fun `the build listens to its own environment's topic`() {
+        assertEquals(workshopsTopicFor(BuildConfig.FLAVOR), WorkshopPush.TOPIC)
     }
 
     // A push shown while the app is open, translated like the ones Android shows by itself
