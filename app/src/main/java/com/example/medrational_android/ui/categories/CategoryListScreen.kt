@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.NewReleases
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -53,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,12 +68,15 @@ import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.ListRowCard
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.MonogramTile
+import com.example.medrational_android.ui.components.NoMatch
+import com.example.medrational_android.ui.components.QuickSearchBar
 import com.example.medrational_android.ui.components.SectionHeader
 import com.example.medrational_android.ui.components.SwisraLogo
 import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.components.greetingName
 import com.example.medrational_android.ui.components.listColumnsFor
 import com.example.medrational_android.ui.components.windowWidthDp
+import com.example.medrational_android.ui.search.filterCategories
 import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
@@ -94,6 +96,8 @@ fun CategoryListScreen(
     onNavigateToWorkshops: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToStatistics: () -> Unit,
+    // Opens the full search with what was typed in the home search bar
+    onAdvancedSearch: (query: String) -> Unit = { onNavigateToSearch() },
     // Files uploaded since the last visit to What's new
     noveltyCount: Long = 0
 ) {
@@ -211,7 +215,7 @@ fun CategoryListScreen(
                         firstName = firstName,
                         noveltyCount = if (isLoggedIn) noveltyCount else 0,
                         isAdmin = isAdmin,
-                        onSearchClick = onNavigateToSearch,
+                        onAdvancedSearch = onAdvancedSearch,
                         onNoveltiesClick = onNavigateToNovelties,
                         onCategoryClick = onCategoryClick,
                         onDeleteClick = { categoryToDelete = it }
@@ -284,7 +288,7 @@ private fun HomeContent(
     firstName: String?,
     noveltyCount: Long,
     isAdmin: Boolean,
-    onSearchClick: () -> Unit,
+    onAdvancedSearch: (query: String) -> Unit,
     onNoveltiesClick: () -> Unit,
     onCategoryClick: (Long, String) -> Unit,
     onDeleteClick: (Category) -> Unit,
@@ -292,80 +296,77 @@ private fun HomeContent(
 ) {
     // Centered on very wide screens, so the tiles don't spread into many small columns
     val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid)
-    LazyVerticalGrid(
-        // One category per line on phones, two on tablets
-        columns = GridCells.Fixed(listColumnsFor(windowWidthDp())),
-        modifier = modifier.fillMaxSize(),
-        // Room at the bottom so the admin button never covers the last cards
-        contentPadding = PaddingValues(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = 96.dp),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Column {
-                Text(
-                    text = if (firstName != null) stringResource(R.string.home_greeting, firstName) else stringResource(R.string.home_greeting_anonymous),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = stringResource(R.string.home_greeting_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            SearchPill(onClick = onSearchClick)
-        }
-        if (noveltyCount > 0) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                NoveltyBanner(count = noveltyCount, onClick = onNoveltiesClick)
-            }
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            SectionHeader(title = stringResource(R.string.categories_title))
-        }
-        if (categories.isEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                EmptyState(
-                    title = stringResource(R.string.categories_empty),
-                    hint = if (isAdmin) stringResource(R.string.categories_empty_admin_hint) else null,
-                    icon = Icons.Outlined.MedicalServices,
-                    modifier = Modifier.heightIn(min = 240.dp)
-                )
-            }
-        }
-        items(categories, key = { it.id }) { category ->
-            CategoryRow(
-                category = category,
-                isAdmin = isAdmin,
-                onClick = { onCategoryClick(category.id, category.name) },
-                onDeleteClick = { onDeleteClick(category) }
-            )
-        }
-    }
-}
-
-// Looks like a search field and opens the Search screen, where typing happens
-@Composable
-private fun SearchPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth().padding(top = Spacing.sm)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+    var query by rememberSaveable { mutableStateOf("") }
+    val searching = query.isNotBlank()
+    val shown = remember(categories, query) { filterCategories(categories, query) }
+    Column(modifier = modifier.fillMaxSize()) {
+        // Above the list, so it stays at hand however far the categories go
+        QuickSearchBar(
+            query = query,
+            onQueryChange = { query = it },
+            placeholder = stringResource(R.string.home_search_categories),
+            onAdvancedSearch = { onAdvancedSearch(query.trim()) },
+            modifier = Modifier.padding(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = Spacing.sm)
+        )
+        LazyVerticalGrid(
+            // One category per line on phones, two on tablets
+            columns = GridCells.Fixed(listColumnsFor(windowWidthDp())),
+            modifier = Modifier.weight(1f),
+            // Room at the bottom so the admin button never covers the last cards
+            contentPadding = PaddingValues(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = 96.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.width(Spacing.md))
-            Text(
-                text = stringResource(R.string.home_search_hint),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // The greeting and novelties step aside while searching, so the results come first
+            if (!searching) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column {
+                        Text(
+                            text = if (firstName != null) stringResource(R.string.home_greeting, firstName) else stringResource(R.string.home_greeting_anonymous),
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(
+                            text = stringResource(R.string.home_greeting_subtitle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            if (noveltyCount > 0 && !searching) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    NoveltyBanner(count = noveltyCount, onClick = onNoveltiesClick)
+                }
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                SectionHeader(title = stringResource(R.string.categories_title))
+            }
+            if (categories.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    EmptyState(
+                        title = stringResource(R.string.categories_empty),
+                        hint = if (isAdmin) stringResource(R.string.categories_empty_admin_hint) else null,
+                        icon = Icons.Outlined.MedicalServices,
+                        modifier = Modifier.heightIn(min = 240.dp)
+                    )
+                }
+            }
+            if (searching && categories.isNotEmpty() && shown.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    NoMatch(
+                        message = stringResource(R.string.categories_no_match, query.trim()),
+                        onAdvancedSearch = { onAdvancedSearch(query.trim()) }
+                    )
+                }
+            }
+            items(shown, key = { it.id }) { category ->
+                CategoryRow(
+                    category = category,
+                    isAdmin = isAdmin,
+                    onClick = { onCategoryClick(category.id, category.name) },
+                    onDeleteClick = { onDeleteClick(category) }
+                )
+            }
         }
     }
 }

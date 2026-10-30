@@ -32,4 +32,6 @@
         <item quantity="one">%d new file since your last visit</item>
         <item quantity="other">%d new files since your last visit</item>
     </plurals>
+    <string name="search_advanced">Advanced search</string>
+    <string name="search_advanced_short">Advanced</string>
 </resources>

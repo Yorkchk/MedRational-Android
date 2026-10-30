@@ -95,15 +95,20 @@ import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.AdaptiveCardList
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.FileTypeBadge
 import com.example.medrational_android.ui.components.HashtagPickerDialog
 import com.example.medrational_android.ui.components.LoadingState
+import com.example.medrational_android.ui.components.NoMatch
+import com.example.medrational_android.ui.components.QuickSearchBar
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.components.SwisraTopBar
 import com.example.medrational_android.ui.components.TintedTile
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.files.ShareEffects
+import com.example.medrational_android.ui.search.filterReasonings
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
@@ -129,6 +134,8 @@ fun ReasoningDetailScreen(
     // From the home list; null when the category has none (or the list isn't loaded)
     categoryDescription: String?,
     viewModel: ReasoningViewModel,
+    // Opens the full search with what was typed, on this category
+    onAdvancedSearch: (query: String) -> Unit,
     onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -183,6 +190,7 @@ fun ReasoningDetailScreen(
     val toggleSelection: (Long) -> Unit = { id -> selection = selection.toggle(id) }
     val clearSelection: () -> Unit = { selection = selection.clear() }
     var showBulkAddDialog by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
     BackHandler(enabled = selectionMode) { clearSelection() }
     // The selection ends once the share sheet has opened
     ShareEffects(shareViewModel, onShared = clearSelection)
@@ -302,62 +310,85 @@ fun ReasoningDetailScreen(
                     if (state.reasonings.isEmpty()) {
                         EmptyState(title = stringResource(R.string.reasonings_empty), icon = Icons.Outlined.Psychology)
                     } else {
-                        // Room at the bottom so the admin button never covers the last card
-                        AdaptiveCardList(bottom = 96.dp, spacing = Spacing.lg) {
-                            // The home list may cut a long description; here it reads in full
-                            if (!categoryDescription.isNullOrBlank()) {
-                                item(span = StaggeredGridItemSpan.FullLine) {
-                                    ExpandableText(text = categoryDescription, stateKey = "category-$categoryId")
+                        val shown = remember(state.reasonings, query) { filterReasonings(state.reasonings, query) }
+                        val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Above the list, so it stays at hand; hidden while picking files
+                            if (!selectionMode) {
+                                QuickSearchBar(
+                                    query = query,
+                                    onQueryChange = { query = it },
+                                    placeholder = stringResource(R.string.reasonings_search_hint),
+                                    onAdvancedSearch = { onAdvancedSearch(query.trim()) },
+                                    modifier = Modifier.padding(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = Spacing.sm)
+                                )
+                            }
+                            // Room at the bottom so the admin button never covers the last card
+                            AdaptiveCardList(modifier = Modifier.weight(1f), bottom = 96.dp, spacing = Spacing.lg) {
+                                // The home list may cut a long description; here it reads in full
+                                if (!categoryDescription.isNullOrBlank()) {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        ExpandableText(text = categoryDescription, stateKey = "category-$categoryId")
+                                    }
                                 }
-                            }
-                            item(span = StaggeredGridItemSpan.FullLine) {
-                                Text(
-                                    text = pluralStringResource(R.plurals.reasonings_count, state.reasonings.size, state.reasonings.size),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            items(state.reasonings, key = { it.id }) { reasoning ->
-                                ReasoningItemCard(
-                                    reasoning = reasoning,
-                                    isAdmin = isAdmin,
-                                    favoritedIds = favoritedIds,
-                                    ratings = ratings,
-                                    onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
-                                    selectionMode = selectionMode,
-                                    selectedFileIds = selectedFileIds,
-                                    onStartSelection = { selection = selection.start() },
-                                    onFileClick = { file ->
-                                        if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
-                                    },
-                                    // Long-press starts selection, to share several files (or tag them, for admins)
-                                    onFileLongClick = { file -> toggleSelection(file.id) },
-                                    onDeleteReasoning = { reasoningToDelete = reasoning },
-                                    onAddFile = {
-                                        activeUploadReasoningId = reasoning.id
-                                        filePickerLauncher.launch("*/*")
-                                    },
-                                    onDeleteFile = { file -> fileToDelete = file },
-                                    onDownloadReasoningZip = {
-                                        val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
-                                        val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
-                                        downloader.downloadFile(reasoningZipUrl, zipName)
-                                        Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
-                                    },
-                                    onDownloadSingleFile = { file ->
-                                        val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
-                                        downloader.downloadFile(singleFileUrl, file.fileName)
-                                        Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
-                                    },
-                                    onShareReasoningZip = {
-                                        shareViewModel.shareReasoning(
-                                            reasoning.id,
-                                            context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                if (shown.isEmpty()) {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        NoMatch(
+                                            message = stringResource(R.string.reasonings_no_match, query.trim()),
+                                            onAdvancedSearch = { onAdvancedSearch(query.trim()) }
                                         )
-                                    },
-                                    onShareSingleFile = { file -> shareViewModel.shareFiles(listOf(file)) },
-                                    onSelectFile = { file -> toggleSelection(file.id) }
-                                )
+                                    }
+                                } else {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        Text(
+                                            text = pluralStringResource(R.plurals.reasonings_count, shown.size, shown.size),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                items(shown, key = { it.id }) { reasoning ->
+                                    ReasoningItemCard(
+                                        reasoning = reasoning,
+                                        isAdmin = isAdmin,
+                                        favoritedIds = favoritedIds,
+                                        ratings = ratings,
+                                        onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
+                                        selectionMode = selectionMode,
+                                        selectedFileIds = selectedFileIds,
+                                        onStartSelection = { selection = selection.start() },
+                                        onFileClick = { file ->
+                                            if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
+                                        },
+                                        // Long-press starts selection, to share several files (or tag them, for admins)
+                                        onFileLongClick = { file -> toggleSelection(file.id) },
+                                        onDeleteReasoning = { reasoningToDelete = reasoning },
+                                        onAddFile = {
+                                            activeUploadReasoningId = reasoning.id
+                                            filePickerLauncher.launch("*/*")
+                                        },
+                                        onDeleteFile = { file -> fileToDelete = file },
+                                        onDownloadReasoningZip = {
+                                            val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
+                                            val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                            downloader.downloadFile(reasoningZipUrl, zipName)
+                                            Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
+                                        },
+                                        onDownloadSingleFile = { file ->
+                                            val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
+                                            downloader.downloadFile(singleFileUrl, file.fileName)
+                                            Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
+                                        },
+                                        onShareReasoningZip = {
+                                            shareViewModel.shareReasoning(
+                                                reasoning.id,
+                                                context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                            )
+                                        },
+                                        onShareSingleFile = { file -> shareViewModel.shareFiles(listOf(file)) },
+                                        onSelectFile = { file -> toggleSelection(file.id) }
+                                    )
+                                }
                             }
                         }
                     }

@@ -1,5 +1,6 @@
 package com.example.medrational_android.ui.search
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -39,6 +40,15 @@ import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.SearchUiState
 import com.example.medrational_android.viewmodel.SearchViewModel
+
+/** Search screen route; plain "search" opens it empty. */
+const val SEARCH_ROUTE_PATTERN = "search?q={q}&categoryId={categoryId}"
+
+/** Opens the Search screen with [query] typed and, when given, [categoryId]'s chip selected. */
+fun searchRoute(query: String = "", categoryId: Long? = null): String = buildString {
+    append("search?q=").append(Uri.encode(query))
+    if (categoryId != null) append("&categoryId=").append(categoryId)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

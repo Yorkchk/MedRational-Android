@@ -82,4 +82,6 @@
     <string name="reasoning_share_all">Partager tout (zip)</string>
     <string name="category_share">Partager la catégorie (zip)</string>
     <string name="file_select">Sélectionner</string>
+    <string name="reasonings_search_hint">Rechercher un raisonnement</string>
+    <string name="reasonings_no_match">Aucun raisonnement ne correspond à « %1$s ».</string>
 </resources>

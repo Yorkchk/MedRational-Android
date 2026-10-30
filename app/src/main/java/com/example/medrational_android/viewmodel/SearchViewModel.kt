@@ -26,7 +26,10 @@ sealed class SearchUiState {
 
 class SearchViewModel(
     private val api: MedRationalApi = ApiClient.api,
-    private val ratingStore: FileRatingStore = FileRatingStore.shared
+    private val ratingStore: FileRatingStore = FileRatingStore.shared,
+    // Advanced search from a quick search bar starts with what was typed, and the category it was on
+    initialQuery: String = "",
+    private val initialCategoryId: Long? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -35,7 +38,7 @@ class SearchViewModel(
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
-    var searchQuery = MutableStateFlow("")
+    var searchQuery = MutableStateFlow(initialQuery)
     var selectedCategory = MutableStateFlow<Category?>(null)
 
     private var searchJob: Job? = null
@@ -50,8 +53,13 @@ class SearchViewModel(
                 val res = api.getCategories()
                 if (res.isSuccessful && res.body() != null) {
                     _categories.value = res.body()!!
+                    if (initialCategoryId != null) {
+                        selectedCategory.value = _categories.value.firstOrNull { it.id == initialCategoryId }
+                    }
                 }
             } catch (_: Exception) {}
+            // Pre-filled from a quick search bar: show the results right away
+            if (searchQuery.value.isNotBlank() || selectedCategory.value != null) executeSearch()
         }
     }
 

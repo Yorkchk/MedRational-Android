@@ -33,4 +33,6 @@
         <item quantity="many">%d nouveaux fichiers depuis votre dernière visite</item>
         <item quantity="other">%d nouveaux fichiers depuis votre dernière visite</item>
     </plurals>
+    <string name="search_advanced">Recherche avancée</string>
+    <string name="search_advanced_short">Avancée</string>
 </resources>

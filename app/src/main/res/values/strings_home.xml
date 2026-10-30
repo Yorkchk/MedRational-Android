@@ -27,8 +27,9 @@
     <string name="home_greeting">Bonjour, %1$s</string>
     <string name="home_greeting_anonymous">Bonjour</string>
     <string name="home_greeting_subtitle">Que révisez-vous aujourd’hui ?</string>
-    <string name="home_search_hint">Rechercher un fichier</string>
     <string name="categories_empty">Aucune catégorie pour l’instant</string>
     <string name="categories_empty_admin_hint">Créez la première avec le bouton « Nouvelle catégorie ».</string>
     <string name="categories_delete_confirm">Supprimer « %1$s » ainsi que tous ses raisonnements et fichiers ? Cette action est définitive.</string>
+    <string name="home_search_categories">Rechercher une catégorie</string>
+    <string name="categories_no_match">Aucune catégorie ne correspond à « %1$s ».</string>
 </resources>
