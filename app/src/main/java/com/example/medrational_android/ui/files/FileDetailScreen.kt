@@ -35,11 +35,11 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -455,7 +455,7 @@ private fun BoxScope.FileDetailContent(
 }
 
 @Composable
-private fun FileHeader(
+internal fun FileHeader(
     file: StudyFile,
     reasoning: Reasoning,
     isFavorited: Boolean,
@@ -493,21 +493,31 @@ private fun FileHeader(
             )
         }
         Spacer(modifier = Modifier.height(Spacing.lg))
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = onDownload, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+        // Only Download keeps a label, so the three actions fit on one line even on small phones
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = onDownload,
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                modifier = Modifier.weight(1f)
+            ) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.common_download))
+                Text(
+                    text = stringResource(R.string.common_download),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            FilledTonalButton(onClick = onToggleFavorite, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+            FilledTonalIconButton(onClick = onToggleFavorite, shape = MaterialTheme.shapes.medium) {
                 Icon(
                     imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    tint = if (isFavorited) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                    modifier = Modifier.size(18.dp)
+                    contentDescription = stringResource(if (isFavorited) R.string.favorite_remove else R.string.favorite_add),
+                    tint = if (isFavorited) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(if (isFavorited) R.string.file_in_favorites else R.string.favorite_add_short))
             }
             FilledTonalIconButton(onClick = onShare, enabled = !isSharing, shape = MaterialTheme.shapes.medium) {
                 ShareIcon(isSharing = isSharing)

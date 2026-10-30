@@ -40,6 +40,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 - Clearer search: the home search bar just says "Search files", and the search screen tells you that you can search by file name, category, reasoning or #hashtag.
+- On a file's page, Download, Favorite and Share now fit on one line, even on small phones. Favorite is a heart button, filled when the file is in your favorites.
 - Signing in only needs your email and password; no more code by email each time. Codes are still sent when you sign up, reset a forgotten password, change your password or email, or delete your account.
 - Signing up with an email that already has an account now says so, instead of sending a code. Signing in before entering your sign-up code asks you to sign up again to get a new one.
 - The app is now **SWISRA** (Study With Scome Rabat), with its own logo as the launcher icon (also as a themed icon on Android 13+) and on a new splash screen.
