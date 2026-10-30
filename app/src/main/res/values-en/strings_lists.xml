@@ -17,9 +17,9 @@
     <string name="downloads_empty">No downloads yet.</string>
     <string name="downloads_empty_hint">Files you download will appear here so you can open them again quickly.</string>
     <string name="search_title">Discover &amp; search</string>
-    <string name="search_placeholder">Search files by category, reasoning</string>
+    <string name="search_placeholder">What are you looking for?</string>
     <string name="search_all_categories">All categories</string>
-    <string name="search_idle">Type a query or pick a category above to find files.</string>
+    <string name="search_idle">Type a file name, category, reasoning or #hashtag. You can also filter by category above.</string>
     <string name="search_no_results">No matching files found.</string>
     <string name="novelties_title">What\'s new</string>
     <string name="novelties_caught_up_latest">You\'re all caught up. These are the latest uploads.</string>

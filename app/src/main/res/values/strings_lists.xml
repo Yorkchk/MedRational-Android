@@ -17,9 +17,9 @@
     <string name="downloads_empty">Aucun téléchargement pour l’instant.</string>
     <string name="downloads_empty_hint">Les fichiers que vous téléchargez apparaîtront ici pour les rouvrir rapidement.</string>
     <string name="search_title">Découvrir et rechercher</string>
-    <string name="search_placeholder">Rechercher par catégorie, raisonnement</string>
+    <string name="search_placeholder">Que cherchez-vous ?</string>
     <string name="search_all_categories">Toutes les catégories</string>
-    <string name="search_idle">Saisissez une recherche ou choisissez une catégorie ci-dessus pour trouver des fichiers.</string>
+    <string name="search_idle">Tapez le nom d’un fichier, une catégorie, un raisonnement ou un #hashtag. Vous pouvez aussi filtrer par catégorie ci-dessus.</string>
     <string name="search_no_results">Aucun fichier correspondant.</string>
     <string name="novelties_title">Nouveautés</string>
     <string name="novelties_caught_up_latest">Vous êtes à jour. Voici les derniers ajouts.</string>
