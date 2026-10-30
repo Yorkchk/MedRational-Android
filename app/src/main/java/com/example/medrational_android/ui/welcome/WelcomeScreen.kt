@@ -36,10 +36,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.PrimaryButton
 import com.example.medrational_android.ui.components.SecondaryButton
 import com.example.medrational_android.ui.components.SwisraLogo
 import com.example.medrational_android.ui.components.Wordmark
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.ui.theme.SwisraTheme
 
@@ -54,6 +56,8 @@ fun WelcomeScreen(
                 .fillMaxSize()
                 .safeDrawingPadding()
                 .verticalScroll(rememberScrollState())
+                // Centered and capped on tablets; the margins still scroll
+                .centeredContent(ContentWidth.Form)
                 .padding(horizontal = Spacing.screen, vertical = Spacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

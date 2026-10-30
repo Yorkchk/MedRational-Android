@@ -36,7 +36,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.OtpCodeField
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.ChangePasswordUiState
 import com.example.medrational_android.viewmodel.ChangePasswordViewModel
@@ -76,6 +78,8 @@ fun ChangePasswordScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                // Centered and capped on tablets; the margins still scroll
+                .centeredContent(ContentWidth.Form)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

@@ -57,10 +57,12 @@ import com.example.medrational_android.data.model.ContentStats
 import com.example.medrational_android.data.model.EngagementStats
 import com.example.medrational_android.data.model.FileMetric
 import com.example.medrational_android.data.model.formatIsoLocalDateTime
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.SectionHeader
 import com.example.medrational_android.ui.components.SwisraTopBar
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
@@ -147,7 +149,7 @@ private fun StatisticsContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.lg),
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding(ContentWidth.Reading), vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         stats.generatedAt?.let { generatedAt ->

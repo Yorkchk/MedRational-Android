@@ -13,8 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -47,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
@@ -129,11 +129,8 @@ fun WorkshopListScreen(
                     is WorkshopListUiState.Success -> if (state.projects.isEmpty()) {
                         EmptyProjects(status = tab, modifier = Modifier.align(Alignment.Center))
                     } else {
-                        LazyColumn(
-                            // Bottom padding keeps the last card clear of the FAB
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                        // Bottom padding keeps the last card clear of the FAB
+                        AdaptiveCardList(top = 16.dp, bottom = 88.dp, spacing = 12.dp, minPadding = 16.dp) {
                             items(state.projects, key = { it.id }) { project ->
                                 ProjectCard(project = project, onClick = { onProjectClick(project.id) })
                             }

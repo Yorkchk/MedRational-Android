@@ -3,8 +3,7 @@ package com.example.medrational_android.ui.favorites
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
@@ -102,10 +102,7 @@ fun FavoritesScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                        AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 12.dp, minPadding = 16.dp) {
                             items(state.favorites, key = { it.favoriteId }) { fav ->
                                 val file = fav.file
                                 FavoriteItemCard(

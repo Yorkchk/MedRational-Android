@@ -40,9 +40,11 @@ import com.example.medrational_android.data.model.SuggestionAttachment
 import com.example.medrational_android.data.model.SuggestionDetail
 import com.example.medrational_android.data.model.SuggestionSender
 import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.SwisraTopBar
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.files.AttachmentPreviewCard
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
@@ -165,6 +167,8 @@ private fun SuggestionContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            // Centered and capped on tablets; the margins still scroll
+            .centeredContent(ContentWidth.Reading)
             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {

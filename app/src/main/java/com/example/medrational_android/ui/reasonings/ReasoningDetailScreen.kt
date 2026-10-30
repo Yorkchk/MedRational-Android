@@ -24,8 +24,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
@@ -94,6 +94,7 @@ import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.FileTypeBadge
@@ -299,12 +300,9 @@ fun ReasoningDetailScreen(
                     if (state.reasonings.isEmpty()) {
                         EmptyState(title = stringResource(R.string.reasonings_empty), icon = Icons.Outlined.Psychology)
                     } else {
-                        LazyColumn(
-                            // Room at the bottom so the admin button never covers the last card
-                            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.xs, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
-                        ) {
-                            item {
+                        // Room at the bottom so the admin button never covers the last card
+                        AdaptiveCardList(bottom = 96.dp, spacing = Spacing.lg) {
+                            item(span = StaggeredGridItemSpan.FullLine) {
                                 Text(
                                     text = pluralStringResource(R.plurals.reasonings_count, state.reasonings.size, state.reasonings.size),
                                     style = MaterialTheme.typography.bodyMedium,

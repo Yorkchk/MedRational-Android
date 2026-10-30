@@ -34,7 +34,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.OtpCodeField
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.DeleteAccountUiState
 import com.example.medrational_android.viewmodel.DeleteAccountViewModel
@@ -76,6 +78,8 @@ fun DeleteAccountScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                // Centered and capped on tablets; the margins still scroll
+                .centeredContent(ContentWidth.Form)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

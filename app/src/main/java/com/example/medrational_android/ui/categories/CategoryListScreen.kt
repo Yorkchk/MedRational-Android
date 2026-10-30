@@ -67,12 +67,14 @@ import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.model.Category
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.MonogramTile
 import com.example.medrational_android.ui.components.SectionHeader
 import com.example.medrational_android.ui.components.SwisraLogo
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.components.greetingName
 import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.CategoryUiState
@@ -289,11 +291,13 @@ private fun HomeContent(
     onDeleteClick: (Category) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Centered on very wide screens, so the tiles don't spread into many small columns
+    val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
         modifier = modifier.fillMaxSize(),
         // Room at the bottom so the admin button never covers the last cards
-        contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.xs, bottom = 96.dp),
+        contentPadding = PaddingValues(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = 96.dp),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
