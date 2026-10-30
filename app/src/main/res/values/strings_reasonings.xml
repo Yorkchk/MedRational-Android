@@ -84,4 +84,5 @@
     <string name="file_select">Sélectionner</string>
     <string name="reasonings_search_hint">Rechercher un raisonnement</string>
     <string name="reasonings_no_match">Aucun raisonnement ne correspond à « %1$s ».</string>
+    <string name="category_about">À propos de cette catégorie</string>
 </resources>

@@ -34,8 +34,8 @@ object ContentWidth {
 private const val MEDIUM_WIDTH_DP = 600
 private const val EXPANDED_WIDTH_DP = 840
 
-/** Card lists show two columns from a small tablet up. */
-fun listColumnsFor(widthDp: Int): Int = if (widthDp >= MEDIUM_WIDTH_DP) 2 else 1
+/** Card lists show [maxColumns] columns from a small tablet up, one on phones. */
+fun listColumnsFor(widthDp: Int, maxColumns: Int = 2): Int = if (widthDp >= MEDIUM_WIDTH_DP) maxColumns else 1
 
 /** Wide enough to put a file's details next to its preview (a tablet in landscape). */
 fun isTwoPane(widthDp: Int): Boolean = widthDp >= EXPANDED_WIDTH_DP
@@ -59,6 +59,8 @@ fun Modifier.centeredContent(maxWidth: Dp): Modifier =
 /**
  * A list of cards: one column on phones, two from a small tablet up. Staggered, so cards of
  * different heights pack together. Headers and footers use `StaggeredGridItemSpan.FullLine`.
+ * Lists of long cards of very different heights (reasonings) pass [maxColumns] 1, since two
+ * ragged columns read badly; one column is centered at the reading width.
  */
 @Composable
 fun AdaptiveCardList(
@@ -68,11 +70,12 @@ fun AdaptiveCardList(
     bottom: Dp = Spacing.lg,
     spacing: Dp = Spacing.md,
     minPadding: Dp = Spacing.screen,
+    maxColumns: Int = 2,
     content: LazyStaggeredGridScope.() -> Unit
 ) {
-    val side = adaptiveHorizontalPadding(ContentWidth.Grid, minPadding)
+    val side = adaptiveHorizontalPadding(if (maxColumns == 1) ContentWidth.Reading else ContentWidth.Grid, minPadding)
     LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(listColumnsFor(windowWidthDp())),
+        columns = StaggeredGridCells.Fixed(listColumnsFor(windowWidthDp(), maxColumns)),
         state = state,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = side, end = side, top = top, bottom = bottom),

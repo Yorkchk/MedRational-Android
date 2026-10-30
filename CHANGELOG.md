@@ -43,8 +43,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Clearer search: the home search bar just says "Search files", and the search screen tells you that you can search by file name, category, reasoning or #hashtag.
 - On a file's page, Download, Favorite and Share now fit on one line, even on small phones. Favorite is a heart button, filled when the file is in your favorites.
 - Picking several files to share them is easier to find: each reasoning has a Select button above its files, which shows a checkbox on every file. Long-pressing a file still works.
-- Tablets and large screens: pages stay centered at a comfortable width (forms narrower), the lists of reasonings, favorites, downloads, novelties, projects, suggestions and search results show two columns, and a file's page shows its details next to the preview in landscape.
-- The home screen lists categories one per line (two on tablets) with their description underneath, and a category's page shows its full description at the top.
+- Tablets and large screens: pages stay centered at a comfortable width (forms narrower), the lists of favorites, downloads, novelties, projects, suggestions and search results show two columns (a category's reasonings stay in one centered column, easier to read in order), and a file's page shows its details next to the preview in landscape.
+- The home screen lists categories one per line (two on tablets) with their description underneath, and a category's page shows its full description at the top, in an "About this category" card.
 - Signing in only needs your email and password; no more code by email each time. Codes are still sent when you sign up, reset a forgotten password, change your password or email, or delete your account.
 - Signing up with an email that already has an account now says so, instead of sending a code. Signing in before entering your sign-up code asks you to sign up again to get a new one.
 - The app is now **SWISRA** (Study With Scome Rabat), with its own logo as the launcher icon (also as a themed icon on Android 13+) and on a new splash screen.

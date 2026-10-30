@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.UploadFile
@@ -311,7 +312,8 @@ fun ReasoningDetailScreen(
                         EmptyState(title = stringResource(R.string.reasonings_empty), icon = Icons.Outlined.Psychology)
                     } else {
                         val shown = remember(state.reasonings, query) { filterReasonings(state.reasonings, query) }
-                        val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid)
+                        // Lines up with the single column of reasonings below
+                        val sidePadding = adaptiveHorizontalPadding(ContentWidth.Reading)
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Above the list, so it stays at hand; hidden while picking files
                             if (!selectionMode) {
@@ -323,12 +325,13 @@ fun ReasoningDetailScreen(
                                     modifier = Modifier.padding(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = Spacing.sm)
                                 )
                             }
-                            // Room at the bottom so the admin button never covers the last card
-                            AdaptiveCardList(modifier = Modifier.weight(1f), bottom = 96.dp, spacing = Spacing.lg) {
+                            // One column even on tablets: reasonings differ a lot in height, and two
+                            // ragged columns read badly. Room at the bottom for the admin button
+                            AdaptiveCardList(modifier = Modifier.weight(1f), bottom = 96.dp, spacing = Spacing.lg, maxColumns = 1) {
                                 // The home list may cut a long description; here it reads in full
                                 if (!categoryDescription.isNullOrBlank()) {
                                     item(span = StaggeredGridItemSpan.FullLine) {
-                                        ExpandableText(text = categoryDescription, stateKey = "category-$categoryId")
+                                        CategoryAboutCard(description = categoryDescription, categoryId = categoryId)
                                     }
                                 }
                                 if (shown.isEmpty()) {
@@ -580,6 +583,36 @@ fun ReasoningItemCard(
                     )
                 }
             }
+        }
+    }
+}
+
+/** The category's description, in a card of its own so it reads as the page's introduction. */
+@Composable
+internal fun CategoryAboutCard(description: String, categoryId: Long, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.category_about),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            ExpandableText(text = description, stateKey = "category-$categoryId")
         }
     }
 }

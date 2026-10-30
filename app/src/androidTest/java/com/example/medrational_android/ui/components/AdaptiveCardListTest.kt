@@ -30,13 +30,13 @@ class AdaptiveCardListTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun showList(widthDp: Int) {
+    private fun showList(widthDp: Int, maxColumns: Int = 2) {
         composeRule.setContent {
             val config = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 SwisraTheme(darkTheme = false) {
                     Box(modifier = Modifier.requiredWidth(widthDp.dp)) {
-                        AdaptiveCardList {
+                        AdaptiveCardList(maxColumns = maxColumns) {
                             items(listOf("Card 1", "Card 2", "Card 3", "Card 4")) { label ->
                                 Text(label, modifier = Modifier.fillMaxWidth().height(80.dp))
                             }
@@ -52,6 +52,16 @@ class AdaptiveCardListTest {
     @Test
     fun aPhoneStacksTheCards() {
         showList(widthDp = 360)
+
+        val first = bounds("Card 1")
+        val second = bounds("Card 2")
+        assertEquals(first.left, second.left)
+        assertTrue("Card 2 should be below Card 1", second.top >= first.bottom)
+    }
+
+    @Test
+    fun aTabletCanKeepOneColumn() {
+        showList(widthDp = 800, maxColumns = 1)
 
         val first = bounds("Card 1")
         val second = bounds("Card 2")

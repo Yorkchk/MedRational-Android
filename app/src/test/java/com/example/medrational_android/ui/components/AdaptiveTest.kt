@@ -17,6 +17,13 @@ class AdaptiveTest {
     }
 
     @Test
+    fun `lists of long cards can stay in one column on tablets`() {
+        assertEquals(1, listColumnsFor(360, maxColumns = 1))
+        assertEquals(1, listColumnsFor(800, maxColumns = 1))
+        assertEquals(2, listColumnsFor(800))
+    }
+
+    @Test
     fun `the file page splits in two only from a tablet in landscape`() {
         assertFalse(isTwoPane(411))
         assertFalse(isTwoPane(800))
