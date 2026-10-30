@@ -30,8 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -50,6 +50,9 @@ import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.WorkshopProject
+import com.example.medrational_android.ui.components.adaptiveListPadding
+import com.example.medrational_android.ui.components.listColumnsFor
+import com.example.medrational_android.ui.components.windowWidthDp
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.WorkshopListUiState
@@ -106,12 +109,18 @@ fun WorkshopListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            ScrollableTabRow(selectedTabIndex = TABS.indexOf(tab), edgePadding = 16.dp) {
+            // Same edges as the cards below, so on tablets the tabs don't hug the left side
+            val projectCount = (uiState as? WorkshopListUiState.Success)?.projects?.size
+            val tabsPadding = adaptiveListPadding(listColumnsFor(windowWidthDp(), itemCount = projectCount), minPadding = 0.dp)
+            TabRow(
+                selectedTabIndex = TABS.indexOf(tab),
+                modifier = Modifier.padding(horizontal = tabsPadding)
+            ) {
                 TABS.forEach { status ->
                     Tab(
                         selected = tab == status,
                         onClick = { viewModel.selectTab(status) },
-                        text = { Text(stringResource(status?.label() ?: R.string.workshop_filter_all)) }
+                        text = { Text(stringResource(status?.label() ?: R.string.workshop_filter_all), maxLines = 1) }
                     )
                 }
             }
@@ -130,7 +139,7 @@ fun WorkshopListScreen(
                         EmptyProjects(status = tab, modifier = Modifier.align(Alignment.Center))
                     } else {
                         // Bottom padding keeps the last card clear of the FAB
-                        AdaptiveCardList(top = 16.dp, bottom = 88.dp, spacing = 12.dp, minPadding = 16.dp) {
+                        AdaptiveCardList(top = 16.dp, bottom = 88.dp, spacing = 12.dp, minPadding = 16.dp, itemCount = state.projects.size) {
                             items(state.projects, key = { it.id }) { project ->
                                 ProjectCard(project = project, onClick = { onProjectClick(project.id) })
                             }

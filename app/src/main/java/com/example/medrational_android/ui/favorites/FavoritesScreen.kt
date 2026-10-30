@@ -102,7 +102,7 @@ fun FavoritesScreen(
                             )
                         }
                     } else {
-                        AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 12.dp, minPadding = 16.dp) {
+                        AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 12.dp, minPadding = 16.dp, itemCount = state.favorites.size) {
                             items(state.favorites, key = { it.favoriteId }) { fav ->
                                 val file = fav.file
                                 FavoriteItemCard(

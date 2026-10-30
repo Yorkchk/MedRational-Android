@@ -140,7 +140,8 @@ private fun NoveltiesList(
         top = 16.dp,
         bottom = 16.dp,
         spacing = 12.dp,
-        minPadding = 16.dp
+        minPadding = 16.dp,
+        itemCount = state.items.size
     ) {
         item(key = "header", span = StaggeredGridItemSpan.FullLine) {
             Text(

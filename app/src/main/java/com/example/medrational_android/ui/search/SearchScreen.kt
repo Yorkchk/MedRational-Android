@@ -154,7 +154,7 @@ fun SearchScreen(
                         if (state.files.isEmpty()) {
                             Text(stringResource(R.string.search_no_results), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 10.dp, minPadding = 16.dp) {
+                            AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 10.dp, minPadding = 16.dp, itemCount = state.files.size) {
                                 items(state.files, key = { it.id }) { file ->
                                     SearchResultCard(
                                         file = file,

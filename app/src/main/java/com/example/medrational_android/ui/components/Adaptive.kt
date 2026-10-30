@@ -34,8 +34,14 @@ object ContentWidth {
 private const val MEDIUM_WIDTH_DP = 600
 private const val EXPANDED_WIDTH_DP = 840
 
-/** Card lists show [maxColumns] columns from a small tablet up, one on phones. */
-fun listColumnsFor(widthDp: Int, maxColumns: Int = 2): Int = if (widthDp >= MEDIUM_WIDTH_DP) maxColumns else 1
+/**
+ * Card lists show [maxColumns] columns from a small tablet up, one on phones. Never more columns
+ * than cards ([itemCount]), so a lone card isn't left in half the width.
+ */
+fun listColumnsFor(widthDp: Int, maxColumns: Int = 2, itemCount: Int? = null): Int {
+    val columns = if (widthDp >= MEDIUM_WIDTH_DP) maxColumns else 1
+    return if (itemCount == null) columns else columns.coerceAtMost(itemCount).coerceAtLeast(1)
+}
 
 /** Wide enough to put a file's details next to its preview (a tablet in landscape). */
 fun isTwoPane(widthDp: Int): Boolean = widthDp >= EXPANDED_WIDTH_DP
@@ -51,6 +57,11 @@ fun windowWidthDp(): Int = LocalConfiguration.current.screenWidthDp
 @Composable
 fun adaptiveHorizontalPadding(maxContent: Dp = ContentWidth.Reading, minPadding: Dp = Spacing.screen): Dp =
     centeredPaddingDp(windowWidthDp(), maxContent.value.toInt(), minPadding.value.toInt()).dp
+
+/** Side padding of a card list: one column is centered at the reading width, more at the grid width. */
+@Composable
+fun adaptiveListPadding(columns: Int, minPadding: Dp = Spacing.screen): Dp =
+    adaptiveHorizontalPadding(if (columns == 1) ContentWidth.Reading else ContentWidth.Grid, minPadding)
 
 /** Centers a non-scrolling block and caps its width. */
 fun Modifier.centeredContent(maxWidth: Dp): Modifier =
@@ -71,11 +82,14 @@ fun AdaptiveCardList(
     spacing: Dp = Spacing.md,
     minPadding: Dp = Spacing.screen,
     maxColumns: Int = 2,
+    // How many cards there are, so one card isn't left in half the width
+    itemCount: Int? = null,
     content: LazyStaggeredGridScope.() -> Unit
 ) {
-    val side = adaptiveHorizontalPadding(if (maxColumns == 1) ContentWidth.Reading else ContentWidth.Grid, minPadding)
+    val columns = listColumnsFor(windowWidthDp(), maxColumns, itemCount)
+    val side = adaptiveListPadding(columns, minPadding)
     LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(listColumnsFor(windowWidthDp(), maxColumns)),
+        columns = StaggeredGridCells.Fixed(columns),
         state = state,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = side, end = side, top = top, bottom = bottom),

@@ -10,8 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -22,6 +24,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
+
+private const val LIST_TAG = "list"
 
 /** Card lists are one column on phones and two on tablets. */
 @RunWith(AndroidJUnit4::class)
@@ -30,14 +35,14 @@ class AdaptiveCardListTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun showList(widthDp: Int, maxColumns: Int = 2) {
+    private fun showList(widthDp: Int, maxColumns: Int = 2, labels: List<String> = listOf("Card 1", "Card 2", "Card 3", "Card 4")) {
         composeRule.setContent {
             val config = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 SwisraTheme(darkTheme = false) {
-                    Box(modifier = Modifier.requiredWidth(widthDp.dp)) {
-                        AdaptiveCardList(maxColumns = maxColumns) {
-                            items(listOf("Card 1", "Card 2", "Card 3", "Card 4")) { label ->
+                    Box(modifier = Modifier.requiredWidth(widthDp.dp).testTag(LIST_TAG)) {
+                        AdaptiveCardList(maxColumns = maxColumns, itemCount = labels.size) {
+                            items(labels) { label ->
                                 Text(label, modifier = Modifier.fillMaxWidth().height(80.dp))
                             }
                         }
@@ -67,6 +72,16 @@ class AdaptiveCardListTest {
         val second = bounds("Card 2")
         assertEquals(first.left, second.left)
         assertTrue("Card 2 should be below Card 1", second.top >= first.bottom)
+    }
+
+    @Test
+    fun aLoneCardIsCenteredOnATablet() {
+        showList(widthDp = 800, labels = listOf("Card 1"))
+
+        val card = bounds("Card 1")
+        val list = composeRule.onNodeWithTag(LIST_TAG).getUnclippedBoundsInRoot()
+        val offset = (card.left + card.right) / 2 - (list.left + list.right) / 2
+        assertTrue("The lone card should be centered, was off by $offset", abs(offset.value) <= 2f)
     }
 
     @Test

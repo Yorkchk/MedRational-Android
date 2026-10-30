@@ -80,7 +80,7 @@ fun SuggestionListScreen(
                         hint = stringResource(R.string.suggestion_empty_admin_hint)
                     )
                 } else {
-                    AdaptiveCardList(top = Spacing.lg, bottom = Spacing.lg, spacing = Spacing.md) {
+                    AdaptiveCardList(top = Spacing.lg, bottom = Spacing.lg, spacing = Spacing.md, itemCount = state.suggestions.size) {
                         items(state.suggestions, key = { it.id }) { suggestion ->
                             SuggestionRow(suggestion = suggestion, onClick = { onSuggestionClick(suggestion.id) })
                         }

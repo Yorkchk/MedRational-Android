@@ -96,7 +96,7 @@ fun RecentDownloadsScreen(
                     if (state.downloads.isEmpty()) {
                         EmptyDownloads(modifier = Modifier.align(Alignment.Center))
                     } else {
-                        AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 12.dp, minPadding = 16.dp) {
+                        AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 12.dp, minPadding = 16.dp, itemCount = state.downloads.size) {
                             // The ViewModel only keeps entries with both ids
                             items(state.downloads, key = { it.fileId!! }) { download ->
                                 RecentDownloadCard(

@@ -24,6 +24,14 @@ class AdaptiveTest {
     }
 
     @Test
+    fun `a lone card is not left in half the width`() {
+        assertEquals(1, listColumnsFor(1280, itemCount = 1))
+        assertEquals(1, listColumnsFor(1280, itemCount = 0))
+        assertEquals(2, listColumnsFor(1280, itemCount = 5))
+        assertEquals(1, listColumnsFor(360, itemCount = 5))
+    }
+
+    @Test
     fun `the file page splits in two only from a tablet in landscape`() {
         assertFalse(isTwoPane(411))
         assertFalse(isTwoPane(800))
