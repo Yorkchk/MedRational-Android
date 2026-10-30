@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LabelOff
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NewLabel
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
@@ -172,15 +174,15 @@ fun ReasoningDetailScreen(
     }
 
     // Selection for sharing (everyone) and bulk hashtags (admins); a List so it can be saved across rotation
-    var selectedFileIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
-    val selectionMode = selectedFileIds.isNotEmpty()
-    val toggleSelection: (Long) -> Unit = { id ->
-        selectedFileIds = if (id in selectedFileIds) selectedFileIds - id else selectedFileIds + id
-    }
+    var selection by rememberSaveable(stateSaver = FileSelection.Saver) { mutableStateOf(FileSelection()) }
+    val selectedFileIds = selection.ids
+    val selectionMode = selection.active
+    val toggleSelection: (Long) -> Unit = { id -> selection = selection.toggle(id) }
+    val clearSelection: () -> Unit = { selection = selection.clear() }
     var showBulkAddDialog by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = selectionMode) { selectedFileIds = emptyList() }
+    BackHandler(enabled = selectionMode) { clearSelection() }
     // The selection ends once the share sheet has opened
-    ShareEffects(shareViewModel, onShared = { selectedFileIds = emptyList() })
+    ShareEffects(shareViewModel, onShared = clearSelection)
 
     val uploadMessage by viewModel.message.collectAsState()
     val bulkMessage by bulkViewModel.message.collectAsState()
@@ -211,15 +213,24 @@ fun ReasoningDetailScreen(
         topBar = {
             if (selectionMode) {
                 val busy = bulkState is BulkHashtagUiState.LoadingTags || bulkState is BulkHashtagUiState.Working
+                val hasSelection = selectedFileIds.isNotEmpty()
                 TopAppBar(
-                    title = { Text(pluralStringResource(R.plurals.selection_count, selectedFileIds.size, selectedFileIds.size)) },
+                    title = {
+                        Text(
+                            if (hasSelection) {
+                                pluralStringResource(R.plurals.selection_count, selectedFileIds.size, selectedFileIds.size)
+                            } else {
+                                stringResource(R.string.selection_title_empty)
+                            }
+                        )
+                    },
                     navigationIcon = {
-                        IconButton(onClick = { selectedFileIds = emptyList() }) {
+                        IconButton(onClick = clearSelection) {
                             Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(R.string.selection_cancel))
                         }
                     },
                     actions = {
-                        IconButton(onClick = {
+                        IconButton(enabled = hasSelection, onClick = {
                             val files = (uiState as? ReasoningUiState.Success)?.reasonings.orEmpty()
                                 .flatMap { it.files.orEmpty() }
                                 .associateBy { it.id }
@@ -231,13 +242,13 @@ fun ReasoningDetailScreen(
                         if (busy) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = Spacing.lg).size(24.dp))
                         } else {
-                            IconButton(onClick = {
+                            IconButton(enabled = hasSelection, onClick = {
                                 catalogViewModel.refresh()
                                 showBulkAddDialog = true
                             }) {
                                 Icon(imageVector = Icons.Default.NewLabel, contentDescription = stringResource(R.string.selection_add_tags))
                             }
-                            IconButton(onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
+                            IconButton(enabled = hasSelection, onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
                                 Icon(imageVector = Icons.Default.LabelOff, contentDescription = stringResource(R.string.selection_remove_tags))
                             }
                         }
@@ -307,7 +318,9 @@ fun ReasoningDetailScreen(
                                     favoritedIds = favoritedIds,
                                     ratings = ratings,
                                     onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
+                                    selectionMode = selectionMode,
                                     selectedFileIds = selectedFileIds,
+                                    onStartSelection = { selection = selection.start() },
                                     onFileClick = { file ->
                                         if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
                                     },
@@ -405,7 +418,7 @@ fun ReasoningDetailScreen(
             onConfirm = { tags ->
                 bulkViewModel.addTags(selectedFileIds.toSet(), tags)
                 showBulkAddDialog = false
-                selectedFileIds = emptyList()
+                clearSelection()
             },
             onDismissRequest = { showBulkAddDialog = false }
         )
@@ -416,7 +429,7 @@ fun ReasoningDetailScreen(
             choices = choices,
             onConfirm = { tags ->
                 bulkViewModel.removeTags(tags)
-                selectedFileIds = emptyList()
+                clearSelection()
             },
             onDismissRequest = bulkViewModel::dismiss
         )
@@ -439,7 +452,10 @@ fun ReasoningItemCard(
     isAdmin: Boolean,
     onFileClick: (StudyFile) -> Unit,
     onFileLongClick: (StudyFile) -> Unit,
+    // While selecting, every file shows a checkbox, even before one is ticked
+    selectionMode: Boolean,
     selectedFileIds: List<Long>,
+    onStartSelection: () -> Unit,
     onDeleteReasoning: () -> Unit,
     favoritedIds: Set<Long>,
     ratings: Map<Long, FileRatingSummary>,
@@ -501,13 +517,27 @@ fun ReasoningItemCard(
             }
 
             if (files.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = stringResource(R.string.reasoning_attached_files, files.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary
-                )
                 Spacer(modifier = Modifier.height(Spacing.xs))
+                // A visible way into selection, since few students know the long-press.
+                // The row keeps the button's height while selecting, so the list doesn't jump
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.reasoning_attached_files, files.size),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (!selectionMode) {
+                        TextButton(onClick = onStartSelection, contentPadding = ButtonDefaults.TextButtonWithIconContentPadding) {
+                            Icon(Icons.Outlined.Checklist, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(stringResource(R.string.file_select))
+                        }
+                    }
+                }
                 files.forEachIndexed { index, file ->
                     if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     StudyFileRow(
@@ -518,7 +548,7 @@ fun ReasoningItemCard(
                         onToggleFavorite = { onToggleFavorite(file.id) },
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
-                        selectionMode = selectedFileIds.isNotEmpty(),
+                        selectionMode = selectionMode,
                         isSelected = file.id in selectedFileIds,
                         onDeleteFile = { onDeleteFile(file) },
                         onDownloadFile = { onDownloadSingleFile(file) },

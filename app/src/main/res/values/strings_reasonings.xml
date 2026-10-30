@@ -9,6 +9,7 @@
     <string name="bulk_tag_failed" tools:ignore="PluralsCandidate">Échec de l’ajout pour %1$d sur %2$s.</string>
     <string name="bulk_remove_failed" tools:ignore="PluralsCandidate">Impossible de retirer %1$d sur %2$s.</string>
     <string name="bulk_load_failed">Impossible de charger les hashtags des fichiers sélectionnés.</string>
+    <string name="selection_title_empty">Sélectionnez des fichiers</string>
     <string name="selection_cancel">Annuler la sélection</string>
     <string name="selection_add_tags">Ajouter des hashtags aux fichiers sélectionnés</string>
     <string name="selection_remove_tags">Retirer des hashtags des fichiers sélectionnés</string>
