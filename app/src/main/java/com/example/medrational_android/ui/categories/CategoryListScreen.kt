@@ -2,7 +2,6 @@ package com.example.medrational_android.ui.categories
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,8 +32,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -62,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.auth.TokenManager
@@ -70,12 +66,15 @@ import com.example.medrational_android.data.model.Category
 import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
+import com.example.medrational_android.ui.components.ListRowCard
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.ui.components.MonogramTile
 import com.example.medrational_android.ui.components.SectionHeader
 import com.example.medrational_android.ui.components.SwisraLogo
 import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.components.greetingName
+import com.example.medrational_android.ui.components.listColumnsFor
+import com.example.medrational_android.ui.components.windowWidthDp
 import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
@@ -294,7 +293,8 @@ private fun HomeContent(
     // Centered on very wide screens, so the tiles don't spread into many small columns
     val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid)
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp),
+        // One category per line on phones, two on tablets
+        columns = GridCells.Fixed(listColumnsFor(windowWidthDp())),
         modifier = modifier.fillMaxSize(),
         // Room at the bottom so the admin button never covers the last cards
         contentPadding = PaddingValues(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = 96.dp),
@@ -336,7 +336,7 @@ private fun HomeContent(
             }
         }
         items(categories, key = { it.id }) { category ->
-            CategoryTile(
+            CategoryRow(
                 category = category,
                 isAdmin = isAdmin,
                 onClick = { onCategoryClick(category.id, category.name) },
@@ -394,58 +394,23 @@ private fun NoveltyBanner(count: Long, onClick: () -> Unit, modifier: Modifier =
     }
 }
 
+/** A category on the home screen: its name with the description underneath, so it can be read. */
 @Composable
-private fun CategoryTile(
+internal fun CategoryRow(
     category: Category,
     isAdmin: Boolean,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 148.dp)
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        // Full width so the delete button sits in the card's corner, not after the text
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(
-                    start = Spacing.lg,
-                    top = Spacing.lg,
-                    bottom = Spacing.lg,
-                    // Keeps long names clear of the delete button
-                    end = if (isAdmin) 44.dp else Spacing.lg
-                )
-            ) {
-                MonogramTile(name = category.name, key = category.id, fallback = Icons.Outlined.MedicalServices)
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!category.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(Spacing.xxs))
-                    Text(
-                        text = category.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+    ListRowCard(
+        title = category.name,
+        subtitle = category.description,
+        subtitleMaxLines = DESCRIPTION_MAX_LINES,
+        leading = { MonogramTile(name = category.name, key = category.id, fallback = Icons.Outlined.MedicalServices) },
+        trailing = {
             if (isAdmin) {
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs)
-                ) {
+                IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Outlined.DeleteOutline,
                         contentDescription = stringResource(R.string.categories_delete),
@@ -453,10 +418,21 @@ private fun CategoryTile(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        }
-    }
+        },
+        onClick = onClick,
+        modifier = modifier
+    )
 }
+
+// Long descriptions end with "…" here; the category's page shows them in full
+private const val DESCRIPTION_MAX_LINES = 6
 
 @Composable
 fun CreateCategoryDialog(

@@ -65,6 +65,7 @@ import com.example.medrational_android.ui.workshops.NewWorkshopScreen
 import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
 import com.example.medrational_android.ui.workshops.WorkshopListScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
+import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.ChangeEmailViewModel
 import com.example.medrational_android.viewmodel.ChangePasswordViewModel
@@ -509,10 +510,15 @@ fun MedRationalApp(
         ) { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: 0L
             val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            // The home list already holds the description, so the route only carries the name
+            val categoryState by categoryViewModel.uiState.collectAsState()
+            val categoryDescription = (categoryState as? CategoryUiState.Success)
+                ?.categories?.firstOrNull { it.id == categoryId }?.description
 
             ReasoningDetailScreen(
                 categoryId = categoryId,
                 categoryName = categoryName,
+                categoryDescription = categoryDescription,
                 viewModel = reasoningViewModel,
                 onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
                 onBackClick = { navController.popBackStack() }

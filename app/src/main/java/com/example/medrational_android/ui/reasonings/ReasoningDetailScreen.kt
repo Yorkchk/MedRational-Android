@@ -126,6 +126,8 @@ private const val CONTENT_PREVIEW_LINES = 4
 fun ReasoningDetailScreen(
     categoryId: Long,
     categoryName: String,
+    // From the home list; null when the category has none (or the list isn't loaded)
+    categoryDescription: String?,
     viewModel: ReasoningViewModel,
     onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit
@@ -302,6 +304,12 @@ fun ReasoningDetailScreen(
                     } else {
                         // Room at the bottom so the admin button never covers the last card
                         AdaptiveCardList(bottom = 96.dp, spacing = Spacing.lg) {
+                            // The home list may cut a long description; here it reads in full
+                            if (!categoryDescription.isNullOrBlank()) {
+                                item(span = StaggeredGridItemSpan.FullLine) {
+                                    ExpandableText(text = categoryDescription, stateKey = "category-$categoryId")
+                                }
+                            }
                             item(span = StaggeredGridItemSpan.FullLine) {
                                 Text(
                                     text = pluralStringResource(R.plurals.reasonings_count, state.reasonings.size, state.reasonings.size),
@@ -467,8 +475,6 @@ fun ReasoningItemCard(
     onSelectFile: (StudyFile) -> Unit
 ) {
     val files = reasoning.files.orEmpty()
-    var expanded by rememberSaveable(reasoning.id) { mutableStateOf(false) }
-    var contentOverflows by remember(reasoning.id) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -499,19 +505,7 @@ fun ReasoningItemCard(
 
             if (!reasoning.content.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text = reasoning.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (expanded) Int.MAX_VALUE else CONTENT_PREVIEW_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { if (!expanded) contentOverflows = it.hasVisualOverflow }
-                )
-                if (contentOverflows || expanded) {
-                    TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                        Text(stringResource(if (expanded) R.string.reasoning_show_less else R.string.reasoning_show_more))
-                    }
-                }
+                ExpandableText(text = reasoning.content, stateKey = "reasoning-${reasoning.id}")
             }
 
             if (files.isNotEmpty()) {
@@ -554,6 +548,28 @@ fun ReasoningItemCard(
                         onSelectFile = { onSelectFile(file) }
                     )
                 }
+            }
+        }
+    }
+}
+
+/** Long text cut to [CONTENT_PREVIEW_LINES] with a Show more / Show less toggle. */
+@Composable
+internal fun ExpandableText(text: String, stateKey: String, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable(stateKey) { mutableStateOf(false) }
+    var overflows by remember(stateKey) { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) Int.MAX_VALUE else CONTENT_PREVIEW_LINES,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow }
+        )
+        if (overflows || expanded) {
+            TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text(stringResource(if (expanded) R.string.reasoning_show_less else R.string.reasoning_show_more))
             }
         }
     }
