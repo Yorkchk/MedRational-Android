@@ -81,6 +81,8 @@
     <string name="workshop_empty_hint">You\'ll get a notification when a project\'s registration opens and closes, and 10 minutes before each.</string>
     <string name="push_channel_name">Workshop reminders</string>
     <string name="push_channel_description">When a workshop\'s registration opens and closes, with a reminder 10 minutes before each</string>
+    <string name="push_files_channel_name">New files</string>
+    <string name="push_files_channel_description">When new study files are added</string>
     <plurals name="workshop_spots">
         <item quantity="one">%d spot</item>
         <item quantity="other">%d spots</item>

@@ -81,6 +81,8 @@
     <string name="workshop_empty_hint">Vous recevrez une notification à l’ouverture et à la fermeture des inscriptions d’un projet, et 10 minutes avant chacune.</string>
     <string name="push_channel_name">Rappels des ateliers</string>
     <string name="push_channel_description">À l’ouverture et à la fermeture des inscriptions d’un atelier, avec un rappel 10 minutes avant chacune</string>
+    <string name="push_files_channel_name">Nouveaux fichiers</string>
+    <string name="push_files_channel_description">Quand de nouveaux fichiers sont ajoutés</string>
     <plurals name="workshop_spots">
         <item quantity="one">%d place</item>
         <item quantity="many">%d places</item>

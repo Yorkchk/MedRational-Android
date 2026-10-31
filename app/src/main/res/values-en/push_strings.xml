@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Workshop push notifications. The backend sends these keys (title_loc_key/body_loc_key) and the
-     project title as %1$s, and Android shows them in the app's language. The names must match
-     WorkshopNotificationServiceImpl.pushLocalizationKey in the backend. -->
+<!-- Push notifications. The backend sends these keys (title_loc_key/body_loc_key) and their
+     arguments, and Android shows them in the app's language. Workshop pushes get the project title
+     as %1$s. The names must match WorkshopNotificationServiceImpl.pushLocalizationKey and
+     NewFilesNotificationServiceImpl in the backend. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
     <string name="push_created_fcfs_title">New Project: %1$s</string>
     <string name="push_created_fcfs_body">\'%1$s\' is coming up. Registration opens soon, check the dates in the app.</string>
@@ -23,4 +24,13 @@
     <string name="push_closed_fcfs_body">Registration for \'%1$s\' has ended.</string>
     <string name="push_closed_motivation_title">Applications Closed: %1$s</string>
     <string name="push_closed_motivation_body">Application period for \'%1$s\' is now closed. Submissions are under review.</string>
+
+    <!-- New study files, grouped by NewFilesNotificationServiceImpl in the backend. push_new_file
+         gets the file name and its reasoning, the others the count (always 2 or more) and the reasoning -->
+    <string name="push_new_file_title">New file: %1$s</string>
+    <string name="push_new_file_body">In %2$s</string>
+    <string name="push_new_files_reasoning_title">%1$s new files in %2$s</string>
+    <string name="push_new_files_reasoning_body">Open the app to see what\'s new.</string>
+    <string name="push_new_files_title">%1$s new files</string>
+    <string name="push_new_files_body">Open the app to see what\'s new.</string>
 </resources>

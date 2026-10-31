@@ -12,21 +12,30 @@ import com.google.firebase.messaging.FirebaseMessaging
 import java.util.IllegalFormatException
 
 /**
- * Workshop reminders arrive as Firebase Cloud Messaging pushes. The backend scheduler publishes
- * them to one topic, and every phone with the app subscribes to it at startup, signed in or not,
- * so the server never needs to know which phones exist or who is signed in on them.
+ * Workshop reminders and new study files arrive as Firebase Cloud Messaging pushes. The backend
+ * publishes them to one topic, and every phone with the app subscribes to it at startup, signed in
+ * or not, so the server never needs to know which phones exist or who is signed in on them.
  */
 object WorkshopPush {
 
     // The topic of the backend this build talks to, picked by its environment flavor
     val TOPIC: String = workshopsTopicFor(BuildConfig.FLAVOR)
 
-    // Must match FcmPushNotificationService.ANDROID_CHANNEL_ID on the backend
+    // The channels a push names; must match PushMessage.WORKSHOP_CHANNEL and NEW_FILES_CHANNEL on
+    // the backend. Separate so users can mute new files and keep the workshop reminders
     const val CHANNEL_ID = "workshop_reminders"
+    const val NEW_FILES_CHANNEL_ID = "new_files"
 
-    // Data key carrying the project a push is about; Android copies it into the launch intent's
-    // extras when the user taps a push shown while the app was closed
+    // Data keys saying what a push is about; Android copies them into the launch intent's extras
+    // when the user taps a push shown while the app was closed
     const val EXTRA_PROJECT_ID = "projectId"
+    const val EXTRA_FILE_ID = "fileId"
+    const val EXTRA_REASONING_ID = "reasoningId"
+    const val EXTRA_TYPE = "type"
+    val DATA_KEYS = listOf(EXTRA_PROJECT_ID, EXTRA_FILE_ID, EXTRA_REASONING_ID, EXTRA_TYPE)
+
+    // The type of a push about new study files (NotifType.NEW_FILES on the backend)
+    const val TYPE_NEW_FILES = "NEW_FILES"
 
     private const val TAG = "WorkshopPush"
 
@@ -44,15 +53,18 @@ object WorkshopPush {
             .addOnFailureListener { Log.w(TAG, "Couldn't subscribe to $TOPIC", it) }
     }
 
-    /** The channel pushes are shown on; it must exist before the first push arrives. */
+    /** The channels pushes are shown on; they must exist before the first push arrives. */
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        // Called at every start, so the name follows the app's language
-        val name = context.getString(R.string.push_channel_name)
-        val channel = NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_HIGH).apply {
-            description = context.getString(R.string.push_channel_description)
-        }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        // Called at every start, so the names follow the app's language
+        val workshops = NotificationChannel(
+            CHANNEL_ID, context.getString(R.string.push_channel_name), NotificationManager.IMPORTANCE_HIGH
+        ).apply { description = context.getString(R.string.push_channel_description) }
+        // New files aren't urgent: they make a sound but don't pop up over other apps
+        val files = NotificationChannel(
+            NEW_FILES_CHANNEL_ID, context.getString(R.string.push_files_channel_name), NotificationManager.IMPORTANCE_DEFAULT
+        ).apply { description = context.getString(R.string.push_files_channel_description) }
+        context.getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(workshops, files))
     }
 }
 
@@ -69,18 +81,27 @@ fun workshopsTopicFor(env: String): String = when (env) {
     else -> throw IllegalArgumentException("No workshops topic for environment '$env'")
 }
 
-/** The project a push is about, or null when it doesn't name a valid one. */
-fun projectIdFromPush(data: Map<String, String?>): Long? =
-    data[WorkshopPush.EXTRA_PROJECT_ID]?.trim()?.toLongOrNull()?.takeIf { it > 0 }
+/**
+ * The screen a push opens, or null when it doesn't name a valid one: its workshop project, a single
+ * new file's page, or What's new for several new files.
+ */
+fun pushRoute(data: Map<String, String?>): String? {
+    fun id(key: String) = data[key]?.trim()?.toLongOrNull()?.takeIf { it > 0 }
+    id(WorkshopPush.EXTRA_PROJECT_ID)?.let { return workshopRoute(it) }
+    if (data[WorkshopPush.EXTRA_TYPE] != WorkshopPush.TYPE_NEW_FILES) return null
+    val fileId = id(WorkshopPush.EXTRA_FILE_ID)
+    val reasoningId = id(WorkshopPush.EXTRA_REASONING_ID)
+    return if (fileId != null && reasoningId != null) "file/$reasoningId/$fileId" else "novelties"
+}
 
 fun workshopRoute(projectId: Long): String = "workshops/$projectId"
 
 /**
- * Where a tapped push leads: its project, or the login screen when signed out (the workshops API
- * needs a signed-in user). The project then opens after login.
+ * Where a tapped push leads: its [route], or the login screen when signed out (the app's API needs
+ * a signed-in user). The route then opens after login.
  */
-fun routeForPushTap(projectId: Long, isLoggedIn: Boolean): String =
-    if (isLoggedIn) workshopRoute(projectId) else "login"
+fun routeForPushTap(route: String, isLoggedIn: Boolean): String =
+    if (isLoggedIn) route else "login"
 
 /**
  * A push's title or body in the app's language: the app string named [key] (sent by the backend
