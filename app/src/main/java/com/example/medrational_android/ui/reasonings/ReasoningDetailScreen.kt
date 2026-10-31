@@ -167,6 +167,7 @@ fun ReasoningDetailScreen(
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
     // Picked but not yet uploaded: the admin chooses their hashtags first
     var pendingUploadUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var uploadDescription by rememberSaveable { mutableStateOf("") }
     // Deleting is permanent, so it always asks first
     var reasoningToDelete by remember { mutableStateOf<Reasoning?>(null) }
     var fileToDelete by remember { mutableStateOf<StudyFile?>(null) }
@@ -431,9 +432,20 @@ fun ReasoningDetailScreen(
             catalog = hashtagCatalog,
             supportingText = stringResource(R.string.upload_dialog_tags_hint),
             allowEmpty = true,
-            header = { PickedFilesHeader(uris) },
+            header = {
+                PickedFilesHeader(uris)
+                // One description for every picked file, like the tags
+                OutlinedTextField(
+                    value = uploadDescription,
+                    onValueChange = { uploadDescription = it.take(MAX_DESCRIPTION_LENGTH) },
+                    label = { Text(stringResource(R.string.upload_dialog_description_label)) },
+                    minLines = 2,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
             onConfirm = { tags ->
-                activeUploadReasoningId?.let { viewModel.uploadFiles(context, it, uris, tags) }
+                activeUploadReasoningId?.let { viewModel.uploadFiles(context, it, uris, tags, uploadDescription) }
                 val progress = if (uris.size == 1) {
                     context.getString(R.string.upload_in_progress)
                 } else {
@@ -441,8 +453,12 @@ fun ReasoningDetailScreen(
                 }
                 Toast.makeText(context, progress, Toast.LENGTH_SHORT).show()
                 pendingUploadUris = emptyList()
+                uploadDescription = ""
             },
-            onDismissRequest = { pendingUploadUris = emptyList() }
+            onDismissRequest = {
+                pendingUploadUris = emptyList()
+                uploadDescription = ""
+            }
         )
     }
 
@@ -936,6 +952,8 @@ private fun BulkRemoveHashtagsDialog(
 
 // How many names the upload dialog lists before summing up the rest
 private const val MAX_LISTED_UPLOADS = 5
+
+private const val MAX_DESCRIPTION_LENGTH = 2000
 
 // The picked file's name, or for several the count and the first few names
 @Composable

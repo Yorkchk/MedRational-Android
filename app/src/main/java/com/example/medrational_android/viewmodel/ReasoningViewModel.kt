@@ -24,7 +24,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -107,7 +110,13 @@ class ReasoningViewModel(
         _message.value = null
     }
 
-    fun uploadFile(context: Context, reasoningId: Long, uri: Uri, tags: List<String> = emptyList()) {
+    fun uploadFile(
+        context: Context,
+        reasoningId: Long,
+        uri: Uri,
+        tags: List<String> = emptyList(),
+        description: String? = null
+    ) {
         viewModelScope.launch {
             val part = try {
                 describePickedFile(context, uri).toPart(context, "file")
@@ -119,15 +128,20 @@ class ReasoningViewModel(
                 _message.value = UiText.Res(R.string.upload_error_read_file)
                 return@launch
             }
-            uploadAndTag(reasoningId, part, tags)
+            uploadAndTag(reasoningId, part, tags, description)
         }
     }
 
     // Uploads, then attaches the tags to the new file; the upload stands even if tagging fails
     @VisibleForTesting
-    internal suspend fun uploadAndTag(reasoningId: Long, part: MultipartBody.Part, tags: List<String>) {
+    internal suspend fun uploadAndTag(
+        reasoningId: Long,
+        part: MultipartBody.Part,
+        tags: List<String>,
+        description: String? = null
+    ) {
         val uploaded = try {
-            val response = api.uploadFile(reasoningId, part)
+            val response = api.uploadFile(reasoningId, part, descriptionPart(description))
             if (response.isSuccessful) response.body() else null
         } catch (e: IOException) {
             null
@@ -162,8 +176,14 @@ class ReasoningViewModel(
      * Uploads files picked together through the batch endpoint, so students get one push for them
      * rather than one per file. A single file goes through [uploadFile].
      */
-    fun uploadFiles(context: Context, reasoningId: Long, uris: List<Uri>, tags: List<String> = emptyList()) {
-        if (uris.size == 1) return uploadFile(context, reasoningId, uris.single(), tags)
+    fun uploadFiles(
+        context: Context,
+        reasoningId: Long,
+        uris: List<Uri>,
+        tags: List<String> = emptyList(),
+        description: String? = null
+    ) {
+        if (uris.size == 1) return uploadFile(context, reasoningId, uris.single(), tags, description)
         if (uris.isEmpty()) return
         viewModelScope.launch {
             // Unreadable files and files the backend would refuse are left out and counted as not sent
@@ -180,7 +200,7 @@ class ReasoningViewModel(
             val batches = uploadBatches(picked).map { batch ->
                 suspend { batch.map { it.toPart(context, "files") } }
             }
-            uploadBatchesAndTag(reasoningId, batches, tags, total = uris.size)
+            uploadBatchesAndTag(reasoningId, batches, tags, total = uris.size, description = description)
         }
     }
 
@@ -191,12 +211,13 @@ class ReasoningViewModel(
         reasoningId: Long,
         batches: List<suspend () -> List<MultipartBody.Part>>,
         tags: List<String>,
-        total: Int
+        total: Int,
+        description: String? = null
     ) {
         val uploaded = mutableListOf<StudyFile>()
         for (readBatch in batches) {
             try {
-                val response = api.uploadFiles(reasoningId, readBatch())
+                val response = api.uploadFiles(reasoningId, readBatch(), descriptionPart(description))
                 if (response.isSuccessful) uploaded += response.body().orEmpty()
             } catch (e: IOException) {
                 // Offline, or a file that couldn't be read: the other batches still go
@@ -230,3 +251,8 @@ class ReasoningViewModel(
 
     private fun fileCount(count: Int) = UiText.Plural(R.plurals.file_count, count)
 }
+
+/** The upload's description as a text part, or null (so it's left out) when blank. */
+@VisibleForTesting
+internal fun descriptionPart(description: String?): RequestBody? =
+    description?.trim()?.takeIf { it.isNotEmpty() }?.toRequestBody("text/plain".toMediaType())

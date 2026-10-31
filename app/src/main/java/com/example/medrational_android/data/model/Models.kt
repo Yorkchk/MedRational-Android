@@ -24,6 +24,8 @@ data class StudyFile(
     val fileType: String?,
     val publicUrl: String,
     val fileSizeBytes: Long?,
+    // Written by the admin at upload; null when left empty
+    val description: String? = null,
     // Backend can render it as a PDF (PDF, DOCX, PPTX, XLSX)
     val previewable: Boolean = false,
     val uploadedAt: String? = null,
