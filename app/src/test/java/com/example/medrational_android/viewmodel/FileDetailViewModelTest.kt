@@ -5,12 +5,14 @@ import com.example.medrational_android.TestStrings.en
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.data.model.UpdateStudyFileRequest
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -239,6 +241,74 @@ class FileDetailViewModelTest {
         newViewModel(recordViews = true).load(REASONING_ID, FILE_ID)
 
         coVerify(exactly = 0) { api.recordFileView(any()) }
+    }
+
+    // A file without a preview, so editing never touches the preview
+    private fun loadedForEditing(): FileDetailViewModel {
+        coEvery { api.getReasoning(REASONING_ID) } returns
+            Response.success(reasoningWith(studyFile(fileName = "scan_001.pdf", previewable = false)))
+        return newViewModel().also { it.load(REASONING_ID, FILE_ID) }
+    }
+
+    @Test
+    fun `saved edit replaces the file and says so`() {
+        val viewModel = loadedForEditing()
+        val renamed = studyFile(fileName = "ECG basics.pdf", previewable = false).copy(description = "Lead placement")
+        coEvery { api.updateFile(FILE_ID, any()) } returns Response.success(renamed)
+        var closed = false
+
+        viewModel.updateDetails("  ECG basics ", " Lead placement ", onSaved = { closed = true })
+
+        coVerify(exactly = 1) { api.updateFile(FILE_ID, UpdateStudyFileRequest("ECG basics", "Lead placement")) }
+        assertEquals(renamed, viewModel.success().file)
+        assertEquals(PreviewState.NotSupported, viewModel.success().preview)
+        assertEquals("File updated.", en(viewModel.message.value))
+        assertTrue(closed)
+        assertFalse(viewModel.isSaving.value)
+    }
+
+    @Test
+    fun `blank description is sent as null to clear it`() {
+        val viewModel = loadedForEditing()
+        coEvery { api.updateFile(FILE_ID, any()) } returns Response.success(studyFile(fileName = "ECG.pdf"))
+
+        viewModel.updateDetails("ECG", "   ")
+
+        coVerify(exactly = 1) { api.updateFile(FILE_ID, UpdateStudyFileRequest("ECG", null)) }
+    }
+
+    @Test
+    fun `failed edit keeps the file and keeps the dialog open`() {
+        val viewModel = loadedForEditing()
+        coEvery { api.updateFile(FILE_ID, any()) } returns Response.error(500, "".toResponseBody(null))
+        var closed = false
+
+        viewModel.updateDetails("ECG", "", onSaved = { closed = true })
+
+        assertEquals("scan_001.pdf", viewModel.success().file.fileName)
+        assertEquals("Couldn't update the file (HTTP 500).", en(viewModel.message.value))
+        assertFalse(closed)
+    }
+
+    @Test
+    fun `edit while offline says so`() {
+        val viewModel = loadedForEditing()
+        coEvery { api.updateFile(FILE_ID, any()) } throws IOException("offline")
+
+        viewModel.updateDetails("ECG", "")
+
+        assertEquals("scan_001.pdf", viewModel.success().file.fileName)
+        assertEquals("Network error. Check your connection and try again.", en(viewModel.message.value))
+    }
+
+    @Test
+    fun `blank title makes no request`() {
+        val viewModel = loadedForEditing()
+
+        viewModel.updateDetails("   ", "Lead placement")
+
+        coVerify(exactly = 0) { api.updateFile(any(), any()) }
+        assertNull(viewModel.message.value)
     }
 
     private companion object {

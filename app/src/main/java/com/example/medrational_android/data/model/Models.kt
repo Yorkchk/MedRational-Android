@@ -33,6 +33,10 @@ data class StudyFile(
     val totalRatings: Int = 0
 )
 
+// Body of PUT /files/{id}. title is the name without its extension, which the backend keeps;
+// a null description clears it
+data class UpdateStudyFileRequest(val title: String, val description: String?)
+
 // Mirrors backend FileRatingSummaryDTO. avgRating is rounded to one decimal; userRating is the
 // signed-in user's score (1-5), null when they haven't rated the file
 data class FileRatingSummary(

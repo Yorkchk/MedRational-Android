@@ -6,6 +6,10 @@ import java.util.Locale
 
 private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "heic", "heif", "avif")
 
+// Limits of the backend's study file fields
+const val MAX_FILE_TITLE_LENGTH = 200
+const val MAX_FILE_DESCRIPTION_LENGTH = 2000
+
 // Lowercase extension without the dot, or "" when the name has none
 fun fileExtension(fileName: String?): String {
     val name = fileName ?: return ""

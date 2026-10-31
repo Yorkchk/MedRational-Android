@@ -7,6 +7,7 @@ import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.api.MedRationalApi
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
+import com.example.medrational_android.data.model.UpdateStudyFileRequest
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.preview.saveToCache
 import com.example.medrational_android.ui.text.UiText
@@ -51,6 +52,13 @@ class FileDetailViewModel(
 
     private val _uiState = MutableStateFlow<FileDetailUiState>(FileDetailUiState.Loading)
     val uiState: StateFlow<FileDetailUiState> = _uiState.asStateFlow()
+
+    // One-shot feedback for the admin's edits, cleared with onMessageShown
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
+
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
     private var previewJob: Job? = null
     // Coming back to the screen or retrying reloads the file but isn't a new view
@@ -97,6 +105,41 @@ class FileDetailViewModel(
         val preview = state.preview as? PreviewState.Pdf ?: return
         preview.file.delete()
         setPreview(PreviewState.Unavailable(UiText.Res(R.string.preview_error_corrupted)))
+    }
+
+    fun onMessageShown() {
+        _message.value = null
+    }
+
+    // Admin only. Calls onSaved once saved, so the dialog can close; the preview stays as it is
+    fun updateDetails(title: String, description: String, onSaved: () -> Unit = {}) {
+        val state = _uiState.value as? FileDetailUiState.Success ?: return
+        if (title.isBlank() || _isSaving.value) return
+        _isSaving.value = true
+        viewModelScope.launch {
+            try {
+                val response = api.updateFile(
+                    state.file.id,
+                    UpdateStudyFileRequest(title.trim(), description.trim().ifEmpty { null })
+                )
+                val updated = response.body()
+                if (response.isSuccessful && updated != null) {
+                    _uiState.update { current ->
+                        if (current is FileDetailUiState.Success) current.copy(file = updated) else current
+                    }
+                    _message.value = UiText.Res(R.string.file_edit_saved)
+                    onSaved()
+                } else {
+                    _message.value = UiText.Res(R.string.file_edit_failed, listOf(response.code()))
+                }
+            } catch (e: IOException) {
+                _message.value = UiText.Res(R.string.error_network)
+            } catch (e: HttpException) {
+                _message.value = UiText.Res(R.string.file_edit_failed, listOf(e.code()))
+            } finally {
+                _isSaving.value = false
+            }
+        }
     }
 
     // For the admin statistics; failures don't matter to the user, so they're ignored

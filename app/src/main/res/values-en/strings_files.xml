@@ -23,6 +23,11 @@
     <string name="preview_none_for_extension">No preview for .%1$s files</string>
     <string name="preview_none">No preview for this file</string>
     <string name="preview_supported_types">Previews are available for PDF, Word, PowerPoint, Excel and image files. Download the file to open it.</string>
+    <string name="file_edit">Edit file</string>
+    <string name="file_edit_title_label">Title</string>
+    <string name="file_edit_description_label">Description</string>
+    <string name="file_edit_saved">File updated.</string>
+    <string name="file_edit_failed">Couldn\'t update the file (HTTP %1$d).</string>
     <string name="file_description_title">Description</string>
     <string name="file_from_reasoning">From reasoning</string>
     <string name="show_less">Show less</string>

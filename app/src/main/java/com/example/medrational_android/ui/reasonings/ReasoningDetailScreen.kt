@@ -89,6 +89,7 @@ import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
+import com.example.medrational_android.data.model.MAX_FILE_DESCRIPTION_LENGTH
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
@@ -437,7 +438,7 @@ fun ReasoningDetailScreen(
                 // One description for every picked file, like the tags
                 OutlinedTextField(
                     value = uploadDescription,
-                    onValueChange = { uploadDescription = it.take(MAX_DESCRIPTION_LENGTH) },
+                    onValueChange = { uploadDescription = it.take(MAX_FILE_DESCRIPTION_LENGTH) },
                     label = { Text(stringResource(R.string.upload_dialog_description_label)) },
                     minLines = 2,
                     maxLines = 6,
@@ -952,8 +953,6 @@ private fun BulkRemoveHashtagsDialog(
 
 // How many names the upload dialog lists before summing up the rest
 private const val MAX_LISTED_UPLOADS = 5
-
-private const val MAX_DESCRIPTION_LENGTH = 2000
 
 // The picked file's name, or for several the count and the first few names
 @Composable

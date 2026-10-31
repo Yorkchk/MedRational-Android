@@ -52,6 +52,10 @@ interface MedRationalApi {
         @Part("description") description: RequestBody?
     ): Response<List<StudyFile>>
 
+    // Admin only: renames the file (keeping its extension) and sets its description
+    @PUT("api/v1/files/{id}")
+    suspend fun updateFile(@Path("id") id: Long, @Body request: UpdateStudyFileRequest): Response<StudyFile>
+
     // PDF rendition of the file; 415 when the format can't be previewed, 503 when conversion fails
     @Streaming
     @GET("api/v1/files/{id}/preview")

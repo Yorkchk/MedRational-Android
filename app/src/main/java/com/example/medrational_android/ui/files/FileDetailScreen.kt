@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Share
@@ -153,6 +154,8 @@ fun FileDetailScreen(
     val hashtagsState by hashtagsViewModel.uiState.collectAsState()
     val ratingState by ratingViewModel.uiState.collectAsState()
     val shareState by shareViewModel.state.collectAsState()
+    val isSavingEdit by viewModel.isSaving.collectAsState()
+    var showEditDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
@@ -166,6 +169,14 @@ fun FileDetailScreen(
         if (ratingMessage != null) {
             Toast.makeText(context, ratingMessage.asString(context), Toast.LENGTH_LONG).show()
             ratingViewModel.onMessageShown()
+        }
+    }
+
+    val editMessage by viewModel.message.collectAsState()
+    LaunchedEffect(editMessage) {
+        editMessage?.let {
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
+            viewModel.onMessageShown()
         }
     }
 
@@ -232,6 +243,12 @@ fun FileDetailScreen(
                             ShareIcon(isSharing = isSharing)
                         }
                     }
+                    // Admins fix each file's title and description here, e.g. after a batch upload
+                    if (success != null && isAdmin) {
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.file_edit))
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -287,6 +304,17 @@ fun FileDetailScreen(
                 )
             }
         }
+    }
+
+    if (showEditDialog && success != null) {
+        EditFileDialog(
+            file = success.file,
+            isSaving = isSavingEdit,
+            onSave = { title, description ->
+                viewModel.updateDetails(title, description, onSaved = { showEditDialog = false })
+            },
+            onDismissRequest = { showEditDialog = false }
+        )
     }
 }
 
