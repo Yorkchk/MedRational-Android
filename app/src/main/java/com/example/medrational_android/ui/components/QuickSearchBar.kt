@@ -34,8 +34,9 @@ import com.example.medrational_android.R
 import com.example.medrational_android.ui.theme.Spacing
 
 /**
- * Filters a list that is already on screen as you type, with an Advanced button next to it that
- * opens the full search (files, hashtags). The button has a word, not just an icon, so it's found.
+ * Filters a list that is already on screen as you type, with a way to the full search (files,
+ * hashtags). On phones that is a filter icon at the end of the field, as in most apps, so the field
+ * keeps the width; on tablets there is room for an "Advanced" button with a word next to it.
  */
 @Composable
 fun QuickSearchBar(
@@ -46,6 +47,8 @@ fun QuickSearchBar(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val compact = isCompactWidth(windowWidthDp())
+    val advanced = stringResource(R.string.search_advanced)
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = query,
@@ -53,9 +56,16 @@ fun QuickSearchBar(
             placeholder = { Text(placeholder, maxLines = 1) },
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
+                        }
+                    }
+                    if (compact) {
+                        IconButton(onClick = onAdvancedSearch) {
+                            Icon(Icons.Outlined.Tune, contentDescription = advanced)
+                        }
                     }
                 }
             },
@@ -66,8 +76,8 @@ fun QuickSearchBar(
             shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier.weight(1f)
         )
+        if (compact) return@Row
         Spacer(modifier = Modifier.width(Spacing.sm))
-        val advanced = stringResource(R.string.search_advanced)
         FilledTonalButton(
             onClick = onAdvancedSearch,
             contentPadding = ButtonDefaults.ButtonWithIconContentPadding,

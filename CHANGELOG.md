@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
-- Search bars on the home screen (categories) and on a category's page (reasonings) filter the list as you type, accents ignored. Their Advanced button opens the full search with what you typed, on that category.
+- Search bars on the home screen (categories) and on a category's page (reasonings) filter the list as you type, accents ignored. Advanced search (a filter icon in the field on phones, an Advanced button next to it on tablets) opens the full search with what you typed, on that category.
 - Testers can install the UAT app ("SWISRA UAT") next to the real one. It talks to the test server and only gets its workshop notifications, so testing never notifies students.
 - You stay signed in: the app renews your session in the background, so you only sign in again after 60 days without opening it. Being offline never signs you out.
   - Signing out ends the session on the server too.

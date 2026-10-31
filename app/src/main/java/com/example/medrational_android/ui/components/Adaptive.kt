@@ -43,6 +43,9 @@ fun listColumnsFor(widthDp: Int, maxColumns: Int = 2, itemCount: Int? = null): I
     return if (itemCount == null) columns else columns.coerceAtMost(itemCount).coerceAtLeast(1)
 }
 
+/** A phone's width (below a small tablet). */
+fun isCompactWidth(widthDp: Int): Boolean = widthDp < MEDIUM_WIDTH_DP
+
 /** Wide enough to put a file's details next to its preview (a tablet in landscape). */
 fun isTwoPane(widthDp: Int): Boolean = widthDp >= EXPANDED_WIDTH_DP
 

@@ -1,14 +1,19 @@
 package com.example.medrational_android.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,6 +38,8 @@ class QuickSearchBarTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val placeholder = "Rechercher une catégorie"
+    private val advancedLabel = context.getString(R.string.search_advanced_short)
+    private val advancedDescription = context.getString(R.string.search_advanced)
 
     private var lastQuery = ""
     private var advancedClicks = 0
@@ -43,21 +50,23 @@ class QuickSearchBarTest {
         Espresso.closeSoftKeyboard()
     }
 
-    private fun showBar() {
+    private fun showBar(widthDp: Int) {
         composeRule.setContent {
             var query by remember { mutableStateOf("") }
-            SwisraTheme(darkTheme = false) {
-                // A phone's width: the Advanced label must still fit next to the field
-                Box(modifier = Modifier.width(360.dp)) {
-                    QuickSearchBar(
-                        query = query,
-                        onQueryChange = {
-                            query = it
-                            lastQuery = it
-                        },
-                        placeholder = placeholder,
-                        onAdvancedSearch = { advancedClicks++ }
-                    )
+            val config = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
+            CompositionLocalProvider(LocalConfiguration provides config) {
+                SwisraTheme(darkTheme = false) {
+                    Box(modifier = Modifier.requiredWidth(widthDp.dp)) {
+                        QuickSearchBar(
+                            query = query,
+                            onQueryChange = {
+                                query = it
+                                lastQuery = it
+                            },
+                            placeholder = placeholder,
+                            onAdvancedSearch = { advancedClicks++ }
+                        )
+                    }
                 }
             }
         }
@@ -65,7 +74,7 @@ class QuickSearchBarTest {
 
     @Test
     fun typingFiltersAndTheCrossClears() {
-        showBar()
+        showBar(widthDp = 360)
 
         composeRule.onNodeWithText(placeholder).performTextInput("cardio")
         assertEquals("cardio", lastQuery)
@@ -74,12 +83,24 @@ class QuickSearchBarTest {
         assertEquals("", lastQuery)
     }
 
+    // A phone keeps the field wide: Advanced is an icon at its end, without the label
     @Test
-    fun theAdvancedButtonShowsItsLabelAndOpensTheFullSearch() {
-        showBar()
+    fun aPhoneShowsAdvancedAsAnIconInTheField() {
+        showBar(widthDp = 360)
 
-        composeRule.onNodeWithText(context.getString(R.string.search_advanced_short)).assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(context.getString(R.string.search_advanced)).performClick()
+        composeRule.onAllNodesWithText(advancedLabel).assertCountEquals(0)
+        composeRule.onNodeWithContentDescription(advancedDescription).performClick()
+
+        assertEquals(1, advancedClicks)
+    }
+
+    @Test
+    fun aTabletShowsTheLabeledAdvancedButton() {
+        // Tablet width that still fits the test device in portrait
+        showBar(widthDp = 700)
+
+        composeRule.onNodeWithText(advancedLabel).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(advancedDescription).performClick()
 
         assertEquals(1, advancedClicks)
     }

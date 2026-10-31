@@ -32,6 +32,14 @@ class AdaptiveTest {
     }
 
     @Test
+    fun `phones are compact, tablets are not`() {
+        assertTrue(isCompactWidth(360))
+        assertTrue(isCompactWidth(599))
+        assertFalse(isCompactWidth(600))
+        assertFalse(isCompactWidth(1280))
+    }
+
+    @Test
     fun `the file page splits in two only from a tablet in landscape`() {
         assertFalse(isTwoPane(411))
         assertFalse(isTwoPane(800))
