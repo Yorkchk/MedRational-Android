@@ -53,3 +53,28 @@ suspend fun PickedFile.toPart(context: Context, partName: String = "file"): Mult
 
 fun PickedFile.exceedsLimit(maxBytes: Long = MAX_SUGGESTION_ATTACHMENT_BYTES): Boolean =
     sizeBytes != null && sizeBytes > maxBytes
+
+// The backend's spring.servlet.multipart.max-file-size
+const val MAX_UPLOAD_FILE_BYTES = 20L * 1024 * 1024
+// Under the backend's max-request-size (50 MB), leaving room for the multipart framing
+const val MAX_UPLOAD_REQUEST_BYTES = 45L * 1024 * 1024
+
+/**
+ * Splits study files picked together into upload-batch requests the backend accepts, in the picked
+ * order. Each request is announced to students in one push, so the fewer the better. Files over
+ * [MAX_UPLOAD_FILE_BYTES] must be left out first; a file with an unknown size counts as empty.
+ */
+fun uploadBatches(files: List<PickedFile>, maxRequestBytes: Long = MAX_UPLOAD_REQUEST_BYTES): List<List<PickedFile>> {
+    val batches = mutableListOf<MutableList<PickedFile>>()
+    var batchBytes = 0L
+    for (file in files) {
+        val size = file.sizeBytes ?: 0L
+        if (batches.isEmpty() || batchBytes + size > maxRequestBytes) {
+            batches.add(mutableListOf())
+            batchBytes = 0L
+        }
+        batches.last().add(file)
+        batchBytes += size
+    }
+    return batches
+}

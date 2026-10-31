@@ -18,15 +18,42 @@
     <string name="download_reasoning_zip_name">%1$s_Fichiers.zip</string>
     <string name="reasonings_download_category">Télécharger la catégorie (ZIP)</string>
     <string name="reasonings_empty">Aucun raisonnement pour cette catégorie.</string>
-    <string name="upload_dialog_title">Envoyer un fichier</string>
+    <string name="upload_dialog_title">Envoyer des fichiers</string>
     <string name="upload_dialog_confirm">Envoyer</string>
     <string name="upload_dialog_tags_hint">Facultatif. Séparez plusieurs hashtags par des espaces ou des virgules</string>
     <string name="upload_selected_file">Fichier sélectionné</string>
     <string name="upload_in_progress">Envoi du fichier…</string>
+    <string name="upload_many_partial" tools:ignore="PluralsCandidate">Envoyés : %1$d sur %2$s. Les autres n’ont pas pu être envoyés (20 Mo maximum par fichier).</string>
+    <string name="upload_many_tags_failed">Envoyés : %1$s. Les hashtags de %2$s n’ont pas pu être enregistrés.</string>
+    <plurals name="upload_many_in_progress">
+        <item quantity="one">Envoi de %d fichier…</item>
+        <item quantity="many">Envoi de %d fichiers…</item>
+        <item quantity="other">Envoi de %d fichiers…</item>
+    </plurals>
+    <plurals name="upload_many_done">
+        <item quantity="one">%d fichier envoyé</item>
+        <item quantity="many">%d fichiers envoyés</item>
+        <item quantity="other">%d fichiers envoyés</item>
+    </plurals>
+    <plurals name="upload_many_done_tagged">
+        <item quantity="one">%d fichier envoyé et étiqueté</item>
+        <item quantity="many">%d fichiers envoyés et étiquetés</item>
+        <item quantity="other">%d fichiers envoyés et étiquetés</item>
+    </plurals>
+    <plurals name="upload_selected_count">
+        <item quantity="one">%d fichier sélectionné</item>
+        <item quantity="many">%d fichiers sélectionnés</item>
+        <item quantity="other">%d fichiers sélectionnés</item>
+    </plurals>
+    <plurals name="upload_more_files">
+        <item quantity="one">+ %d autre</item>
+        <item quantity="many">+ %d autres</item>
+        <item quantity="other">+ %d autres</item>
+    </plurals>
     <string name="bulk_tag_dialog_confirm">Ajouter</string>
     <string name="bulk_tag_dialog_hint">Ajoutés à chaque fichier sélectionné</string>
     <string name="reasoning_download_all">Télécharger tous les fichiers</string>
-    <string name="reasoning_upload_file">Envoyer un fichier</string>
+    <string name="reasoning_upload_file">Envoyer des fichiers</string>
     <string name="reasoning_delete">Supprimer le raisonnement</string>
     <string name="reasoning_attached_files">Fichiers joints (%1$d)</string>
     <string name="favorite_remove">Retirer des favoris</string>

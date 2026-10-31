@@ -79,6 +79,8 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - Charts are drawn with Compose `Canvas` (`Charts.kt`); there is no chart library.
   - `FileDetailViewModel` calls `POST /api/v1/files/{id}/views` once per opened file, for signed-in non-admins only (`recordViews`), and ignores failures. Active students come from the backend's own per-day tracking of authenticated requests, so the app doesn't record activity.
 - **Multipart Uploads:** Admin file creation uses `MultipartBody.Part` for binary files alongside `RequestBody` for metadata fields (`title`, `description`, `reasoningId`).
+  - Admins can pick several study files at once for a reasoning (`GetMultipleContents`). One file goes to `/files/upload/{reasoningId}`. Several go to `/files/upload-batch/{reasoningId}` (parts named `files`), split by `uploadBatches` (`data/upload/PickedFiles.kt`) into requests of 45 MB or less, since the backend allows 20 MB per file and 50 MB per request. Files over 20 MB are left out and reported.
+  - Each request sends students one new-files push, so batches keep a selection to one notification. The chosen hashtags are then attached to every uploaded file.
 
 ## Architecture & State Management
 
