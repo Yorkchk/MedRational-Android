@@ -40,6 +40,14 @@ interface MedRationalApi {
         @Part file: MultipartBody.Part
     ): Response<StudyFile>
 
+    // Several files in one request (parts named "files"); students get one push for all of them
+    @Multipart
+    @POST("api/v1/files/upload-batch/{reasoningId}")
+    suspend fun uploadFiles(
+        @Path("reasoningId") reasoningId: Long,
+        @Part files: List<MultipartBody.Part>
+    ): Response<List<StudyFile>>
+
     // PDF rendition of the file; 415 when the format can't be previewed, 503 when conversion fails
     @Streaming
     @GET("api/v1/files/{id}/preview")

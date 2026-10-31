@@ -12,9 +12,13 @@ import com.example.medrational_android.data.model.AttachHashtagsRequest
 import com.example.medrational_android.data.model.CreateReasoningRequest
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
+import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.data.upload.MAX_UPLOAD_FILE_BYTES
 import com.example.medrational_android.data.upload.describePickedFile
+import com.example.medrational_android.data.upload.exceedsLimit
 import com.example.medrational_android.data.upload.toPart
+import com.example.medrational_android.data.upload.uploadBatches
 import com.example.medrational_android.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -153,4 +157,76 @@ class ReasoningViewModel(
         }
         loadReasoningsForCategory(currentCategoryId)
     }
+
+    /**
+     * Uploads files picked together through the batch endpoint, so students get one push for them
+     * rather than one per file. A single file goes through [uploadFile].
+     */
+    fun uploadFiles(context: Context, reasoningId: Long, uris: List<Uri>, tags: List<String> = emptyList()) {
+        if (uris.size == 1) return uploadFile(context, reasoningId, uris.single(), tags)
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            // Unreadable files and files the backend would refuse are left out and counted as not sent
+            val picked = uris.mapNotNull { uri ->
+                try {
+                    describePickedFile(context, uri)
+                } catch (e: IOException) {
+                    null
+                } catch (e: SecurityException) {
+                    null
+                }
+            }.filterNot { it.exceedsLimit(MAX_UPLOAD_FILE_BYTES) }
+            // Read one batch at a time, so only one request's files are in memory
+            val batches = uploadBatches(picked).map { batch ->
+                suspend { batch.map { it.toPart(context, "files") } }
+            }
+            uploadBatchesAndTag(reasoningId, batches, tags, total = uris.size)
+        }
+    }
+
+    // Sends each batch, then attaches the tags to its files; uploads stand even if tagging fails.
+    // [total] is how many files were picked, so files left out count as not sent
+    @VisibleForTesting
+    internal suspend fun uploadBatchesAndTag(
+        reasoningId: Long,
+        batches: List<suspend () -> List<MultipartBody.Part>>,
+        tags: List<String>,
+        total: Int
+    ) {
+        val uploaded = mutableListOf<StudyFile>()
+        for (readBatch in batches) {
+            try {
+                val response = api.uploadFiles(reasoningId, readBatch())
+                if (response.isSuccessful) uploaded += response.body().orEmpty()
+            } catch (e: IOException) {
+                // Offline, or a file that couldn't be read: the other batches still go
+            } catch (e: SecurityException) {
+            } catch (e: HttpException) {
+            }
+        }
+        if (uploaded.isEmpty()) {
+            _message.value = UiText.Res(R.string.upload_error_failed)
+            return
+        }
+
+        val tagFailures = if (tags.isEmpty()) 0 else uploaded.count { file ->
+            try {
+                !api.attachHashtags(file.id, AttachHashtagsRequest(tags)).isSuccessful
+            } catch (e: IOException) {
+                true
+            } catch (e: HttpException) {
+                true
+            }
+        }
+        val sent = uploaded.size
+        _message.value = when {
+            sent < total -> UiText.Res(R.string.upload_many_partial, listOf(sent, fileCount(total)))
+            tagFailures > 0 -> UiText.Res(R.string.upload_many_tags_failed, listOf(fileCount(sent), fileCount(tagFailures)))
+            tags.isEmpty() -> UiText.Plural(R.plurals.upload_many_done, sent)
+            else -> UiText.Plural(R.plurals.upload_many_done_tagged, sent)
+        }
+        loadReasoningsForCategory(currentCategoryId)
+    }
+
+    private fun fileCount(count: Int) = UiText.Plural(R.plurals.file_count, count)
 }

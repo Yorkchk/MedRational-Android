@@ -18,15 +18,37 @@
     <string name="download_reasoning_zip_name">%1$s_Files.zip</string>
     <string name="reasonings_download_category">Download category ZIP</string>
     <string name="reasonings_empty">No reasonings added for this category.</string>
-    <string name="upload_dialog_title">Upload file</string>
+    <string name="upload_dialog_title">Upload files</string>
     <string name="upload_dialog_confirm">Upload</string>
     <string name="upload_dialog_tags_hint">Optional. Separate several tags with spaces or commas</string>
     <string name="upload_selected_file">Selected file</string>
     <string name="upload_in_progress">Uploading file…</string>
+    <string name="upload_many_partial" tools:ignore="PluralsCandidate">Uploaded %1$d of %2$s. The others couldn\'t be sent (20 MB max per file).</string>
+    <string name="upload_many_tags_failed">Uploaded %1$s, but the hashtags of %2$s couldn\'t be saved.</string>
+    <plurals name="upload_many_in_progress">
+        <item quantity="one">Uploading %d file…</item>
+        <item quantity="other">Uploading %d files…</item>
+    </plurals>
+    <plurals name="upload_many_done">
+        <item quantity="one">Uploaded %d file</item>
+        <item quantity="other">Uploaded %d files</item>
+    </plurals>
+    <plurals name="upload_many_done_tagged">
+        <item quantity="one">Uploaded and tagged %d file</item>
+        <item quantity="other">Uploaded and tagged %d files</item>
+    </plurals>
+    <plurals name="upload_selected_count">
+        <item quantity="one">%d file selected</item>
+        <item quantity="other">%d files selected</item>
+    </plurals>
+    <plurals name="upload_more_files">
+        <item quantity="one">+ %d more</item>
+        <item quantity="other">+ %d more</item>
+    </plurals>
     <string name="bulk_tag_dialog_confirm">Add</string>
     <string name="bulk_tag_dialog_hint">Added to every selected file</string>
     <string name="reasoning_download_all">Download all files</string>
-    <string name="reasoning_upload_file">Upload study file</string>
+    <string name="reasoning_upload_file">Upload study files</string>
     <string name="reasoning_delete">Delete reasoning</string>
     <string name="reasoning_attached_files">Attached files (%1$d)</string>
     <string name="favorite_remove">Remove from favorites</string>

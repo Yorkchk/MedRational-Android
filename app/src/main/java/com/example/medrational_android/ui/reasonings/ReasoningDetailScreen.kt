@@ -165,8 +165,8 @@ fun ReasoningDetailScreen(
 
     var showCreateReasoningDialog by remember { mutableStateOf(false) }
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
-    // Picked but not yet uploaded: the admin chooses its hashtags first
-    var pendingUploadUri by remember { mutableStateOf<Uri?>(null) }
+    // Picked but not yet uploaded: the admin chooses their hashtags first
+    var pendingUploadUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     // Deleting is permanent, so it always asks first
     var reasoningToDelete by remember { mutableStateOf<Reasoning?>(null) }
     var fileToDelete by remember { mutableStateOf<StudyFile?>(null) }
@@ -212,11 +212,11 @@ fun ReasoningDetailScreen(
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null && activeUploadReasoningId != null) {
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty() && activeUploadReasoningId != null) {
             catalogViewModel.refresh()
-            pendingUploadUri = uri
+            pendingUploadUris = uris
         }
     }
 
@@ -423,29 +423,26 @@ fun ReasoningDetailScreen(
         )
     }
 
-    pendingUploadUri?.let { uri ->
-        val fileName = remember(uri) { displayName(context, uri) }
+    if (pendingUploadUris.isNotEmpty()) {
+        val uris = pendingUploadUris
         HashtagPickerDialog(
             title = stringResource(R.string.upload_dialog_title),
             confirmLabel = stringResource(R.string.upload_dialog_confirm),
             catalog = hashtagCatalog,
             supportingText = stringResource(R.string.upload_dialog_tags_hint),
             allowEmpty = true,
-            header = {
-                Text(
-                    text = fileName ?: stringResource(R.string.upload_selected_file),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
+            header = { PickedFilesHeader(uris) },
             onConfirm = { tags ->
-                activeUploadReasoningId?.let { viewModel.uploadFile(context, it, uri, tags) }
-                Toast.makeText(context, R.string.upload_in_progress, Toast.LENGTH_SHORT).show()
-                pendingUploadUri = null
+                activeUploadReasoningId?.let { viewModel.uploadFiles(context, it, uris, tags) }
+                val progress = if (uris.size == 1) {
+                    context.getString(R.string.upload_in_progress)
+                } else {
+                    context.resources.getQuantityString(R.plurals.upload_many_in_progress, uris.size, uris.size)
+                }
+                Toast.makeText(context, progress, Toast.LENGTH_SHORT).show()
+                pendingUploadUris = emptyList()
             },
-            onDismissRequest = { pendingUploadUri = null }
+            onDismissRequest = { pendingUploadUris = emptyList() }
         )
     }
 
@@ -935,6 +932,51 @@ private fun BulkRemoveHashtagsDialog(
             TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.common_cancel)) }
         }
     )
+}
+
+// How many names the upload dialog lists before summing up the rest
+private const val MAX_LISTED_UPLOADS = 5
+
+// The picked file's name, or for several the count and the first few names
+@Composable
+private fun PickedFilesHeader(uris: List<Uri>, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val names = remember(uris) { uris.take(MAX_LISTED_UPLOADS).map { displayName(context, it) } }
+    if (uris.size == 1) {
+        Text(
+            text = names.first() ?: stringResource(R.string.upload_selected_file),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier
+        )
+        return
+    }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Text(
+            text = pluralStringResource(R.plurals.upload_selected_count, uris.size, uris.size),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
+        )
+        names.forEach { name ->
+            Text(
+                text = name ?: stringResource(R.string.upload_selected_file),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        val more = uris.size - names.size
+        if (more > 0) {
+            Text(
+                text = pluralStringResource(R.plurals.upload_more_files, more, more),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 private fun displayName(context: Context, uri: Uri): String? = runCatching {
