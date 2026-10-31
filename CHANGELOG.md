@@ -16,7 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - Several files: long-press a file (or pick Select in its ⋮ menu), tick the others, then tap Share. They are sent as separate files.
   - A whole reasoning: Share all (zip) in its ⋮ menu. A whole category: the Share icon at the top, which sends one zip with a folder per reasoning.
   - Shared files (not zips) also appear in Recent downloads.
-- A push notification tells you about new study files. Files uploaded together arrive as one notification ("3 new files in Heart Failure"), a couple of minutes after the last upload. Tap it to open the file, or What's new when there are several. They have their own notification category ("New files"), so you can turn them off in the phone's settings and still get workshop alerts.
+- A push notification tells you about new study files. It arrives as soon as an admin uploads a file. Tap it to open the file, or What's new when there are several. They have their own notification category ("New files"), so you can turn them off in the phone's settings and still get workshop alerts.
 - A push notification announces each new project as soon as an admin creates it, while it is still upcoming. Tap it to open the project; the registration link appears there once registration opens.
 - Statistics for admins, reached from the home screen's side menu, kept short so they read at a glance:
   - This week: active students (and their share of registered students), new students, downloads and file views, each compared with the previous 7 days, and a 30-day chart of downloads and views.
