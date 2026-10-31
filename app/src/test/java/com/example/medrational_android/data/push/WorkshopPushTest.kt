@@ -10,28 +10,47 @@ class WorkshopPushTest {
 
     // As the backend sends it: {"projectId": "5", "type": "WORKSHOP_LAUNCH"}
     @Test
-    fun `push data names the project to open`() {
-        assertEquals(5L, projectIdFromPush(mapOf("projectId" to "5", "type" to "WORKSHOP_LAUNCH")))
+    fun `a workshop push opens its project`() {
+        assertEquals("workshops/5", pushRoute(mapOf("projectId" to "5", "type" to "WORKSHOP_LAUNCH")))
+    }
+
+    // NewFilesNotificationServiceImpl: one file names it and its reasoning
+    @Test
+    fun `a push about one new file opens its page`() {
+        assertEquals("file/7/12", pushRoute(mapOf("type" to "NEW_FILES", "fileId" to "12", "reasoningId" to "7")))
     }
 
     @Test
-    fun `push without a valid project opens nothing`() {
-        assertNull(projectIdFromPush(emptyMap()))
-        assertNull(projectIdFromPush(mapOf("projectId" to null)))
-        assertNull(projectIdFromPush(mapOf("projectId" to "abc")))
-        assertNull(projectIdFromPush(mapOf("projectId" to "0")))
-        assertNull(projectIdFromPush(mapOf("projectId" to "-3")))
+    fun `a push about several new files opens what's new`() {
+        assertEquals("novelties", pushRoute(mapOf("type" to "NEW_FILES")))
+        // A file the app can't open still leads to the new files
+        assertEquals("novelties", pushRoute(mapOf("type" to "NEW_FILES", "fileId" to "12")))
+        assertEquals("novelties", pushRoute(mapOf("type" to "NEW_FILES", "fileId" to "abc", "reasoningId" to "7")))
     }
 
     @Test
-    fun `a tapped push opens its project when signed in`() {
-        assertEquals("workshops/5", routeForPushTap(5, isLoggedIn = true))
+    fun `push without a valid target opens nothing`() {
+        assertNull(pushRoute(emptyMap()))
+        assertNull(pushRoute(mapOf("projectId" to null)))
+        assertNull(pushRoute(mapOf("projectId" to "abc")))
+        assertNull(pushRoute(mapOf("projectId" to "0")))
+        assertNull(pushRoute(mapOf("projectId" to "-3")))
+        // A file id only counts in a new-files push
+        assertNull(pushRoute(mapOf("fileId" to "12", "reasoningId" to "7")))
+        assertNull(pushRoute(mapOf("type" to "SOMETHING_ELSE")))
     }
 
-    // Signed-out phones get pushes too; the workshops API needs a signed-in user, so login comes first
+    @Test
+    fun `a tapped push opens its screen when signed in`() {
+        assertEquals("workshops/5", routeForPushTap("workshops/5", isLoggedIn = true))
+        assertEquals("novelties", routeForPushTap("novelties", isLoggedIn = true))
+    }
+
+    // Signed-out phones get pushes too; the API needs a signed-in user, so login comes first
     @Test
     fun `a tapped push leads to login when signed out`() {
-        assertEquals("login", routeForPushTap(5, isLoggedIn = false))
+        assertEquals("login", routeForPushTap("workshops/5", isLoggedIn = false))
+        assertEquals("login", routeForPushTap("file/7/12", isLoggedIn = false))
     }
 
     @Test
@@ -39,10 +58,11 @@ class WorkshopPushTest {
         assertEquals("workshops/12", workshopRoute(12))
     }
 
-    // Must match the backend's FcmPushNotificationService
+    // Must match PushMessage's channels on the backend
     @Test
-    fun `channel matches the backend`() {
+    fun `channels match the backend`() {
         assertEquals("workshop_reminders", WorkshopPush.CHANNEL_ID)
+        assertEquals("new_files", WorkshopPush.NEW_FILES_CHANNEL_ID)
     }
 
     // Must match push.workshops-topic in the backend's application-{dev,uat,prod}.yaml
@@ -71,6 +91,16 @@ class WorkshopPushTest {
         val text = localizedPushText("push_opened_fcfs_title", listOf("Suture"), "Spots Available Now: Suture") { french[it] }
 
         assertEquals("Places disponibles\u00a0: Suture", text)
+    }
+
+    // Args as NewFilesNotificationServiceImpl sends them: the file name, then its reasoning
+    @Test
+    fun `a new file push is shown in the app's language`() {
+        val french = TestStrings.french.strings
+        val args = listOf("ECG.pdf", "Insuffisance cardiaque")
+
+        assertEquals("Nouveau fichier\u00a0: ECG.pdf", localizedPushText("push_new_file_title", args, "New file: ECG.pdf") { french[it] })
+        assertEquals("Dans Insuffisance cardiaque", localizedPushText("push_new_file_body", args, "In") { french[it] })
     }
 
     @Test

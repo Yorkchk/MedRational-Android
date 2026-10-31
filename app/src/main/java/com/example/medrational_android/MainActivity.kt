@@ -37,9 +37,8 @@ import com.example.medrational_android.data.locale.AppLanguage
 import com.example.medrational_android.data.settings.AppTheme
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.data.push.WorkshopPush
-import com.example.medrational_android.data.push.projectIdFromPush
+import com.example.medrational_android.data.push.pushRoute
 import com.example.medrational_android.data.push.routeForPushTap
-import com.example.medrational_android.data.push.workshopRoute
 import com.example.medrational_android.ui.auth.ForgotPasswordScreen
 import com.example.medrational_android.ui.auth.LoginScreen
 import com.example.medrational_android.ui.auth.SignUpScreen
@@ -92,8 +91,8 @@ import java.io.File
 // AppCompatActivity applies the language picked in the profile (AppLanguage)
 class MainActivity : AppCompatActivity() {
 
-    // Project of a tapped workshop push, opened once the app is showing; consumed by MedRationalApp
-    private var pushProjectId by mutableStateOf<Long?>(null)
+    // Screen of a tapped push, opened once the app is showing; consumed by MedRationalApp
+    private var pushRoute by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super.onCreate, so the first frame already has the picked light or dark look
@@ -109,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         // Every installed app gets workshop pushes, signed in or not
         WorkshopPush.subscribe(this)
         // Not on a recreation: the push was already handled
-        if (savedInstanceState == null) pushProjectId = intent.pushProjectId()
+        if (savedInstanceState == null) pushRoute = intent.pushRoute()
         // Animated GIFs; ImageDecoder also handles HEIF and animated WebP on Android 9+. The client
         // sends the token to our API, which workshop attachment images need
         Coil.setImageLoader(
@@ -123,8 +122,8 @@ class MainActivity : AppCompatActivity() {
         setContent {
             SwisraTheme {
                 MedRationalApp(
-                    pushProjectId = pushProjectId,
-                    onPushProjectOpened = { pushProjectId = null }
+                    pushRoute = pushRoute,
+                    onPushRouteOpened = { pushRoute = null }
                 )
             }
         }
@@ -133,18 +132,18 @@ class MainActivity : AppCompatActivity() {
     // A push tapped while the app is already open
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.pushProjectId()?.let { pushProjectId = it }
+        intent.pushRoute()?.let { pushRoute = it }
     }
 
     // Pushes put their data in the launch intent's extras, as strings
-    private fun Intent.pushProjectId(): Long? =
-        projectIdFromPush(mapOf(WorkshopPush.EXTRA_PROJECT_ID to getStringExtra(WorkshopPush.EXTRA_PROJECT_ID)))
+    private fun Intent.pushRoute(): String? =
+        pushRoute(WorkshopPush.DATA_KEYS.associateWith { getStringExtra(it) })
 }
 
 @Composable
 fun MedRationalApp(
-    pushProjectId: Long? = null,
-    onPushProjectOpened: () -> Unit = {}
+    pushRoute: String? = null,
+    onPushRouteOpened: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -168,24 +167,24 @@ fun MedRationalApp(
     }
 
     // A push tapped while signed out, opened once the user signs in
-    var pendingPushProjectId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingPushRoute by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // A tapped workshop push opens its project, through the login screen when signed out
-    LaunchedEffect(pushProjectId) {
-        val projectId = pushProjectId ?: return@LaunchedEffect
+    // A tapped push opens its screen, through the login screen when signed out
+    LaunchedEffect(pushRoute) {
+        val route = pushRoute ?: return@LaunchedEffect
         val isLoggedIn = tokenManager.isLoggedIn()
-        if (!isLoggedIn) pendingPushProjectId = projectId
-        navController.navigate(routeForPushTap(projectId, isLoggedIn)) { launchSingleTop = true }
-        onPushProjectOpened()
+        if (!isLoggedIn) pendingPushRoute = route
+        navController.navigate(routeForPushTap(route, isLoggedIn)) { launchSingleTop = true }
+        onPushRouteOpened()
     }
 
     // Login can now be reached from anywhere (a push, or an expired session), so home replaces the
     // whole back stack
     val onSignedIn: () -> Unit = {
         navController.navigate("categories") { popUpTo(navController.graph.id) { inclusive = true } }
-        pendingPushProjectId?.let { projectId ->
-            pendingPushProjectId = null
-            navController.navigate(workshopRoute(projectId))
+        pendingPushRoute?.let { route ->
+            pendingPushRoute = null
+            navController.navigate(route)
         }
     }
 

@@ -37,7 +37,7 @@ class MedRationalMessagingService : FirebaseMessagingService() {
             ?: return
         val body = localizedPushText(push.bodyLocalizationKey, push.bodyLocalizationArgs.orEmpty().toList(), push.body, template)
             .orEmpty()
-        val projectId = projectIdFromPush(message.data)
+        val route = pushRoute(message.data)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -46,16 +46,18 @@ class MedRationalMessagingService : FirebaseMessagingService() {
         }
         WorkshopPush.ensureChannel(this)
 
-        // Tapping opens the project, as it does for a push shown while the app was closed
+        // Tapping opens what the push is about, as it does for a push shown while the app was closed
         val open = PendingIntent.getActivity(
             this,
-            projectId?.toInt() ?: 0,
+            route.hashCode(),
             Intent(this, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .apply { projectId?.let { putExtra(WorkshopPush.EXTRA_PROJECT_ID, it.toString()) } },
+                .apply {
+                    WorkshopPush.DATA_KEYS.forEach { key -> message.data[key]?.let { putExtra(key, it) } }
+                },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(this, WorkshopPush.CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, push.channelId ?: WorkshopPush.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(body)
