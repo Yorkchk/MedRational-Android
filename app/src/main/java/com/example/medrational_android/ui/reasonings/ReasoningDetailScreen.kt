@@ -89,6 +89,7 @@ import com.example.medrational_android.R
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
 import com.example.medrational_android.data.download.AndroidDownloader
+import com.example.medrational_android.data.model.MAX_FILE_DESCRIPTION_LENGTH
 import com.example.medrational_android.data.model.FileRatingSummary
 import com.example.medrational_android.data.model.Reasoning
 import com.example.medrational_android.data.model.StudyFile
@@ -167,6 +168,7 @@ fun ReasoningDetailScreen(
     var activeUploadReasoningId by remember { mutableStateOf<Long?>(null) }
     // Picked but not yet uploaded: the admin chooses their hashtags first
     var pendingUploadUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var uploadDescription by rememberSaveable { mutableStateOf("") }
     // Deleting is permanent, so it always asks first
     var reasoningToDelete by remember { mutableStateOf<Reasoning?>(null) }
     var fileToDelete by remember { mutableStateOf<StudyFile?>(null) }
@@ -431,9 +433,20 @@ fun ReasoningDetailScreen(
             catalog = hashtagCatalog,
             supportingText = stringResource(R.string.upload_dialog_tags_hint),
             allowEmpty = true,
-            header = { PickedFilesHeader(uris) },
+            header = {
+                PickedFilesHeader(uris)
+                // One description for every picked file, like the tags
+                OutlinedTextField(
+                    value = uploadDescription,
+                    onValueChange = { uploadDescription = it.take(MAX_FILE_DESCRIPTION_LENGTH) },
+                    label = { Text(stringResource(R.string.upload_dialog_description_label)) },
+                    minLines = 2,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
             onConfirm = { tags ->
-                activeUploadReasoningId?.let { viewModel.uploadFiles(context, it, uris, tags) }
+                activeUploadReasoningId?.let { viewModel.uploadFiles(context, it, uris, tags, uploadDescription) }
                 val progress = if (uris.size == 1) {
                     context.getString(R.string.upload_in_progress)
                 } else {
@@ -441,8 +454,12 @@ fun ReasoningDetailScreen(
                 }
                 Toast.makeText(context, progress, Toast.LENGTH_SHORT).show()
                 pendingUploadUris = emptyList()
+                uploadDescription = ""
             },
-            onDismissRequest = { pendingUploadUris = emptyList() }
+            onDismissRequest = {
+                pendingUploadUris = emptyList()
+                uploadDescription = ""
+            }
         )
     }
 

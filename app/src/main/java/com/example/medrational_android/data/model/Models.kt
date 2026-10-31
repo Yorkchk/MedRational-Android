@@ -24,12 +24,18 @@ data class StudyFile(
     val fileType: String?,
     val publicUrl: String,
     val fileSizeBytes: Long?,
+    // Written by the admin at upload; null when left empty
+    val description: String? = null,
     // Backend can render it as a PDF (PDF, DOCX, PPTX, XLSX)
     val previewable: Boolean = false,
     val uploadedAt: String? = null,
     val avgRating: Double = 0.0,
     val totalRatings: Int = 0
 )
+
+// Body of PUT /files/{id}. title is the name without its extension, which the backend keeps;
+// a null description clears it
+data class UpdateStudyFileRequest(val title: String, val description: String?)
 
 // Mirrors backend FileRatingSummaryDTO. avgRating is rounded to one decimal; userRating is the
 // signed-in user's score (1-5), null when they haven't rated the file

@@ -9,11 +9,15 @@ import com.example.medrational_android.ui.text.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -43,7 +47,7 @@ class ReasoningViewModelUploadTest {
 
     @Test
     fun `uploaded file gets the chosen hashtags`() = runTest {
-        coEvery { api.uploadFile(REASONING_ID, part) } returns Response.success(uploaded)
+        coEvery { api.uploadFile(REASONING_ID, part, null) } returns Response.success(uploaded)
         coEvery { api.attachHashtags(FILE_ID, any()) } returns Response.success(emptyList())
         val viewModel = ReasoningViewModel(api)
 
@@ -55,7 +59,7 @@ class ReasoningViewModelUploadTest {
 
     @Test
     fun `upload without hashtags never calls attach`() = runTest {
-        coEvery { api.uploadFile(REASONING_ID, part) } returns Response.success(uploaded)
+        coEvery { api.uploadFile(REASONING_ID, part, null) } returns Response.success(uploaded)
         val viewModel = ReasoningViewModel(api)
 
         viewModel.uploadAndTag(REASONING_ID, part, emptyList())
@@ -66,7 +70,7 @@ class ReasoningViewModelUploadTest {
 
     @Test
     fun `failed upload reports it and never attaches`() = runTest {
-        coEvery { api.uploadFile(REASONING_ID, part) } throws IOException("offline")
+        coEvery { api.uploadFile(REASONING_ID, part, null) } throws IOException("offline")
         val viewModel = ReasoningViewModel(api)
 
         viewModel.uploadAndTag(REASONING_ID, part, listOf("ecg"))
@@ -77,7 +81,7 @@ class ReasoningViewModelUploadTest {
 
     @Test
     fun `failed tagging still keeps the upload and says so`() = runTest {
-        coEvery { api.uploadFile(REASONING_ID, part) } returns Response.success(uploaded)
+        coEvery { api.uploadFile(REASONING_ID, part, null) } returns Response.success(uploaded)
         coEvery { api.attachHashtags(FILE_ID, any()) } returns Response.error(500, "".toResponseBody(null))
         val viewModel = ReasoningViewModel(api)
 
@@ -86,6 +90,37 @@ class ReasoningViewModelUploadTest {
         assertEquals(UiText.Res(R.string.upload_done_tags_failed, listOf("ecg.pdf")), viewModel.message.value)
         coVerify { api.getReasoningsByCategory(any()) }
     }
+
+    @Test
+    fun `description is sent trimmed with the file`() = runTest {
+        val description = slot<RequestBody>()
+        coEvery { api.uploadFile(REASONING_ID, part, capture(description)) } returns Response.success(uploaded)
+        val viewModel = ReasoningViewModel(api)
+
+        viewModel.uploadAndTag(REASONING_ID, part, emptyList(), description = "  Normal sinus rhythm \n")
+
+        assertEquals("Normal sinus rhythm", description.captured.text())
+        assertEquals(UiText.Res(R.string.upload_done, listOf("ecg.pdf")), viewModel.message.value)
+    }
+
+    @Test
+    fun `blank description is left out`() = runTest {
+        coEvery { api.uploadFile(REASONING_ID, part, null) } returns Response.success(uploaded)
+        val viewModel = ReasoningViewModel(api)
+
+        viewModel.uploadAndTag(REASONING_ID, part, emptyList(), description = "   ")
+
+        coVerify(exactly = 1) { api.uploadFile(REASONING_ID, part, null) }
+    }
+
+    @Test
+    fun `descriptionPart is null when empty`() {
+        assertNull(descriptionPart(null))
+        assertNull(descriptionPart(" \n "))
+        assertEquals("ECG", descriptionPart(" ECG ").text())
+    }
+
+    private fun RequestBody?.text(): String? = this?.let { body -> Buffer().also { body.writeTo(it) }.readUtf8() }
 
     private companion object {
         const val REASONING_ID = 7L

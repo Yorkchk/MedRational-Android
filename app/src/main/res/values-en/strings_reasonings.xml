@@ -20,6 +20,7 @@
     <string name="reasonings_empty">No reasonings added for this category.</string>
     <string name="upload_dialog_title">Upload files</string>
     <string name="upload_dialog_confirm">Upload</string>
+    <string name="upload_dialog_description_label">Description (optional)</string>
     <string name="upload_dialog_tags_hint">Optional. Separate several tags with spaces or commas</string>
     <string name="upload_selected_file">Selected file</string>
     <string name="upload_in_progress">Uploading file…</string>

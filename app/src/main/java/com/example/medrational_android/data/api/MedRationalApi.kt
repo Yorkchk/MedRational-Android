@@ -37,16 +37,24 @@ interface MedRationalApi {
     @POST("api/v1/files/upload/{reasoningId}")
     suspend fun uploadFile(
         @Path("reasoningId") reasoningId: Long,
-        @Part file: MultipartBody.Part
+        @Part file: MultipartBody.Part,
+        // Left out of the request when null
+        @Part("description") description: RequestBody?
     ): Response<StudyFile>
 
-    // Several files in one request (parts named "files"); students get one push for all of them
+    // Several files in one request (parts named "files"); students get one push for all of them,
+    // and the description goes on every file
     @Multipart
     @POST("api/v1/files/upload-batch/{reasoningId}")
     suspend fun uploadFiles(
         @Path("reasoningId") reasoningId: Long,
-        @Part files: List<MultipartBody.Part>
+        @Part files: List<MultipartBody.Part>,
+        @Part("description") description: RequestBody?
     ): Response<List<StudyFile>>
+
+    // Admin only: renames the file (keeping its extension) and sets its description
+    @PUT("api/v1/files/{id}")
+    suspend fun updateFile(@Path("id") id: Long, @Body request: UpdateStudyFileRequest): Response<StudyFile>
 
     // PDF rendition of the file; 415 when the format can't be previewed, 503 when conversion fails
     @Streaming

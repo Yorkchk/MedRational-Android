@@ -11,8 +11,10 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -54,14 +56,14 @@ class ReasoningViewModelBatchUploadTest {
     // One request for the batch, so students get one push
     @Test
     fun `files picked together go in one batch request`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, listOf(a, b, c)) } returns
+        coEvery { api.uploadFiles(REASONING_ID, listOf(a, b, c), null) } returns
             Response.success(listOf(studyFile(1, "a.pdf"), studyFile(2, "b.pdf"), studyFile(3, "c.pdf")))
         val viewModel = ReasoningViewModel(api)
 
         viewModel.uploadBatchesAndTag(REASONING_ID, listOf(batch(a, b, c)), emptyList(), total = 3)
 
-        coVerify(exactly = 1) { api.uploadFiles(REASONING_ID, listOf(a, b, c)) }
-        coVerify(exactly = 0) { api.uploadFile(any(), any()) }
+        coVerify(exactly = 1) { api.uploadFiles(REASONING_ID, listOf(a, b, c), null) }
+        coVerify(exactly = 0) { api.uploadFile(any(), any(), any()) }
         coVerify(exactly = 0) { api.attachHashtags(any(), any()) }
         assertEquals(UiText.Plural(R.plurals.upload_many_done, 3), viewModel.message.value)
         coVerify(exactly = 1) { api.getReasoningsByCategory(any()) }
@@ -69,7 +71,7 @@ class ReasoningViewModelBatchUploadTest {
 
     @Test
     fun `every uploaded file gets the chosen hashtags`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, any()) } returns
+        coEvery { api.uploadFiles(REASONING_ID, any(), null) } returns
             Response.success(listOf(studyFile(1, "a.pdf"), studyFile(2, "b.pdf")))
         coEvery { api.attachHashtags(any(), any()) } returns Response.success(emptyList())
         val viewModel = ReasoningViewModel(api)
@@ -83,8 +85,8 @@ class ReasoningViewModelBatchUploadTest {
 
     @Test
     fun `a failed batch doesn't stop the others`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, listOf(a, b)) } throws IOException("offline")
-        coEvery { api.uploadFiles(REASONING_ID, listOf(c)) } returns Response.success(listOf(studyFile(3, "c.pdf")))
+        coEvery { api.uploadFiles(REASONING_ID, listOf(a, b), null) } throws IOException("offline")
+        coEvery { api.uploadFiles(REASONING_ID, listOf(c), null) } returns Response.success(listOf(studyFile(3, "c.pdf")))
         val viewModel = ReasoningViewModel(api)
 
         viewModel.uploadBatchesAndTag(REASONING_ID, listOf(batch(a, b), batch(c)), emptyList(), total = 3)
@@ -95,7 +97,7 @@ class ReasoningViewModelBatchUploadTest {
     // A request over the backend's limit answers 413
     @Test
     fun `a refused batch counts as not sent`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, any()) } returns Response.error(413, "".toResponseBody(null))
+        coEvery { api.uploadFiles(REASONING_ID, any(), null) } returns Response.error(413, "".toResponseBody(null))
         val viewModel = ReasoningViewModel(api)
 
         viewModel.uploadBatchesAndTag(REASONING_ID, listOf(batch(a, b)), emptyList(), total = 2)
@@ -106,7 +108,7 @@ class ReasoningViewModelBatchUploadTest {
     // Files too big or unreadable never reach a batch, but the admin picked them
     @Test
     fun `files left out count as not sent`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, any()) } returns
+        coEvery { api.uploadFiles(REASONING_ID, any(), null) } returns
             Response.success(listOf(studyFile(1, "a.pdf"), studyFile(2, "b.pdf")))
         val viewModel = ReasoningViewModel(api)
 
@@ -117,7 +119,7 @@ class ReasoningViewModelBatchUploadTest {
 
     @Test
     fun `a file that can't be read fails only its batch`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, listOf(c)) } returns Response.success(listOf(studyFile(3, "c.pdf")))
+        coEvery { api.uploadFiles(REASONING_ID, listOf(c), null) } returns Response.success(listOf(studyFile(3, "c.pdf")))
         val unreadable: suspend () -> List<MultipartBody.Part> = { throw SecurityException("permission revoked") }
         val viewModel = ReasoningViewModel(api)
 
@@ -128,7 +130,7 @@ class ReasoningViewModelBatchUploadTest {
 
     @Test
     fun `failed tagging keeps the uploads and says so`() = runTest {
-        coEvery { api.uploadFiles(REASONING_ID, any()) } returns
+        coEvery { api.uploadFiles(REASONING_ID, any(), null) } returns
             Response.success(listOf(studyFile(1, "a.pdf"), studyFile(2, "b.pdf")))
         coEvery { api.attachHashtags(1, any()) } returns Response.success(emptyList())
         coEvery { api.attachHashtags(2, any()) } returns Response.error(500, "".toResponseBody(null))
@@ -139,6 +141,26 @@ class ReasoningViewModelBatchUploadTest {
         assertEquals(UiText.Res(R.string.upload_many_tags_failed, listOf(fileCount(2), fileCount(1))), viewModel.message.value)
         coVerify { api.getReasoningsByCategory(any()) }
     }
+
+    // Like the hashtags, one description goes with every batch of the selection
+    @Test
+    fun `description is sent with every batch`() = runTest {
+        val descriptions = mutableListOf<RequestBody?>()
+        coEvery { api.uploadFiles(REASONING_ID, listOf(a, b), captureNullable(descriptions)) } returns
+            Response.success(listOf(studyFile(1, "a.pdf"), studyFile(2, "b.pdf")))
+        coEvery { api.uploadFiles(REASONING_ID, listOf(c), captureNullable(descriptions)) } returns
+            Response.success(listOf(studyFile(3, "c.pdf")))
+        val viewModel = ReasoningViewModel(api)
+
+        viewModel.uploadBatchesAndTag(
+            REASONING_ID, listOf(batch(a, b), batch(c)), emptyList(), total = 3, description = "Week 3 slides"
+        )
+
+        assertEquals(listOf("Week 3 slides", "Week 3 slides"), descriptions.map { it.text() })
+        assertEquals(UiText.Plural(R.plurals.upload_many_done, 3), viewModel.message.value)
+    }
+
+    private fun RequestBody?.text(): String? = this?.let { body -> Buffer().also { body.writeTo(it) }.readUtf8() }
 
     private companion object {
         const val REASONING_ID = 7L

@@ -20,6 +20,7 @@
     <string name="reasonings_empty">Aucun raisonnement pour cette catégorie.</string>
     <string name="upload_dialog_title">Envoyer des fichiers</string>
     <string name="upload_dialog_confirm">Envoyer</string>
+    <string name="upload_dialog_description_label">Description (facultative)</string>
     <string name="upload_dialog_tags_hint">Facultatif. Séparez plusieurs hashtags par des espaces ou des virgules</string>
     <string name="upload_selected_file">Fichier sélectionné</string>
     <string name="upload_in_progress">Envoi du fichier…</string>

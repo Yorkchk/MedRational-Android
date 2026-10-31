@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Admins can write a description when uploading study files (one description for all the files picked together), and it shows on the file page.
+- Admins can edit a study file's title and description from its page (the pencil in the top bar), for example to give each file of a batch upload its own description. The file keeps its extension.
 - Admins can upload several files to a reasoning at once: pick them together, add hashtags for all of them, and send. Students get one notification for the whole upload. Files over 20 MB are skipped, and the message says how many were sent.
 - Search bars on the home screen (categories) and on a category's page (reasonings) filter the list as you type, accents ignored. Advanced search (a filter icon in the field on phones, an Advanced button next to it on tablets) opens the full search with what you typed, on that category.
 - Testers can install the UAT app ("SWISRA UAT") next to the real one. It talks to the test server and only gets its workshop notifications, so testing never notifies students.

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Share
@@ -153,6 +154,8 @@ fun FileDetailScreen(
     val hashtagsState by hashtagsViewModel.uiState.collectAsState()
     val ratingState by ratingViewModel.uiState.collectAsState()
     val shareState by shareViewModel.state.collectAsState()
+    val isSavingEdit by viewModel.isSaving.collectAsState()
+    var showEditDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(reasoningId, fileId) {
         viewModel.load(reasoningId, fileId)
@@ -166,6 +169,14 @@ fun FileDetailScreen(
         if (ratingMessage != null) {
             Toast.makeText(context, ratingMessage.asString(context), Toast.LENGTH_LONG).show()
             ratingViewModel.onMessageShown()
+        }
+    }
+
+    val editMessage by viewModel.message.collectAsState()
+    LaunchedEffect(editMessage) {
+        editMessage?.let {
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
+            viewModel.onMessageShown()
         }
     }
 
@@ -232,6 +243,12 @@ fun FileDetailScreen(
                             ShareIcon(isSharing = isSharing)
                         }
                     }
+                    // Admins fix each file's title and description here, e.g. after a batch upload
+                    if (success != null && isAdmin) {
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.file_edit))
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -287,6 +304,17 @@ fun FileDetailScreen(
                 )
             }
         }
+    }
+
+    if (showEditDialog && success != null) {
+        EditFileDialog(
+            file = success.file,
+            isSaving = isSavingEdit,
+            onSave = { title, description ->
+                viewModel.updateDetails(title, description, onSaved = { showEditDialog = false })
+            },
+            onDismissRequest = { showEditDialog = false }
+        )
     }
 }
 
@@ -440,6 +468,9 @@ private fun BoxScope.FileDetailContent(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 header(Spacing.screen)
+                state.file.description?.takeIf { it.isNotBlank() }?.let {
+                    FileDescriptionCard(description = it, modifier = Modifier.padding(horizontal = Spacing.screen))
+                }
                 rating()
                 hashtags?.invoke()
                 ReasoningCard(reasoning = state.reasoning, modifier = Modifier.padding(horizontal = Spacing.screen))
@@ -471,6 +502,11 @@ private fun BoxScope.FileDetailContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             item(key = "header") { header(sidePadding) }
+            state.file.description?.takeIf { it.isNotBlank() }?.let { description ->
+                item(key = "description") {
+                    FileDescriptionCard(description = description, modifier = Modifier.padding(horizontal = sidePadding))
+                }
+            }
             item(key = "rating") { Box(modifier = Modifier.padding(horizontal = extra)) { rating() } }
             if (hashtags != null) {
                 item(key = "hashtags") { Box(modifier = Modifier.padding(horizontal = extra)) { hashtags() } }
@@ -613,6 +649,34 @@ internal fun SectionCard(modifier: Modifier = Modifier, content: @Composable Col
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(Spacing.lg), content = content)
+    }
+}
+
+// Clamped like the reasoning card, so a long description never pushes the preview off a small screen
+@Composable
+private fun FileDescriptionCard(description: String, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var overflows by remember { mutableStateOf(false) }
+
+    SectionCard(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.file_description_title),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = if (expanded) Int.MAX_VALUE else 5,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { result -> if (!expanded) overflows = result.hasVisualOverflow }
+        )
+        if (overflows || expanded) {
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) stringResource(R.string.show_less) else stringResource(R.string.show_more))
+            }
+        }
     }
 }
 
