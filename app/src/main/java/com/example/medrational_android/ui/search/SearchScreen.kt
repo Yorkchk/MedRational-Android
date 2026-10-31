@@ -1,10 +1,11 @@
 package com.example.medrational_android.ui.search
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.AdaptiveCardList
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
@@ -32,10 +35,20 @@ import com.example.medrational_android.data.model.FileSearchResult
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
 import com.example.medrational_android.ui.components.RatingBadge
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.files.fileTypeIcon
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.viewmodel.SearchUiState
 import com.example.medrational_android.viewmodel.SearchViewModel
+
+/** Search screen route; plain "search" opens it empty. */
+const val SEARCH_ROUTE_PATTERN = "search?q={q}&categoryId={categoryId}"
+
+/** Opens the Search screen with [query] typed and, when given, [categoryId]'s chip selected. */
+fun searchRoute(query: String = "", categoryId: Long? = null): String = buildString {
+    append("search?q=").append(Uri.encode(query))
+    if (categoryId != null) append("&categoryId=").append(categoryId)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +84,8 @@ fun SearchScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Lines up with the results, which are centered on tablets
+            val sidePadding = adaptiveHorizontalPadding(ContentWidth.Grid, minPadding = 16.dp)
             // Search Input Field
             OutlinedTextField(
                 value = query,
@@ -86,14 +101,14 @@ fun SearchScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = sidePadding, vertical = 8.dp),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
 
             // Category Filter Filter Chips (Instagram/Facebook style horizontal bar)
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = sidePadding),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
@@ -139,10 +154,7 @@ fun SearchScreen(
                         if (state.files.isEmpty()) {
                             Text(stringResource(R.string.search_no_results), modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
+                            AdaptiveCardList(top = 16.dp, bottom = 16.dp, spacing = 10.dp, minPadding = 16.dp, itemCount = state.files.size) {
                                 items(state.files, key = { it.id }) { file ->
                                     SearchResultCard(
                                         file = file,

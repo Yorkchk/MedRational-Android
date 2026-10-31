@@ -53,7 +53,9 @@ import com.example.medrational_android.ui.profile.DeleteAccountScreen
 import com.example.medrational_android.ui.profile.ProfileScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
+import com.example.medrational_android.ui.search.SEARCH_ROUTE_PATTERN
 import com.example.medrational_android.ui.search.SearchScreen
+import com.example.medrational_android.ui.search.searchRoute
 import com.example.medrational_android.ui.statistics.StatisticsScreen
 import com.example.medrational_android.ui.suggestions.NewSuggestionScreen
 import com.example.medrational_android.ui.suggestions.SuggestionDetailScreen
@@ -65,6 +67,7 @@ import com.example.medrational_android.ui.workshops.NewWorkshopScreen
 import com.example.medrational_android.ui.workshops.WorkshopDetailScreen
 import com.example.medrational_android.ui.workshops.WorkshopListScreen
 import com.example.medrational_android.viewmodel.AuthViewModel
+import com.example.medrational_android.viewmodel.CategoryUiState
 import com.example.medrational_android.viewmodel.CategoryViewModel
 import com.example.medrational_android.viewmodel.ChangeEmailViewModel
 import com.example.medrational_android.viewmodel.ChangePasswordViewModel
@@ -74,6 +77,7 @@ import com.example.medrational_android.viewmodel.FavoriteViewModel
 import com.example.medrational_android.viewmodel.RecentDownloadsViewModel
 import com.example.medrational_android.viewmodel.NewSuggestionViewModel
 import com.example.medrational_android.viewmodel.NoveltiesViewModel
+import com.example.medrational_android.viewmodel.SearchViewModel
 import com.example.medrational_android.viewmodel.StatisticsViewModel
 import com.example.medrational_android.viewmodel.NoveltyBadgeViewModel
 import com.example.medrational_android.viewmodel.ReasoningViewModel
@@ -273,6 +277,7 @@ fun MedRationalApp(
                 onNavigateToWorkshops = { navController.navigate("workshops") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToStatistics = { navController.navigate("statistics") },
+                onAdvancedSearch = { query -> navController.navigate(searchRoute(query)) },
                 noveltyCount = noveltyCount
             )
         }
@@ -489,8 +494,18 @@ fun MedRationalApp(
         }
 
         // Search & Discovery Screen
-        composable("search") {
+        // Optional arguments, so plain "search" (side menu) still opens it empty
+        composable(
+            route = SEARCH_ROUTE_PATTERN,
+            arguments = listOf(
+                navArgument("q") { type = NavType.StringType; defaultValue = "" },
+                navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L }
+            )
+        ) { backStackEntry ->
+            val initialQuery = backStackEntry.arguments?.getString("q").orEmpty()
+            val initialCategoryId = backStackEntry.arguments?.getLong("categoryId")?.takeIf { it >= 0 }
             SearchScreen(
+                searchViewModel = viewModel { SearchViewModel(initialQuery = initialQuery, initialCategoryId = initialCategoryId) },
                 onNavigateToReasoning = { categoryId, categoryName ->
                     navController.navigate("reasonings/$categoryId/${Uri.encode(categoryName)}")
                 },
@@ -509,10 +524,16 @@ fun MedRationalApp(
         ) { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: 0L
             val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            // The home list already holds the description, so the route only carries the name
+            val categoryState by categoryViewModel.uiState.collectAsState()
+            val categoryDescription = (categoryState as? CategoryUiState.Success)
+                ?.categories?.firstOrNull { it.id == categoryId }?.description
 
             ReasoningDetailScreen(
                 categoryId = categoryId,
                 categoryName = categoryName,
+                categoryDescription = categoryDescription,
+                onAdvancedSearch = { query -> navController.navigate(searchRoute(query, categoryId)) },
                 viewModel = reasoningViewModel,
                 onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
                 onBackClick = { navController.popBackStack() }

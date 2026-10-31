@@ -107,6 +107,8 @@ fun ListRowCard(
     footer: (@Composable () -> Unit)? = null,
     selected: Boolean = false,
     titleWeight: FontWeight = FontWeight.SemiBold,
+    // Rows whose subtitle is a description (categories) let it run longer
+    subtitleMaxLines: Int = 2,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null
 ) {
@@ -146,7 +148,7 @@ fun ListRowCard(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = subtitleMaxLines,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

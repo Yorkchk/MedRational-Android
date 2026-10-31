@@ -20,11 +20,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
@@ -33,9 +34,11 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LabelOff
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NewLabel
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.UploadFile
@@ -92,15 +95,21 @@ import com.example.medrational_android.data.model.StudyFile
 import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.isImageFile
 import com.example.medrational_android.data.rating.FileRatingStore
+import com.example.medrational_android.ui.components.AdaptiveCardList
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.FileTypeBadge
 import com.example.medrational_android.ui.components.HashtagPickerDialog
 import com.example.medrational_android.ui.components.LoadingState
+import com.example.medrational_android.ui.components.NoMatch
+import com.example.medrational_android.ui.components.QuickSearchBar
 import com.example.medrational_android.ui.components.RatingBadge
 import com.example.medrational_android.ui.components.SwisraTopBar
 import com.example.medrational_android.ui.components.TintedTile
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
 import com.example.medrational_android.ui.files.ShareEffects
+import com.example.medrational_android.ui.search.filterReasonings
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
@@ -123,7 +132,11 @@ private const val CONTENT_PREVIEW_LINES = 4
 fun ReasoningDetailScreen(
     categoryId: Long,
     categoryName: String,
+    // From the home list; null when the category has none (or the list isn't loaded)
+    categoryDescription: String?,
     viewModel: ReasoningViewModel,
+    // Opens the full search with what was typed, on this category
+    onAdvancedSearch: (query: String) -> Unit,
     onFileClick: (reasoningId: Long, fileId: Long) -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -172,15 +185,16 @@ fun ReasoningDetailScreen(
     }
 
     // Selection for sharing (everyone) and bulk hashtags (admins); a List so it can be saved across rotation
-    var selectedFileIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
-    val selectionMode = selectedFileIds.isNotEmpty()
-    val toggleSelection: (Long) -> Unit = { id ->
-        selectedFileIds = if (id in selectedFileIds) selectedFileIds - id else selectedFileIds + id
-    }
+    var selection by rememberSaveable(stateSaver = FileSelection.Saver) { mutableStateOf(FileSelection()) }
+    val selectedFileIds = selection.ids
+    val selectionMode = selection.active
+    val toggleSelection: (Long) -> Unit = { id -> selection = selection.toggle(id) }
+    val clearSelection: () -> Unit = { selection = selection.clear() }
     var showBulkAddDialog by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = selectionMode) { selectedFileIds = emptyList() }
+    var query by rememberSaveable { mutableStateOf("") }
+    BackHandler(enabled = selectionMode) { clearSelection() }
     // The selection ends once the share sheet has opened
-    ShareEffects(shareViewModel, onShared = { selectedFileIds = emptyList() })
+    ShareEffects(shareViewModel, onShared = clearSelection)
 
     val uploadMessage by viewModel.message.collectAsState()
     val bulkMessage by bulkViewModel.message.collectAsState()
@@ -211,15 +225,24 @@ fun ReasoningDetailScreen(
         topBar = {
             if (selectionMode) {
                 val busy = bulkState is BulkHashtagUiState.LoadingTags || bulkState is BulkHashtagUiState.Working
+                val hasSelection = selectedFileIds.isNotEmpty()
                 TopAppBar(
-                    title = { Text(pluralStringResource(R.plurals.selection_count, selectedFileIds.size, selectedFileIds.size)) },
+                    title = {
+                        Text(
+                            if (hasSelection) {
+                                pluralStringResource(R.plurals.selection_count, selectedFileIds.size, selectedFileIds.size)
+                            } else {
+                                stringResource(R.string.selection_title_empty)
+                            }
+                        )
+                    },
                     navigationIcon = {
-                        IconButton(onClick = { selectedFileIds = emptyList() }) {
+                        IconButton(onClick = clearSelection) {
                             Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(R.string.selection_cancel))
                         }
                     },
                     actions = {
-                        IconButton(onClick = {
+                        IconButton(enabled = hasSelection, onClick = {
                             val files = (uiState as? ReasoningUiState.Success)?.reasonings.orEmpty()
                                 .flatMap { it.files.orEmpty() }
                                 .associateBy { it.id }
@@ -231,13 +254,13 @@ fun ReasoningDetailScreen(
                         if (busy) {
                             CircularProgressIndicator(modifier = Modifier.padding(end = Spacing.lg).size(24.dp))
                         } else {
-                            IconButton(onClick = {
+                            IconButton(enabled = hasSelection, onClick = {
                                 catalogViewModel.refresh()
                                 showBulkAddDialog = true
                             }) {
                                 Icon(imageVector = Icons.Default.NewLabel, contentDescription = stringResource(R.string.selection_add_tags))
                             }
-                            IconButton(onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
+                            IconButton(enabled = hasSelection, onClick = { bulkViewModel.loadTagsFor(selectedFileIds.toSet()) }) {
                                 Icon(imageVector = Icons.Default.LabelOff, contentDescription = stringResource(R.string.selection_remove_tags))
                             }
                         }
@@ -288,57 +311,87 @@ fun ReasoningDetailScreen(
                     if (state.reasonings.isEmpty()) {
                         EmptyState(title = stringResource(R.string.reasonings_empty), icon = Icons.Outlined.Psychology)
                     } else {
-                        LazyColumn(
-                            // Room at the bottom so the admin button never covers the last card
-                            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.xs, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
-                        ) {
-                            item {
-                                Text(
-                                    text = pluralStringResource(R.plurals.reasonings_count, state.reasonings.size, state.reasonings.size),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        val shown = remember(state.reasonings, query) { filterReasonings(state.reasonings, query) }
+                        // Lines up with the single column of reasonings below
+                        val sidePadding = adaptiveHorizontalPadding(ContentWidth.Reading)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Above the list, so it stays at hand; hidden while picking files
+                            if (!selectionMode) {
+                                QuickSearchBar(
+                                    query = query,
+                                    onQueryChange = { query = it },
+                                    placeholder = stringResource(R.string.reasonings_search_hint),
+                                    onAdvancedSearch = { onAdvancedSearch(query.trim()) },
+                                    modifier = Modifier.padding(start = sidePadding, end = sidePadding, top = Spacing.xs, bottom = Spacing.sm)
                                 )
                             }
-                            items(state.reasonings, key = { it.id }) { reasoning ->
-                                ReasoningItemCard(
-                                    reasoning = reasoning,
-                                    isAdmin = isAdmin,
-                                    favoritedIds = favoritedIds,
-                                    ratings = ratings,
-                                    onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
-                                    selectedFileIds = selectedFileIds,
-                                    onFileClick = { file ->
-                                        if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
-                                    },
-                                    // Long-press starts selection, to share several files (or tag them, for admins)
-                                    onFileLongClick = { file -> toggleSelection(file.id) },
-                                    onDeleteReasoning = { reasoningToDelete = reasoning },
-                                    onAddFile = {
-                                        activeUploadReasoningId = reasoning.id
-                                        filePickerLauncher.launch("*/*")
-                                    },
-                                    onDeleteFile = { file -> fileToDelete = file },
-                                    onDownloadReasoningZip = {
-                                        val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
-                                        val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
-                                        downloader.downloadFile(reasoningZipUrl, zipName)
-                                        Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
-                                    },
-                                    onDownloadSingleFile = { file ->
-                                        val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
-                                        downloader.downloadFile(singleFileUrl, file.fileName)
-                                        Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
-                                    },
-                                    onShareReasoningZip = {
-                                        shareViewModel.shareReasoning(
-                                            reasoning.id,
-                                            context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                            // One column even on tablets: reasonings differ a lot in height, and two
+                            // ragged columns read badly. Room at the bottom for the admin button
+                            AdaptiveCardList(modifier = Modifier.weight(1f), bottom = 96.dp, spacing = Spacing.lg, maxColumns = 1) {
+                                // The home list may cut a long description; here it reads in full
+                                if (!categoryDescription.isNullOrBlank()) {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        CategoryAboutCard(description = categoryDescription, categoryId = categoryId)
+                                    }
+                                }
+                                if (shown.isEmpty()) {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        NoMatch(
+                                            message = stringResource(R.string.reasonings_no_match, query.trim()),
+                                            onAdvancedSearch = { onAdvancedSearch(query.trim()) }
                                         )
-                                    },
-                                    onShareSingleFile = { file -> shareViewModel.shareFiles(listOf(file)) },
-                                    onSelectFile = { file -> toggleSelection(file.id) }
-                                )
+                                    }
+                                } else {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        Text(
+                                            text = pluralStringResource(R.plurals.reasonings_count, shown.size, shown.size),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                items(shown, key = { it.id }) { reasoning ->
+                                    ReasoningItemCard(
+                                        reasoning = reasoning,
+                                        isAdmin = isAdmin,
+                                        favoritedIds = favoritedIds,
+                                        ratings = ratings,
+                                        onToggleFavorite = { fileId -> favoriteViewModel.toggleFavorite(fileId) },
+                                        selectionMode = selectionMode,
+                                        selectedFileIds = selectedFileIds,
+                                        onStartSelection = { selection = selection.start() },
+                                        onFileClick = { file ->
+                                            if (selectionMode) toggleSelection(file.id) else onFileClick(reasoning.id, file.id)
+                                        },
+                                        // Long-press starts selection, to share several files (or tag them, for admins)
+                                        onFileLongClick = { file -> toggleSelection(file.id) },
+                                        onDeleteReasoning = { reasoningToDelete = reasoning },
+                                        onAddFile = {
+                                            activeUploadReasoningId = reasoning.id
+                                            filePickerLauncher.launch("*/*")
+                                        },
+                                        onDeleteFile = { file -> fileToDelete = file },
+                                        onDownloadReasoningZip = {
+                                            val reasoningZipUrl = "${ApiClient.BASE_URL}api/v1/downloads/reasoning/${reasoning.id}/zip"
+                                            val zipName = context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                            downloader.downloadFile(reasoningZipUrl, zipName)
+                                            Toast.makeText(context, context.getString(R.string.download_started, zipName), Toast.LENGTH_SHORT).show()
+                                        },
+                                        onDownloadSingleFile = { file ->
+                                            val singleFileUrl = "${ApiClient.BASE_URL}api/v1/downloads/file/${file.id}"
+                                            downloader.downloadFile(singleFileUrl, file.fileName)
+                                            Toast.makeText(context, context.getString(R.string.download_started, file.fileName), Toast.LENGTH_SHORT).show()
+                                        },
+                                        onShareReasoningZip = {
+                                            shareViewModel.shareReasoning(
+                                                reasoning.id,
+                                                context.getString(R.string.download_reasoning_zip_name, reasoning.title)
+                                            )
+                                        },
+                                        onShareSingleFile = { file -> shareViewModel.shareFiles(listOf(file)) },
+                                        onSelectFile = { file -> toggleSelection(file.id) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -405,7 +458,7 @@ fun ReasoningDetailScreen(
             onConfirm = { tags ->
                 bulkViewModel.addTags(selectedFileIds.toSet(), tags)
                 showBulkAddDialog = false
-                selectedFileIds = emptyList()
+                clearSelection()
             },
             onDismissRequest = { showBulkAddDialog = false }
         )
@@ -416,7 +469,7 @@ fun ReasoningDetailScreen(
             choices = choices,
             onConfirm = { tags ->
                 bulkViewModel.removeTags(tags)
-                selectedFileIds = emptyList()
+                clearSelection()
             },
             onDismissRequest = bulkViewModel::dismiss
         )
@@ -439,7 +492,10 @@ fun ReasoningItemCard(
     isAdmin: Boolean,
     onFileClick: (StudyFile) -> Unit,
     onFileLongClick: (StudyFile) -> Unit,
+    // While selecting, every file shows a checkbox, even before one is ticked
+    selectionMode: Boolean,
     selectedFileIds: List<Long>,
+    onStartSelection: () -> Unit,
     onDeleteReasoning: () -> Unit,
     favoritedIds: Set<Long>,
     ratings: Map<Long, FileRatingSummary>,
@@ -453,8 +509,6 @@ fun ReasoningItemCard(
     onSelectFile: (StudyFile) -> Unit
 ) {
     val files = reasoning.files.orEmpty()
-    var expanded by rememberSaveable(reasoning.id) { mutableStateOf(false) }
-    var contentOverflows by remember(reasoning.id) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -485,29 +539,31 @@ fun ReasoningItemCard(
 
             if (!reasoning.content.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text = reasoning.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (expanded) Int.MAX_VALUE else CONTENT_PREVIEW_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { if (!expanded) contentOverflows = it.hasVisualOverflow }
-                )
-                if (contentOverflows || expanded) {
-                    TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                        Text(stringResource(if (expanded) R.string.reasoning_show_less else R.string.reasoning_show_more))
-                    }
-                }
+                ExpandableText(text = reasoning.content, stateKey = "reasoning-${reasoning.id}")
             }
 
             if (files.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = stringResource(R.string.reasoning_attached_files, files.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary
-                )
                 Spacer(modifier = Modifier.height(Spacing.xs))
+                // A visible way into selection, since few students know the long-press.
+                // The row keeps the button's height while selecting, so the list doesn't jump
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.reasoning_attached_files, files.size),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (!selectionMode) {
+                        TextButton(onClick = onStartSelection, contentPadding = ButtonDefaults.TextButtonWithIconContentPadding) {
+                            Icon(Icons.Outlined.Checklist, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(stringResource(R.string.file_select))
+                        }
+                    }
+                }
                 files.forEachIndexed { index, file ->
                     if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     StudyFileRow(
@@ -518,7 +574,7 @@ fun ReasoningItemCard(
                         onToggleFavorite = { onToggleFavorite(file.id) },
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
-                        selectionMode = selectedFileIds.isNotEmpty(),
+                        selectionMode = selectionMode,
                         isSelected = file.id in selectedFileIds,
                         onDeleteFile = { onDeleteFile(file) },
                         onDownloadFile = { onDownloadSingleFile(file) },
@@ -526,6 +582,58 @@ fun ReasoningItemCard(
                         onSelectFile = { onSelectFile(file) }
                     )
                 }
+            }
+        }
+    }
+}
+
+/** The category's description, in a card of its own so it reads as the page's introduction. */
+@Composable
+internal fun CategoryAboutCard(description: String, categoryId: Long, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.category_about),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            ExpandableText(text = description, stateKey = "category-$categoryId")
+        }
+    }
+}
+
+/** Long text cut to [CONTENT_PREVIEW_LINES] with a Show more / Show less toggle. */
+@Composable
+internal fun ExpandableText(text: String, stateKey: String, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable(stateKey) { mutableStateOf(false) }
+    var overflows by remember(stateKey) { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) Int.MAX_VALUE else CONTENT_PREVIEW_LINES,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow }
+        )
+        if (overflows || expanded) {
+            TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text(stringResource(if (expanded) R.string.reasoning_show_less else R.string.reasoning_show_more))
             }
         }
     }

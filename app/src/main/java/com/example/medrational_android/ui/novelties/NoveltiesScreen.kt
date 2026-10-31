@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.model.FileRatingSummary
@@ -121,7 +122,7 @@ private fun NoveltiesList(
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val listState = rememberLazyListState()
+    val listState = rememberLazyStaggeredGridState()
     val nearEnd by remember {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -133,13 +134,16 @@ private fun NoveltiesList(
         if (nearEnd && state.canLoadMore && !state.loadMoreFailed) onLoadMore()
     }
 
-    LazyColumn(
+    AdaptiveCardList(
         state = listState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = modifier,
+        top = 16.dp,
+        bottom = 16.dp,
+        spacing = 12.dp,
+        minPadding = 16.dp,
+        itemCount = state.items.size
     ) {
-        item(key = "header") {
+        item(key = "header", span = StaggeredGridItemSpan.FullLine) {
             Text(
                 text = when (state.newCount) {
                     0L -> stringResource(R.string.novelties_caught_up_latest)
@@ -163,7 +167,7 @@ private fun NoveltiesList(
             )
         }
         if (state.loadingMore || state.loadMoreFailed) {
-            item(key = "footer") {
+            item(key = "footer", span = StaggeredGridItemSpan.FullLine) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     if (state.loadingMore) {
                         CircularProgressIndicator(modifier = Modifier.size(28.dp))

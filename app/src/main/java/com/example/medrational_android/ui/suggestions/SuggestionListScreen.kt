@@ -7,8 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.model.SuggestionSummary
 import com.example.medrational_android.data.model.formatIsoDateTime
+import com.example.medrational_android.ui.components.AdaptiveCardList
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.ListRowCard
@@ -80,10 +80,7 @@ fun SuggestionListScreen(
                         hint = stringResource(R.string.suggestion_empty_admin_hint)
                     )
                 } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.lg),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
+                    AdaptiveCardList(top = Spacing.lg, bottom = Spacing.lg, spacing = Spacing.md, itemCount = state.suggestions.size) {
                         items(state.suggestions, key = { it.id }) { suggestion ->
                             SuggestionRow(suggestion = suggestion, onClick = { onSuggestionClick(suggestion.id) })
                         }

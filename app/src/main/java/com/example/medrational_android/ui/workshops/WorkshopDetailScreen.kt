@@ -63,12 +63,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medrational_android.R
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.LoadingState
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.download.AndroidDownloader
 import com.example.medrational_android.data.model.ProjectStatus
 import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.WorkshopAttachment
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
 import com.example.medrational_android.ui.text.appLocale
@@ -297,6 +299,8 @@ private fun ProjectDetails(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            // Centered and capped on tablets; the margins still scroll
+            .centeredContent(ContentWidth.Reading)
     ) {
         if (state.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {

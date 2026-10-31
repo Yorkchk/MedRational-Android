@@ -9,6 +9,7 @@
     <string name="bulk_tag_failed" tools:ignore="PluralsCandidate">Échec de l’ajout pour %1$d sur %2$s.</string>
     <string name="bulk_remove_failed" tools:ignore="PluralsCandidate">Impossible de retirer %1$d sur %2$s.</string>
     <string name="bulk_load_failed">Impossible de charger les hashtags des fichiers sélectionnés.</string>
+    <string name="selection_title_empty">Sélectionnez des fichiers</string>
     <string name="selection_cancel">Annuler la sélection</string>
     <string name="selection_add_tags">Ajouter des hashtags aux fichiers sélectionnés</string>
     <string name="selection_remove_tags">Retirer des hashtags des fichiers sélectionnés</string>
@@ -81,4 +82,7 @@
     <string name="reasoning_share_all">Partager tout (zip)</string>
     <string name="category_share">Partager la catégorie (zip)</string>
     <string name="file_select">Sélectionner</string>
+    <string name="reasonings_search_hint">Rechercher un raisonnement</string>
+    <string name="reasonings_no_match">Aucun raisonnement ne correspond à « %1$s ».</string>
+    <string name="category_about">À propos de cette catégorie</string>
 </resources>

@@ -27,8 +27,9 @@
     <string name="home_greeting">Hello, %1$s</string>
     <string name="home_greeting_anonymous">Hello</string>
     <string name="home_greeting_subtitle">What are you studying today?</string>
-    <string name="home_search_hint">Search files or hashtags</string>
     <string name="categories_empty">No categories yet</string>
     <string name="categories_empty_admin_hint">Create the first one with the New category button.</string>
     <string name="categories_delete_confirm">Delete “%1$s” with all its reasonings and files? This can\'t be undone.</string>
+    <string name="home_search_categories">Search categories</string>
+    <string name="categories_no_match">No category matches “%1$s”.</string>
 </resources>

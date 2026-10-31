@@ -35,9 +35,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.medrational_android.R
 import com.example.medrational_android.data.upload.PickedFile
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.EmptyState
 import com.example.medrational_android.ui.components.PrimaryButton
 import com.example.medrational_android.ui.components.SwisraTopBar
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
 import com.example.medrational_android.viewmodel.MAX_SUGGESTION_TITLE_LENGTH
@@ -92,6 +94,8 @@ fun NewSuggestionScreen(
                 .padding(innerPadding)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
+                // Centered and capped on tablets; the margins still scroll
+                .centeredContent(ContentWidth.Form)
                 .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {

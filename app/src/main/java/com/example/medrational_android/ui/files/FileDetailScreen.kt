@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,8 +24,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudOff
@@ -35,11 +39,11 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,6 +80,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -89,9 +94,13 @@ import com.example.medrational_android.data.model.fileExtension
 import com.example.medrational_android.data.model.fileMetaLine
 import com.example.medrational_android.data.model.fileNameWithoutExtension
 import com.example.medrational_android.data.preview.PdfDocumentRenderer
+import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.FileTypeBadge
 import com.example.medrational_android.ui.components.LoadingState
+import com.example.medrational_android.ui.components.adaptiveHorizontalPadding
+import com.example.medrational_android.ui.components.isTwoPane
+import com.example.medrational_android.ui.components.windowWidthDp
 import com.example.medrational_android.ui.text.appLocale
 import com.example.medrational_android.ui.text.asString
 import com.example.medrational_android.ui.theme.Spacing
@@ -108,6 +117,8 @@ import com.example.medrational_android.viewmodel.ShareState
 import com.example.medrational_android.viewmodel.ShareViewModel
 import java.io.File
 
+// Width of the details column when the file page shows two panes
+private const val TWO_PANE_DETAILS_WIDTH = 400
 private const val PAGE_KEY_PREFIX = "page-"
 private const val A4_RATIO = 1f / 1.414f
 
@@ -172,8 +183,11 @@ fun FileDetailScreen(
     }
 
     val listState = rememberLazyListState()
-    // The file name moves into the top bar once the in-page title has scrolled away
-    val showTitleInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    // Tablets in landscape show the details next to the preview
+    val twoPane = isTwoPane(windowWidthDp())
+    // The file name moves into the top bar once the in-page title has scrolled away; never in two
+    // panes, where the header stays on screen
+    val showTitleInBar by remember(twoPane) { derivedStateOf { !twoPane && listState.firstVisibleItemIndex > 0 } }
     val success = uiState as? FileDetailUiState.Success
 
     val onDownload: (StudyFile) -> Unit = { file ->
@@ -268,7 +282,8 @@ fun FileDetailScreen(
                                 )
                             }
                         }
-                    }
+                    },
+                    twoPane = twoPane
                 )
             }
         }
@@ -287,7 +302,8 @@ private fun BoxScope.FileDetailContent(
     isSharing: Boolean,
     onShare: () -> Unit,
     rating: @Composable () -> Unit,
-    hashtags: (@Composable () -> Unit)?
+    hashtags: (@Composable () -> Unit)?,
+    twoPane: Boolean
 ) {
     val preview = state.preview
     val pdfFile = (preview as? PreviewState.Pdf)?.file
@@ -302,7 +318,8 @@ private fun BoxScope.FileDetailContent(
     }
 
     val density = LocalDensity.current
-    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val screenWidthPx = with(density) { screenWidthDp.dp.roundToPx() }
     var firstPageRatio by remember(renderer) { mutableFloatStateOf(A4_RATIO) }
     LaunchedEffect(renderer) {
         if (renderer != null && renderer.pageCount > 0) firstPageRatio = renderer.pageAspectRatio(0)
@@ -311,48 +328,24 @@ private fun BoxScope.FileDetailContent(
     var fullScreen by rememberSaveable { mutableStateOf(false) }
     var imageFailed by remember(preview) { mutableStateOf(false) }
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = Spacing.xs, bottom = 72.dp),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        item(key = "header") {
-            FileHeader(
-                file = state.file,
-                reasoning = state.reasoning,
-                isFavorited = isFavorited,
-                onToggleFavorite = onToggleFavorite,
-                onDownload = onDownload,
-                isSharing = isSharing,
-                onShare = onShare,
-                modifier = Modifier.padding(horizontal = Spacing.screen)
-            )
-        }
-        item(key = "rating") { rating() }
-        if (hashtags != null) {
-            item(key = "hashtags") { hashtags() }
-        }
-        item(key = "reasoning") {
-            ReasoningCard(reasoning = state.reasoning, modifier = Modifier.padding(horizontal = Spacing.screen))
-        }
-
+    // The preview part of the page, shared by the one- and two-pane layouts
+    fun LazyListScope.previewItems(extra: Dp, renderWidthPx: Int) {
         when (preview) {
             is PreviewState.Pdf -> if (renderer != null) {
                 item(key = "preview-header") {
                     PreviewSectionHeader(
                         pageCount = renderer.pageCount,
                         onFullScreen = { fullScreen = true },
-                        modifier = Modifier.padding(start = Spacing.screen, end = Spacing.sm)
+                        modifier = Modifier.padding(start = Spacing.screen + extra, end = Spacing.sm + extra)
                     )
                 }
                 items(count = renderer.pageCount, key = { PAGE_KEY_PREFIX + it }) { index ->
                     PdfPage(
                         renderer = renderer,
                         index = index,
-                        renderWidthPx = screenWidthPx,
+                        renderWidthPx = renderWidthPx,
                         placeholderRatio = firstPageRatio,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp + extra)
                     )
                 }
             }
@@ -362,14 +355,14 @@ private fun BoxScope.FileDetailContent(
                     PreviewMessage(
                         title = stringResource(R.string.preview_unavailable),
                         body = stringResource(R.string.preview_image_failed),
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp + extra),
                         leading = { Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
                         action = { Button(onClick = onDownload) { Text(stringResource(R.string.common_download)) } }
                     )
                 }
             } else {
                 item(key = "image") {
-                    Column(modifier = Modifier.padding(horizontal = Spacing.screen)) {
+                    Column(modifier = Modifier.padding(horizontal = Spacing.screen + extra)) {
                         PreviewSectionHeader(pageCount = null, onFullScreen = { fullScreen = true })
                         AsyncImage(
                             model = preview.url,
@@ -390,7 +383,7 @@ private fun BoxScope.FileDetailContent(
                 PreviewMessage(
                     title = stringResource(R.string.preview_preparing),
                     body = stringResource(R.string.preview_preparing_hint),
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp + extra),
                     leading = { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
                 )
             }
@@ -399,7 +392,7 @@ private fun BoxScope.FileDetailContent(
                 PreviewMessage(
                     title = if (extension.isNotEmpty()) stringResource(R.string.preview_none_for_extension, extension) else stringResource(R.string.preview_none),
                     body = stringResource(R.string.preview_supported_types),
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp + extra),
                     leading = { Icon(Icons.Default.VisibilityOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
                     action = { Button(onClick = onDownload) { Text(stringResource(R.string.common_download)) } }
                 )
@@ -408,7 +401,7 @@ private fun BoxScope.FileDetailContent(
                 PreviewMessage(
                     title = stringResource(R.string.preview_unavailable),
                     body = preview.message.asString(),
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp + extra),
                     leading = { Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(32.dp)) },
                     action = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -421,8 +414,76 @@ private fun BoxScope.FileDetailContent(
         }
     }
 
-    if (renderer != null) {
-        PageIndicator(listState = listState, pageCount = renderer.pageCount, modifier = Modifier.align(Alignment.BottomCenter))
+    val header: @Composable (sidePadding: Dp) -> Unit = { sidePadding ->
+        FileHeader(
+            file = state.file,
+            reasoning = state.reasoning,
+            isFavorited = isFavorited,
+            onToggleFavorite = onToggleFavorite,
+            onDownload = onDownload,
+            isSharing = isSharing,
+            onShare = onShare,
+            modifier = Modifier.padding(horizontal = sidePadding)
+        )
+    }
+
+    if (twoPane) {
+        // Tablet in landscape: the details stay on the left while the preview scrolls on the right
+        val previewWidthPx = with(density) { (screenWidthDp - TWO_PANE_DETAILS_WIDTH).dp.roundToPx() }
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .width(TWO_PANE_DETAILS_WIDTH.dp)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = Spacing.xs, bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                header(Spacing.screen)
+                rating()
+                hashtags?.invoke()
+                ReasoningCard(reasoning = state.reasoning, modifier = Modifier.padding(horizontal = Spacing.screen))
+            }
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = Spacing.xs, bottom = 72.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    previewItems(extra = 0.dp, renderWidthPx = previewWidthPx)
+                }
+                if (renderer != null) {
+                    PageIndicator(listState = listState, pageCount = renderer.pageCount, modifier = Modifier.align(Alignment.BottomCenter))
+                }
+            }
+        }
+    } else {
+        // Centered at a readable width on tablets in portrait; unchanged on phones.
+        // rating and hashtags already carry the phone's side padding, so they only get the extra
+        val sidePadding = adaptiveHorizontalPadding(ContentWidth.Reading)
+        val extra = sidePadding - Spacing.screen
+        val pageWidthPx = with(density) { (screenWidthDp.dp - extra * 2).roundToPx() }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = Spacing.xs, bottom = 72.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            item(key = "header") { header(sidePadding) }
+            item(key = "rating") { Box(modifier = Modifier.padding(horizontal = extra)) { rating() } }
+            if (hashtags != null) {
+                item(key = "hashtags") { Box(modifier = Modifier.padding(horizontal = extra)) { hashtags() } }
+            }
+            item(key = "reasoning") {
+                ReasoningCard(reasoning = state.reasoning, modifier = Modifier.padding(horizontal = sidePadding))
+            }
+            previewItems(extra = extra, renderWidthPx = pageWidthPx)
+        }
+
+        if (renderer != null) {
+            PageIndicator(listState = listState, pageCount = renderer.pageCount, modifier = Modifier.align(Alignment.BottomCenter))
+        }
     }
 
     if (fullScreen) {
@@ -455,7 +516,7 @@ private fun BoxScope.FileDetailContent(
 }
 
 @Composable
-private fun FileHeader(
+internal fun FileHeader(
     file: StudyFile,
     reasoning: Reasoning,
     isFavorited: Boolean,
@@ -493,21 +554,31 @@ private fun FileHeader(
             )
         }
         Spacer(modifier = Modifier.height(Spacing.lg))
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = onDownload, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+        // Only Download keeps a label, so the three actions fit on one line even on small phones
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = onDownload,
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                modifier = Modifier.weight(1f)
+            ) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.common_download))
+                Text(
+                    text = stringResource(R.string.common_download),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            FilledTonalButton(onClick = onToggleFavorite, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+            FilledTonalIconButton(onClick = onToggleFavorite, shape = MaterialTheme.shapes.medium) {
                 Icon(
                     imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    tint = if (isFavorited) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                    modifier = Modifier.size(18.dp)
+                    contentDescription = stringResource(if (isFavorited) R.string.favorite_remove else R.string.favorite_add),
+                    tint = if (isFavorited) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(if (isFavorited) R.string.file_in_favorites else R.string.favorite_add_short))
             }
             FilledTonalIconButton(onClick = onShare, enabled = !isSharing, shape = MaterialTheme.shapes.medium) {
                 ShareIcon(isSharing = isSharing)

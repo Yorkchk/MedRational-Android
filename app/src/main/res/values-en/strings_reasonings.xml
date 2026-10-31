@@ -9,6 +9,7 @@
     <string name="bulk_tag_failed" tools:ignore="PluralsCandidate">Couldn\'t tag %1$d of %2$s.</string>
     <string name="bulk_remove_failed" tools:ignore="PluralsCandidate">Couldn\'t remove %1$d of %2$s.</string>
     <string name="bulk_load_failed">Couldn\'t load the hashtags of the selected files.</string>
+    <string name="selection_title_empty">Select files</string>
     <string name="selection_cancel">Cancel selection</string>
     <string name="selection_add_tags">Add hashtags to selected files</string>
     <string name="selection_remove_tags">Remove hashtags from selected files</string>
@@ -74,4 +75,7 @@
     <string name="reasoning_share_all">Share all (zip)</string>
     <string name="category_share">Share category (zip)</string>
     <string name="file_select">Select</string>
+    <string name="reasonings_search_hint">Search reasonings</string>
+    <string name="reasonings_no_match">No reasoning matches “%1$s”.</string>
+    <string name="category_about">About this category</string>
 </resources>

@@ -69,6 +69,8 @@ import com.example.medrational_android.data.model.ProjectType
 import com.example.medrational_android.data.model.formatMillisDateTime
 import com.example.medrational_android.data.model.toUtcDateMillis
 import com.example.medrational_android.data.upload.PickedFile
+import com.example.medrational_android.ui.components.ContentWidth
+import com.example.medrational_android.ui.components.centeredContent
 import com.example.medrational_android.ui.suggestions.PickedFileChip
 import com.example.medrational_android.ui.suggestions.readAttachment
 import com.example.medrational_android.ui.suggestions.rememberAttachmentPicker
@@ -229,6 +231,8 @@ private fun WorkshopFormScaffold(
                 .padding(innerPadding)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
+                // Centered and capped on tablets; the margins still scroll
+                .centeredContent(ContentWidth.Form)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content

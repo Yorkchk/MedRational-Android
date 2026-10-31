@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Search bars on the home screen (categories) and on a category's page (reasonings) filter the list as you type, accents ignored. Advanced search (a filter icon in the field on phones, an Advanced button next to it on tablets) opens the full search with what you typed, on that category.
 - Testers can install the UAT app ("SWISRA UAT") next to the real one. It talks to the test server and only gets its workshop notifications, so testing never notifies students.
 - You stay signed in: the app renews your session in the background, so you only sign in again after 60 days without opening it. Being offline never signs you out.
   - Signing out ends the session on the server too.
@@ -39,6 +40,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Backend URL configurable per build type through `local.properties`.
 
 ### Changed
+- Clearer search: the home search bar just says "Search files", and the search screen tells you that you can search by file name, category, reasoning or #hashtag.
+- On a file's page, Download, Favorite and Share now fit on one line, even on small phones. Favorite is a heart button, filled when the file is in your favorites.
+- Picking several files to share them is easier to find: each reasoning has a Select button above its files, which shows a checkbox on every file. Long-pressing a file still works.
+- Tablets and large screens: pages stay centered at a comfortable width (forms narrower), the lists of favorites, downloads, novelties, projects, suggestions and search results show two columns (a category's reasonings stay in one centered column, easier to read in order), a lone result is centered instead of sitting in half the screen, and a file's page shows its details next to the preview in landscape.
+- The home screen lists categories one per line (two on tablets) with their description underneath, and a category's page shows its full description at the top, in an "About this category" card.
 - Signing in only needs your email and password; no more code by email each time. Codes are still sent when you sign up, reset a forgotten password, change your password or email, or delete your account.
 - Signing up with an email that already has an account now says so, instead of sending a code. Signing in before entering your sign-up code asks you to sign up again to get a new one.
 - The app is now **SWISRA** (Study With Scome Rabat), with its own logo as the launcher icon (also as a themed icon on Android 13+) and on a new splash screen.
