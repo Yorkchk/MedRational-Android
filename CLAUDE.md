@@ -150,6 +150,8 @@ Single-module (`:app`) project following MVVM without external DI frameworks (no
 
 `main` is protected: changes go through short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and pull requests that must pass the Android CI workflow (`.github/workflows/android-ci.yml`: `lint testDevDebugUnitTest assembleDevDebug assembleDevRelease`; only the dev flavor, since CI has no uat/prod URLs). PRs are squash-merged, so PR titles use Conventional Commits (`feat(favorites): …`). Record user-facing changes under `[Unreleased]` in `CHANGELOG.md`.
 
+Delivery (`docs/CI_AND_TESTS.md` §2.6): after CI passes on `main`, `publish-uat-apk.yml` publishes a signed uatRelease APK as GitHub pre-release `uat-<n>`. Pushing a `v*` tag on `main` runs `release.yml`, which builds the signed prod AAB and APK and creates the Release from that version's CHANGELOG section. `versionCode` is the commit count on `main` and `versionName` comes from the tag (`-PversionCode`/`-PversionName`). Release builds are signed only when the `SIGNING_*` env vars (or `signing.*` in `local.properties`) are set; the key and the `API_UAT_URL`/`API_PROD_URL` variables live in the repository's Actions settings.
+
 ## Testing policy
 
 Every new feature or behavior change ships with tests in the same PR, and every bug fix includes a regression test that fails without the fix. Untested features are not considered done. See `docs/CI_AND_TESTS.md` §10 for test patterns and examples.

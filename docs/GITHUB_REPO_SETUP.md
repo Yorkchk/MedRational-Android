@@ -751,18 +751,16 @@ Stay on **`0.x.y`** while the project is in development. `1.0.0` means "stable, 
 ### 10.2 Release steps
 
 1. On a branch (`chore/release-0.2.0`):
-   - Bump the version in the build file (Android: `versionName "0.2.0"` and `versionCode` + 1; Maven: `<version>`; npm: `npm version minor`).
+   - Backend: bump the version in the build file (Maven: `<version>`; npm: `npm version minor`). Android needs no bump: `release.yml` takes `versionName` from the tag and `versionCode` from the commit count.
    - In `CHANGELOG.md`, rename `[Unreleased]` to `[0.2.0] - YYYY-MM-DD` and add a fresh empty `[Unreleased]` above it.
 2. Open a PR, wait for CI, and squash-merge.
-3. Tag `main` and publish:
+3. Tag `main`:
    ```bash
    git checkout main && git pull
    git tag -a v0.2.0 -m "v0.2.0"
    git push origin v0.2.0
-   gh release create v0.2.0 --title "v0.2.0" --notes-file release-notes.md
-   # Android: attach the APK
-   gh release upload v0.2.0 app/build/outputs/apk/release/app-release.apk
    ```
+   Android: `release.yml` builds the signed prod AAB and APK and creates the GitHub Release with the `[0.2.0]` CHANGELOG notes (`docs/CI_AND_TESTS.md` §2.6). Then upload the AAB and its mapping file to the Play Console.
 
 **Tags never change.** Never move or reuse a tag; release a new version instead.
 
