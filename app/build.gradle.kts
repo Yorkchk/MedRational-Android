@@ -46,6 +46,23 @@ val envUrlKeys = mapOf("dev" to "api.devUrl", "uat" to "api.uatUrl", "prod" to "
 fun envUrl(env: String): String? = localProps.getProperty(envUrlKeys.getValue(env))
     ?: "http://10.0.2.2:8080/".takeIf { env == "dev" }
 
+// Release signing (the Play upload key). CI passes it as env vars (publish-uat-apk.yml, release.yml);
+// locally it can live in local.properties. With any value missing, release builds stay unsigned, so
+// PR CI (assembleDevRelease) needs no secrets.
+fun signingValue(env: String, prop: String): String? =
+    System.getenv(env)?.takeIf { it.isNotBlank() } ?: localProps.getProperty(prop)?.takeIf { it.isNotBlank() }
+val releaseSigning = listOf(
+    signingValue("SIGNING_STORE_FILE", "signing.storeFile"),
+    signingValue("SIGNING_STORE_PASSWORD", "signing.storePassword"),
+    signingValue("SIGNING_KEY_ALIAS", "signing.keyAlias"),
+    signingValue("SIGNING_KEY_PASSWORD", "signing.keyPassword"),
+).takeIf { values -> values.all { it != null } }?.map { it!! }
+
+// The CD workflows set the version (-PversionCode=<commits on main> -PversionName=...); local builds
+// keep the defaults
+val appVersionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+val appVersionName = (findProperty("versionName") as String?) ?: "1.0"
+
 android {
     namespace = "com.example.medrational_android"
     compileSdk = 34
@@ -54,8 +71,8 @@ android {
         applicationId = "com.example.medrational_android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -86,8 +103,20 @@ android {
         buildConfigField("String", "BASE_URL", "\"${envUrl(name).orEmpty()}\"")
     }
 
+    releaseSigning?.let { (storeFile, storePassword, keyAlias, keyPassword) ->
+        signingConfigs {
+            create("release") {
+                this.storeFile = rootProject.file(storeFile)
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

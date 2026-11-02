@@ -184,7 +184,33 @@ It builds the full debug APK:
 
 **This is your main safety net today.** If someone breaks compilation anywhere in the app, CI goes red.
 
-**Not built in CI:** the **release** variant (`assembleRelease`, with R8 shrinking). It was verified locally when R8 was enabled. Add `assembleRelease` to the command if you want CI to catch R8 problems such as missing keep rules; it adds a few minutes per run.
+**Release variant:** CI also runs `assembleDevRelease` (R8 shrinking), unsigned, to catch missing keep rules.
+
+### 2.6 Delivery (CD): UAT APKs and releases
+
+Two more workflows build **signed** apps, the Android counterpart of the backend's `publish-image.yml`:
+
+| Workflow | Trigger | Builds | Publishes |
+|---|---|---|---|
+| `publish-uat-apk.yml` | Android CI passes on `main` (every merge) | `assembleUatRelease` ("SWISRA UAT", UAT backend, `workshops-uat` topic) | A GitHub **pre-release** `uat-<n>` with `swisra-uat-<version>.apk`. The R8 mapping goes to a workflow artifact. Only the newest 10 are kept. |
+| `release.yml` | Pushing a `v*` tag on `main` | `bundleProdRelease assembleProdRelease` | A GitHub **Release** with the AAB (for the Play Console), the APK and the mapping. Its notes are the tag's `## [x.y.z]` section in `CHANGELOG.md`. |
+
+- **Version:** `versionCode` is the number of commits on `main` (`git rev-list --count HEAD`), so a newer build always installs over an older one. `versionName` is `<last v tag>-uat.<n>+<sha>` for UAT and the tag for releases. Both are passed as `-PversionCode` / `-PversionName`. Local builds keep `1` / `1.0`.
+- **Signing:** `app/build.gradle.kts` signs release builds when `SIGNING_STORE_FILE`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD` are set, as env vars or as `signing.storeFile` / `signing.storePassword` / `signing.keyAlias` / `signing.keyPassword` in `local.properties`. Without them release builds stay unsigned, so PR CI needs no secrets. The key is the Play **upload key**; Play App Signing holds the app key.
+- **Repository settings** (Settings → Secrets and variables → Actions):
+
+  | Name | Kind | Value |
+  |---|---|---|
+  | `ANDROID_KEYSTORE_BASE64` | secret | the `.jks`, base64 |
+  | `ANDROID_KEYSTORE_PASSWORD` | secret | keystore password |
+  | `ANDROID_KEY_ALIAS` | secret | key alias |
+  | `ANDROID_KEY_PASSWORD` | secret | key password |
+  | `API_UAT_URL` | variable | UAT backend URL, ending with `/` |
+  | `API_PROD_URL` | variable | prod backend URL, ending with `/` |
+
+  Both workflows stop with an error when one is missing, instead of shipping an unsigned app or one with no backend.
+- **Testers:** open the repository's Releases page on the phone, download the newest `uat-<n>` APK and open it (allow installs from the browser when asked). It installs next to the Play Store app.
+- `workflow_run` only runs the version of `publish-uat-apk.yml` on `main`, so it can't be tried on a PR.
 
 ---
 
@@ -332,7 +358,8 @@ Surefire also writes detailed reports to `target/surefire-reports/`.
 | Android app compiles (all Kotlin + Compose) | ✅ | `assembleDebug` |
 | Android lint *errors* | ✅ | `lint` |
 | Android lint *warnings* | ⚠️ reported only | `lint` report artifact |
-| Android release build / R8 rules | ❌ | not in the workflow (local only) |
+| Android release build / R8 rules | ✅ | `assembleDevRelease` (unsigned) |
+| Signed UAT APK / prod release | ✅ after merge / on `v*` tags | `publish-uat-apk.yml`, `release.yml` (§2.6) |
 | Android ViewModel logic | ❌ | no tests yet (§10.1) |
 | Android UI / navigation | ❌ | no instrumented tests in CI |
 | Backend compiles | ✅ | `verify` → compile |
@@ -771,6 +798,6 @@ Ordered from most to least valuable for this project:
 | ~~Build the release APK in CI~~ | Done: `assembleRelease` | Catches R8 / keep-rule problems |
 | Make `docker` a required check | Add it to the `main` ruleset once it has run green for a while | A broken `Dockerfile` can't be merged |
 | Instrumented UI tests in CI | [`reactivecircus/android-emulator-runner`](https://github.com/ReactiveCircus/android-emulator-runner) + `connectedAndroidTest` | Real Compose UI tests on an emulator (slow; maybe nightly only) |
-| Release workflow | `on: push: tags: ['v*']` → build → `gh release create` with the APK/JAR attached | One-command releases |
+| ~~Release workflow (Android)~~ | Done: `release.yml` on `v*` tags, plus UAT APKs from `publish-uat-apk.yml` (§2.6) | One-command releases |
 | Static analysis | **detekt** / **ktlint** (Kotlin), **Spotless** / **Checkstyle** (Java) | Consistent style, more bugs caught early |
 | Remove the hardcoded JWT fallback | `JwtUtil`: `@Value("${jwt.secret}")` with no default | The app fails fast instead of running with a public key |
