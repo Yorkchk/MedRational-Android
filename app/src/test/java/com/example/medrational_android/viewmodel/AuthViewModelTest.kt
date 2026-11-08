@@ -125,6 +125,38 @@ class AuthViewModelTest {
         assertEquals("Network error. Check your connection and try again.", en(error()))
     }
 
+    // 429: the backend's rate limit. Every step says so instead of "wrong password" or "wrong code"
+    @Test
+    fun `too many sign-ins are explained, not shown as a wrong password`() {
+        coEvery { api.login(any()) } returns backendError(429, "Too many attempts. Please try again later.")
+
+        viewModel.login("a@b.c", "secret")
+
+        assertEquals("Too many attempts. Try again in a few minutes.", en(error()))
+        assertEquals("Trop de tentatives. Réessayez dans quelques minutes.", fr(error()))
+    }
+
+    @Test
+    fun `too many attempts are explained at every code step`() {
+        val tooMany = "Too many attempts. Try again in a few minutes."
+        coEvery { api.requestUserOtp(any()) } returns backendError(429, "Too many attempts.")
+        coEvery { api.verifyUserOtp(any()) } returns backendError(429, "Too many attempts.")
+        coEvery { api.forgotPassword(any()) } returns backendError(429, "Too many attempts.")
+        coEvery { api.resetPassword(any()) } returns backendError(429, "Too many attempts.")
+
+        viewModel.registerUser("Amina", "Ben Ali", "0612345678", "a@b.c", "secret1")
+        assertEquals(tooMany, en(error()))
+
+        viewModel.verifySignUpOtp("a@b.c", "123456")
+        assertEquals(tooMany, en(error()))
+
+        viewModel.requestPasswordResetOtp("a@b.c")
+        assertEquals(tooMany, en(error()))
+
+        viewModel.confirmPasswordReset("a@b.c", "123456", "secret1")
+        assertEquals(tooMany, en(error()))
+    }
+
     @Test
     fun `missing fields are rejected locally`() {
         viewModel.registerUser("Amina", " ", "", "a@b.c", "secret1")
