@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +45,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +69,7 @@ import com.example.medrational_android.R
 import com.example.medrational_android.ui.components.ContentWidth
 import com.example.medrational_android.ui.components.ErrorState
 import com.example.medrational_android.ui.components.LoadingState
+import com.example.medrational_android.data.crash.CrashReporting
 import com.example.medrational_android.data.locale.AppLanguage
 import com.example.medrational_android.data.settings.AppTheme
 import com.example.medrational_android.data.model.UserProfile
@@ -163,6 +167,9 @@ fun ProfileScreen(
                         )
                         LanguageCard()
                         ThemeCard()
+                        if (CrashReporting.testCrashAvailable) {
+                            CrashTestCard()
+                        }
                     }
                 }
             }
@@ -338,6 +345,45 @@ private fun SecurityRow(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * UAT build only (CrashReporting.testCrashAvailable): crashes the app on purpose, after a
+ * confirmation, so testers can check that the report reaches Crashlytics.
+ */
+@Composable
+private fun CrashTestCard(modifier: Modifier = Modifier) {
+    var confirming by rememberSaveable { mutableStateOf(false) }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        SecurityRow(
+            icon = Icons.Default.Warning,
+            title = stringResource(R.string.profile_test_crash),
+            subtitle = stringResource(R.string.profile_test_crash_hint),
+            onClick = { confirming = true },
+            iconTint = MaterialTheme.colorScheme.error
+        )
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.profile_test_crash_dialog_title)) },
+            text = { Text(stringResource(R.string.profile_test_crash_dialog_message)) },
+            confirmButton = {
+                TextButton(onClick = { CrashReporting.crashForTest() }) {
+                    Text(stringResource(R.string.profile_test_crash_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirming = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
         )
     }
 }

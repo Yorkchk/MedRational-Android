@@ -12,13 +12,10 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Line numbers in crash reports (Crashlytics). The original file names are hidden; the R8 mapping
+# file, uploaded by uat and prod release builds, restores class and method names.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 # Gson maps JSON to these DTOs by field name via reflection, so R8 must not rename or strip them
 -keep class com.example.medrational_android.data.model.** { *; }
 -keepattributes Signature, *Annotation*, InnerClasses, EnclosingMethod

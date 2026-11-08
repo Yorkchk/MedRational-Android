@@ -65,4 +65,11 @@
     <string name="profile_delete_account_dialog_message">Your account and personal data will be permanently deleted. You won\'t be able to recover them.</string>
     <string name="profile_account_deleted">Your account has been deleted</string>
     <string name="profile_error_delete_account">Couldn\'t delete your account (HTTP %1$d).</string>
+
+    <!-- Crash reporting test (UAT build only) -->
+    <string name="profile_test_crash">Test crash reporting</string>
+    <string name="profile_test_crash_hint">UAT build only. Crashes the app to check Crashlytics.</string>
+    <string name="profile_test_crash_dialog_title">Crash the app?</string>
+    <string name="profile_test_crash_dialog_message">The app will close. Open it again to send the report to Crashlytics.</string>
+    <string name="profile_test_crash_confirm">Crash</string>
 </resources>

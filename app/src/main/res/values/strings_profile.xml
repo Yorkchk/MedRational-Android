@@ -65,4 +65,11 @@
     <string name="profile_delete_account_dialog_message">Votre compte et vos données personnelles seront supprimés définitivement. Vous ne pourrez pas les récupérer.</string>
     <string name="profile_account_deleted">Votre compte a été supprimé</string>
     <string name="profile_error_delete_account">Impossible de supprimer votre compte (HTTP %1$d).</string>
+
+    <!-- Crash reporting test (UAT build only) -->
+    <string name="profile_test_crash">Tester le rapport de plantage</string>
+    <string name="profile_test_crash_hint">Version UAT uniquement. Fait planter l’application pour vérifier Crashlytics.</string>
+    <string name="profile_test_crash_dialog_title">Faire planter l’application ?</string>
+    <string name="profile_test_crash_dialog_message">L’application va se fermer. Rouvrez-la pour envoyer le rapport à Crashlytics.</string>
+    <string name="profile_test_crash_confirm">Planter</string>
 </resources>

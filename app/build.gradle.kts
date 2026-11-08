@@ -1,3 +1,4 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.util.Properties
 
 plugins {
@@ -28,12 +29,14 @@ kover {
 }
 
 
-// Push notifications (Firebase Cloud Messaging) need app/google-services.json from the Firebase
-// console. Without it the app still builds, and push is simply off (see data/push/WorkshopPush.kt)
+// Push notifications (Firebase Cloud Messaging) and crash reports (Crashlytics) need
+// app/google-services.json from the Firebase console. Without it the app still builds, and both are
+// simply off (see data/push/WorkshopPush.kt and data/crash/CrashReporting.kt)
 if (file("google-services.json").exists()) {
     apply(plugin = libs.plugins.google.services.get().pluginId)
+    apply(plugin = libs.plugins.firebase.crashlytics.get().pluginId)
 } else {
-    logger.warn("app/google-services.json is missing: push notifications are disabled in this build")
+    logger.warn("app/google-services.json is missing: push and crash reporting are disabled in this build")
 }
 
 // Backend URLs come from local.properties (not committed) so they never live in source, one per
@@ -87,6 +90,9 @@ android {
             dimension = "env"
             applicationIdSuffix = ".dev"
             manifestPlaceholders["appLabel"] = "SWISRA Dev"
+            // dev never reports crashes (CrashReporting), so CI's devRelease build on every PR
+            // doesn't upload R8 mapping files; uat and prod release builds do
+            extensions.findByType<CrashlyticsExtension>()?.mappingFileUploadEnabled = false
         }
         create("uat") {
             dimension = "env"
@@ -171,6 +177,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
