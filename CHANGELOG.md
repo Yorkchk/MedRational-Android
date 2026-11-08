@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Crash reports: when the UAT or Play Store app crashes or freezes, the stack trace, app version and device go to Firebase Crashlytics, with nothing about the user. Development builds never report.
 - When the server refuses a sign-in or an emailed code because of too many attempts (HTTP 429), the app says "Too many attempts. Try again in a few minutes." instead of "wrong password" or "wrong code". It applies to sign-in, sign-up, forgot password and the profile codes (password, email change, account deletion).
 - Admins can write a description when uploading study files (one description for all the files picked together), and it shows on the file page.
 - Admins can edit a study file's title and description from its page (the pencil in the top bar), for example to give each file of a batch upload its own description. The file keeps its extension.

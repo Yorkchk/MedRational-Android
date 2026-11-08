@@ -18,6 +18,12 @@
         android:theme="@style/Theme.Swisra"
         android:usesCleartextTraffic="true"> <!-- Required to talk to local http:// without HTTPS in dev -->
 
+        <!-- Crash reports stay off until CrashReporting.start turns them on (uat and prod release
+             builds only), so dev and debug builds never report anything -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -33,6 +33,7 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import com.example.medrational_android.data.api.ApiClient
 import com.example.medrational_android.data.auth.TokenManager
+import com.example.medrational_android.data.crash.CrashReporting
 import com.example.medrational_android.data.locale.AppLanguage
 import com.example.medrational_android.data.settings.AppTheme
 import com.example.medrational_android.data.rating.FileRatingStore
@@ -100,6 +101,8 @@ class MainActivity : AppCompatActivity() {
         // Before super.onCreate: swaps the starting theme (logo on the brand background) for Theme.Swisra
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        // First, so a crash in what follows is reported (uat and prod release builds only)
+        CrashReporting.start(applicationContext)
         // Screens draw behind the status and navigation bars; Scaffolds pad their content
         enableEdgeToEdge()
         AppLanguage.ensureDefault()

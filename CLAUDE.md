@@ -68,6 +68,12 @@ Package root: `app/src/main/java/com/example/medrational_android`
   - The app asks for the Android 13+ notification permission at startup. Tapping a push opens the screen `pushRoute` picks from its data (`workshops/{projectId}`, `file/{reasoningId}/{fileId}` or `novelties`). When signed out it opens `login` first, and that screen opens after sign-in (`routeForPushTap`, `pendingPushRoute` in `MedRationalApp`).
   - Push needs `app/google-services.json` from the Firebase console (not secret, committed). Without it the app builds with push off.
   - The topic, the channels (`workshop_reminders`, `new_files`) and the data keys (`projectId`, `fileId`, `reasoningId`, `type`) must match the backend.
+- **Crash reporting (Crashlytics):** crashes and ANRs of **uat and prod release** builds go to the Firebase console → Crashlytics.
+  - Collection is off in the manifest (`firebase_crashlytics_collection_enabled`) until `CrashReporting.start` in `MainActivity.onCreate` turns it on, as decided by `crashReportingEnabled(flavor, debug)` (`data/crash/CrashReporting.kt`). Debug builds and the dev flavor never report.
+  - Reports carry no user data (no ID, email or name). Keep it that way, or update the Play Data safety form.
+  - uat and prod release builds upload the R8 mapping file, so stack traces are readable. The dev flavor doesn't upload (`mappingFileUploadEnabled = false`), so CI's `assembleDevRelease` uploads nothing. `proguard-rules.pro` keeps line numbers.
+  - Like push, it needs `app/google-services.json`: without it neither Firebase Gradle plugin is applied.
+  - To check it works, the **UAT release build only** has a "Test crash reporting" row at the bottom of the Profile screen (`crashTestAvailable`). After a confirmation it throws `CrashReportingTestException`, and the report is sent when the app is opened again. It never appears in prod or debug builds.
 - **Profile:** `/api/v1/users/me` (GET, PUT) takes the user from the JWT and is reached from the side menu when signed in. `ProfileViewModels.kt` holds its ViewModels.
   - First name, last name and phone save without a code. The backend keeps `fullName` as "first last", and `TokenManager.saveUserName` updates the menu header.
   - Password: `POST .../password/code` emails a code to the current address, then `PUT .../password {code, newPassword}`. It signs every other device out and returns new tokens for this one, saved with `saveRenewedSession`.
