@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- When the server refuses a sign-in or an emailed code because of too many attempts (HTTP 429), the app says "Too many attempts. Try again in a few minutes." instead of "wrong password" or "wrong code". It applies to sign-in, sign-up, forgot password and the profile codes (password, email change, account deletion).
 - Admins can write a description when uploading study files (one description for all the files picked together), and it shows on the file page.
 - Admins can edit a study file's title and description from its page (the pencil in the top bar), for example to give each file of a batch upload its own description. The file keeps its extension.
 - Admins can upload several files to a reasoning at once: pick them together, add hashtags for all of them, and send. Students get one notification for the whole upload. Files over 20 MB are skipped, and the message says how many were sent.

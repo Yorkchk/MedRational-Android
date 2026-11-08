@@ -404,4 +404,19 @@ class ProfileViewModelsTest {
 
         assertEquals("Couldn't save your profile (HTTP 500).", en(profileErrorMessage(response, R.string.profile_error_save)))
     }
+
+    // 429: the backend's rate limit on codes, not a wrong code or a server error
+    @Test
+    fun `too many code requests or attempts are explained`() {
+        val response = Response.error<Unit>(429, """{"status":429,"error":"Too many attempts."}""".toResponseBody())
+
+        assertEquals(
+            "Too many attempts. Try again in a few minutes.",
+            en(profileErrorMessage(response, R.string.profile_error_send_code))
+        )
+        assertEquals(
+            "Trop de tentatives. Réessayez dans quelques minutes.",
+            fr(profileErrorMessage(response, R.string.profile_error_delete_account, R.string.auth_error_invalid_code))
+        )
+    }
 }

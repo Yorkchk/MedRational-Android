@@ -30,14 +30,15 @@ private val PHONE_REGEX = Regex("^[0-9]{10}$")
 /**
  * What to show for a failed call. The backend answers 400 for what the user typed (a wrong or
  * expired code, an email already in use...) with an English message, so the app shows its own:
- * [badRequest], or "email already in use" when the backend says so. Other statuses show [failed]
- * with the HTTP code.
+ * [badRequest], or "email already in use" when the backend says so. 429 means too many code
+ * requests or attempts (the backend's rate limit). Other statuses show [failed] with the HTTP code.
  */
 internal fun profileErrorMessage(
     response: Response<*>,
     @StringRes failed: Int,
     @StringRes badRequest: Int = R.string.profile_error_check_fields
 ): UiText {
+    if (response.code() == HTTP_TOO_MANY_REQUESTS) return TOO_MANY_ATTEMPTS
     if (response.code() != 400) return UiText.Res(failed, listOf(response.code()))
     val raw = try {
         response.errorBody()?.string()

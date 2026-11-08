@@ -31,6 +31,14 @@ private val NETWORK_ERROR = UiText.Res(R.string.error_network)
 private val INVALID_CODE = UiText.Res(R.string.auth_error_invalid_code)
 private val ENTER_CODE = UiText.Res(R.string.auth_error_enter_code)
 
+/** The backend's rate limit on sign-in and emailed codes (429, see RateLimiter in the backend). */
+internal const val HTTP_TOO_MANY_REQUESTS = 429
+internal val TOO_MANY_ATTEMPTS = UiText.Res(R.string.error_too_many_attempts)
+
+/** [otherwise], unless the backend refused the request for too many attempts. */
+private fun authError(code: Int, otherwise: UiText): UiText =
+    if (code == HTTP_TOO_MANY_REQUESTS) TOO_MANY_ATTEMPTS else otherwise
+
 /**
  * The backend's own messages are in English, so the app shows its messages instead, picked from
  * the HTTP status. 400 means the backend rejected what was typed (see AuthServiceImpl).
@@ -74,8 +82,11 @@ class AuthViewModel(
                 } else {
                     // 403: right password, but the sign-up code was never entered
                     _uiState.value = AuthUiState.Error(
-                        if (response.code() == 403) UiText.Res(R.string.auth_error_email_not_verified)
-                        else UiText.Res(R.string.auth_error_invalid_credentials)
+                        authError(
+                            response.code(),
+                            if (response.code() == 403) UiText.Res(R.string.auth_error_email_not_verified)
+                            else UiText.Res(R.string.auth_error_invalid_credentials)
+                        )
                     )
                 }
             } catch (e: Exception) {
@@ -111,6 +122,7 @@ class AuthViewModel(
                         when (response.code()) {
                             400 -> UiText.Res(R.string.auth_error_check_fields)
                             409 -> UiText.Res(R.string.auth_error_email_taken)
+                            HTTP_TOO_MANY_REQUESTS -> TOO_MANY_ATTEMPTS
                             else -> UiText.Res(R.string.auth_error_registration_failed)
                         }
                     )
@@ -134,7 +146,7 @@ class AuthViewModel(
                 if (response.isSuccessful) {
                     _uiState.value = AuthUiState.SignUpCompleted
                 } else {
-                    _uiState.value = AuthUiState.Error(INVALID_CODE)
+                    _uiState.value = AuthUiState.Error(authError(response.code(), INVALID_CODE))
                 }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(NETWORK_ERROR)
@@ -156,8 +168,11 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.OtpSent(email = email.trim())
                 } else {
                     _uiState.value = AuthUiState.Error(
-                        if (response.code() == 400) UiText.Res(R.string.auth_error_no_account)
-                        else UiText.Res(R.string.auth_error_reset_code_failed)
+                        authError(
+                            response.code(),
+                            if (response.code() == 400) UiText.Res(R.string.auth_error_no_account)
+                            else UiText.Res(R.string.auth_error_reset_code_failed)
+                        )
                     )
                 }
             } catch (e: Exception) {
@@ -186,8 +201,11 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.PasswordResetCompleted
                 } else {
                     _uiState.value = AuthUiState.Error(
-                        if (response.code() == 400) INVALID_CODE
-                        else UiText.Res(R.string.auth_error_reset_failed)
+                        authError(
+                            response.code(),
+                            if (response.code() == 400) INVALID_CODE
+                            else UiText.Res(R.string.auth_error_reset_failed)
+                        )
                     )
                 }
             } catch (e: Exception) {
