@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "137575475844",
+    "project_id": "medrational-7f370",
+    "storage_bucket": "medrational-7f370.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137575475844:android:eed4de569de4594484f0d1",
+        "android_client_info": {
+          "package_name": "com.example.medrational_android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrue31NKhY_EJ6iOrT5t606wRK96PXXok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137575475844:android:06320857ffbb8e9484f0d1",
+        "android_client_info": {
+          "package_name": "com.example.medrational_android.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrue31NKhY_EJ6iOrT5t606wRK96PXXok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137575475844:android:bd1459fff67d0b5884f0d1",
+        "android_client_info": {
+          "package_name": "com.example.medrational_android.uat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrue31NKhY_EJ6iOrT5t606wRK96PXXok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
