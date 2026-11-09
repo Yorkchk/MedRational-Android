@@ -47,6 +47,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Backend URL configurable per build type through `local.properties`.
 
 ### Changed
+- The app's ID is now `ma.scome.swisra`, ready for the Play Store. Testers' existing Dev and UAT apps don't update to it: uninstall them and install the new builds.
+- The UAT and Play Store apps only talk to their server over HTTPS. The app targets Android 16 (API 36), as Google Play requires.
 - Clearer search: the home search bar just says "Search files", and the search screen tells you that you can search by file name, category, reasoning or #hashtag.
 - On a file's page, Download, Favorite and Share now fit on one line, even on small phones. Favorite is a heart button, filled when the file is in your favorites.
 - Picking several files to share them is easier to find: each reasoning has a Select button above its files, which shows a checkbox on every file. Long-pressing a file still works.

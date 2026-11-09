@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- dev only: the local backend is plain http:// (10.0.2.2 from the emulator, or the computer's LAN
+     IP from a phone), so cleartext is allowed. uat and prod use src/main/res/xml, HTTPS only. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
