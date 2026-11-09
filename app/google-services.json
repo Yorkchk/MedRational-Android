@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:137575475844:android:eed4de569de4594484f0d1",
+        "mobilesdk_app_id": "1:137575475844:android:05c891b8e5d78a1b84f0d1",
         "android_client_info": {
-          "package_name": "com.example.medrational_android"
+          "package_name": "ma.scome.swisra"
         }
       },
       "oauth_client": [],
@@ -26,9 +26,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:137575475844:android:06320857ffbb8e9484f0d1",
+        "mobilesdk_app_id": "1:137575475844:android:0f1501c31fc5f9f684f0d1",
         "android_client_info": {
-          "package_name": "com.example.medrational_android.dev"
+          "package_name": "ma.scome.swisra.dev"
         }
       },
       "oauth_client": [],
@@ -45,9 +45,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:137575475844:android:bd1459fff67d0b5884f0d1",
+        "mobilesdk_app_id": "1:137575475844:android:257e0f70d184038284f0d1",
         "android_client_info": {
-          "package_name": "com.example.medrational_android.uat"
+          "package_name": "ma.scome.swisra.uat"
         }
       },
       "oauth_client": [],
