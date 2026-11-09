@@ -15,8 +15,8 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Swisra"
-        android:usesCleartextTraffic="true"> <!-- Required to talk to local http:// without HTTPS in dev -->
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.Swisra"> <!-- HTTPS only, except the dev flavor (src/dev/res/xml) -->
 
         <!-- Crash reports stay off until CrashReporting.start turns them on (uat and prod release
              builds only), so dev and debug builds never report anything -->

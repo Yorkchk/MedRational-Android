@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- uat and prod talk to their backend over HTTPS only, so the JWT never travels in clear text.
+     The dev flavor replaces this file (src/dev/res/xml) to reach a local http:// backend. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

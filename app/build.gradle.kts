@@ -68,12 +68,15 @@ val appVersionName = (findProperty("versionName") as String?) ?: "1.0"
 
 android {
     namespace = "com.example.medrational_android"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.medrational_android"
+        // The Play Store ID, permanent once published (Play refuses com.example.*). The code's
+        // namespace above stays com.example.medrational_android; the two are independent.
+        applicationId = "ma.scome.swisra"
         minSdk = 24
-        targetSdk = 34
+        // Google Play's minimum target for new apps and updates (API 36 since 31 August 2026)
+        targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
 
@@ -159,6 +162,15 @@ gradle.taskGraph.whenReady {
     }
     if (missing.isNotEmpty()) {
         throw GradleException("Set ${missing.values.joinToString(" and ")} in local.properties to build ${missing.keys.joinToString(" and ")}")
+    }
+    // uat and prod only allow HTTPS (network_security_config.xml), so an http:// URL would build an
+    // app that can't reach its backend: refuse it here
+    val insecure = envUrlKeys.filter { (env, _) ->
+        env != "dev" && envUrl(env)?.startsWith("https://") == false &&
+            allTasks.any { it.project == project && it.name.contains(env.replaceFirstChar(Char::uppercase)) }
+    }
+    if (insecure.isNotEmpty()) {
+        throw GradleException("${insecure.values.joinToString(" and ")} in local.properties must start with https://")
     }
 }
 

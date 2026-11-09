@@ -76,11 +76,11 @@ The environment is a flavor, separate from the build type, and sets the backend 
 
 | Flavor | Backend URL | Push topic | App name | Application ID |
 |---|---|---|---|---|
-| `dev` | `api.devUrl` | `workshops-dev` | SWISRA Dev | `com.example.medrational_android.dev` |
-| `uat` | `api.uatUrl` | `workshops-uat` | SWISRA UAT | `com.example.medrational_android.uat` |
-| `prod` | `api.prodUrl` | `workshops` | SWISRA | `com.example.medrational_android` |
+| `dev` | `api.devUrl` | `workshops-dev` | SWISRA Dev | `ma.scome.swisra.dev` |
+| `uat` | `api.uatUrl` | `workshops-uat` | SWISRA UAT | `ma.scome.swisra.uat` |
+| `prod` | `api.prodUrl` | `workshops` | SWISRA | `ma.scome.swisra` |
 
-Each has its own application ID, so the three apps install side by side. Build UAT as a release (`./gradlew assembleUatRelease`) to test what production gets.
+Each has its own application ID, so the three apps install side by side. uat and prod only talk to an `https://` backend (the build refuses an `http://` URL), while dev allows plain `http://` for a local backend. Build UAT as a release (`./gradlew assembleUatRelease`) to test what production gets.
 
 ### Useful commands
 
