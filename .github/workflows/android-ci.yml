@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # assembleDevRelease runs R8 (minify + resource shrinking), which can strip classes the app
       # reads by reflection (Gson models). It builds unsigned here, which is enough to catch that.
