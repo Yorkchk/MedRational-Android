@@ -69,6 +69,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - HTTP bodies are logged in debug builds only.
 
 ### Fixed
+- Tapping the back arrow and then the home menu (or back again) quickly no longer leaves a blank white page that only restarting the app fixed. Taps made while the screen is still changing are ignored, and a double tap opens a page only once.
 - Signing in, signing up and resetting a password no longer jump back to the first step while the emailed code is being checked or after a wrong code; the code step stays open so you can correct it.
 - Deleting a category, reasoning or file now asks for confirmation first. It used to happen on a single tap.
 - Image previews and thumbnails (JPG, PNG and other images) now load. They were requested from private storage and came back blank. Images now also cover BMP, HEIC/HEIF and AVIF, GIFs animate, and an image that can't be displayed shows a Download button instead of an empty box.

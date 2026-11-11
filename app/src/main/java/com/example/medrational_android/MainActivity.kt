@@ -52,6 +52,8 @@ import com.example.medrational_android.ui.profile.ChangePasswordScreen
 import com.example.medrational_android.ui.profile.DeleteAccountScreen
 import com.example.medrational_android.ui.profile.ProfileScreen
 import com.example.medrational_android.ui.files.FileDetailScreen
+import com.example.medrational_android.ui.navigation.navigateSafely
+import com.example.medrational_android.ui.navigation.popBackStackSafely
 import com.example.medrational_android.ui.reasonings.ReasoningDetailScreen
 import com.example.medrational_android.ui.search.SEARCH_ROUTE_PATTERN
 import com.example.medrational_android.ui.search.SearchScreen
@@ -207,8 +209,8 @@ fun MedRationalApp(
         // 1. Welcome Landing Screen (2 buttons: Log In & Sign Up)
         composable("welcome") {
             WelcomeScreen(
-                onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToSignUp = { navController.navigate("signup") }
+                onNavigateToLogin = { navController.navigateSafely("login") },
+                onNavigateToSignUp = { navController.navigateSafely("signup") }
             )
         }
 
@@ -221,9 +223,9 @@ fun MedRationalApp(
             SignUpScreen(
                 viewModel = authViewModel,
                 onSignUpCompleted = {
-                    navController.popBackStack()
+                    navController.popBackStackSafely()
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -237,9 +239,9 @@ fun MedRationalApp(
                 onNavigateToAdminDashboard = onSignedIn,
                 onNavigateToUserDashboard = onSignedIn,
                 onNavigateToForgotPassword = {
-                    navController.navigate("forgot_password")
+                    navController.navigateSafely("forgot_password")
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -251,9 +253,9 @@ fun MedRationalApp(
             ForgotPasswordScreen(
                 viewModel = authViewModel,
                 onPasswordResetCompleted = {
-                    navController.popBackStack() // Returns to login screen once reset is complete
+                    navController.popBackStackSafely() // Returns to login screen once reset is complete
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
 
         }
@@ -269,17 +271,17 @@ fun MedRationalApp(
 
             CategoryListScreen(
                 viewModel = categoryViewModel,
-                onCategoryClick = { id, name -> navController.navigate("reasonings/$id/${Uri.encode(name)}") },
+                onCategoryClick = { id, name -> navController.navigateSafely("reasonings/$id/${Uri.encode(name)}") },
                 onSignOut = signOut,
-                onNavigateToSearch = { navController.navigate("search") },
-                onNavigateToFavorites = { navController.navigate("favorites") }, // <-- Add this
-                onNavigateToDownloads = { navController.navigate("downloads") },
-                onNavigateToSuggestions = { navController.navigate("suggestions") },
-                onNavigateToNovelties = { navController.navigate("novelties") },
-                onNavigateToWorkshops = { navController.navigate("workshops") },
-                onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToStatistics = { navController.navigate("statistics") },
-                onAdvancedSearch = { query -> navController.navigate(searchRoute(query)) },
+                onNavigateToSearch = { navController.navigateSafely("search") },
+                onNavigateToFavorites = { navController.navigateSafely("favorites") }, // <-- Add this
+                onNavigateToDownloads = { navController.navigateSafely("downloads") },
+                onNavigateToSuggestions = { navController.navigateSafely("suggestions") },
+                onNavigateToNovelties = { navController.navigateSafely("novelties") },
+                onNavigateToWorkshops = { navController.navigateSafely("workshops") },
+                onNavigateToProfile = { navController.navigateSafely("profile") },
+                onNavigateToStatistics = { navController.navigateSafely("statistics") },
+                onAdvancedSearch = { query -> navController.navigateSafely(searchRoute(query)) },
                 noveltyCount = noveltyCount
             )
         }
@@ -289,10 +291,10 @@ fun MedRationalApp(
 
             ProfileScreen(
                 viewModel = profileViewModel,
-                onChangeEmailClick = { navController.navigate("profile/email") },
-                onChangePasswordClick = { navController.navigate("profile/password") },
-                onDeleteAccountClick = { navController.navigate("profile/delete") },
-                onBackClick = { navController.popBackStack() }
+                onChangeEmailClick = { navController.navigateSafely("profile/email") },
+                onChangePasswordClick = { navController.navigateSafely("profile/password") },
+                onDeleteAccountClick = { navController.navigateSafely("profile/delete") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -304,9 +306,9 @@ fun MedRationalApp(
                 currentEmail = remember { tokenManager.getEmail() },
                 onEmailChanged = {
                     Toast.makeText(context, R.string.profile_email_updated, Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
+                    navController.popBackStackSafely()
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -318,9 +320,9 @@ fun MedRationalApp(
                 email = remember { tokenManager.getEmail() },
                 onPasswordChanged = {
                     Toast.makeText(context, R.string.profile_password_changed, Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
+                    navController.popBackStackSafely()
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -334,7 +336,7 @@ fun MedRationalApp(
                     Toast.makeText(context, R.string.profile_account_deleted, Toast.LENGTH_LONG).show()
                     signOut()
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -343,8 +345,8 @@ fun MedRationalApp(
 
             NoveltiesScreen(
                 viewModel = noveltiesViewModel,
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -354,8 +356,8 @@ fun MedRationalApp(
 
             StatisticsScreen(
                 viewModel = statisticsViewModel,
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -369,16 +371,16 @@ fun MedRationalApp(
 
                 SuggestionListScreen(
                     viewModel = suggestionListViewModel,
-                    onSuggestionClick = { id -> navController.navigate("suggestions/$id") },
-                    onBackClick = { navController.popBackStack() }
+                    onSuggestionClick = { id -> navController.navigateSafely("suggestions/$id") },
+                    onBackClick = { navController.popBackStackSafely() }
                 )
             } else {
                 val newSuggestionViewModel: NewSuggestionViewModel = viewModel { NewSuggestionViewModel(ApiClient.api) }
 
                 NewSuggestionScreen(
                     viewModel = newSuggestionViewModel,
-                    onDoneClick = { navController.popBackStack() },
-                    onBackClick = { navController.popBackStack() }
+                    onDoneClick = { navController.popBackStackSafely() },
+                    onBackClick = { navController.popBackStackSafely() }
                 )
             }
         }
@@ -396,8 +398,8 @@ fun MedRationalApp(
             SuggestionDetailScreen(
                 suggestionId = backStackEntry.arguments?.getLong("suggestionId") ?: 0L,
                 viewModel = suggestionDetailViewModel,
-                onDeleted = { navController.popBackStack() },
-                onBackClick = { navController.popBackStack() }
+                onDeleted = { navController.popBackStackSafely() },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -410,9 +412,9 @@ fun MedRationalApp(
             WorkshopListScreen(
                 viewModel = workshopListViewModel,
                 isAdmin = isAdmin,
-                onProjectClick = { id -> navController.navigate("workshops/$id") },
-                onNewProjectClick = { navController.navigate("workshops/new") },
-                onBackClick = { navController.popBackStack() }
+                onProjectClick = { id -> navController.navigateSafely("workshops/$id") },
+                onNewProjectClick = { navController.navigateSafely("workshops/new") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -428,7 +430,7 @@ fun MedRationalApp(
                 onCreated = { id ->
                     navController.navigate("workshops/$id") { popUpTo("workshops/new") { inclusive = true } }
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -446,8 +448,8 @@ fun MedRationalApp(
                 projectId = workshopId,
                 viewModel = workshopDetailViewModel,
                 isAdmin = isAdmin,
-                onEditClick = { navController.navigate("workshops/$workshopId/edit") },
-                onBackClick = { navController.popBackStack() }
+                onEditClick = { navController.navigateSafely("workshops/$workshopId/edit") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -463,8 +465,8 @@ fun MedRationalApp(
             EditWorkshopScreen(
                 projectId = backStackEntry.arguments?.getLong("workshopId") ?: 0L,
                 viewModel = editWorkshopViewModel,
-                onSaved = { navController.popBackStack() },
-                onBackClick = { navController.popBackStack() }
+                onSaved = { navController.popBackStackSafely() },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -475,8 +477,8 @@ fun MedRationalApp(
 
             RecentDownloadsScreen(
                 viewModel = recentDownloadsViewModel,
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -488,10 +490,10 @@ fun MedRationalApp(
             FavoritesScreen(
                 viewModel = favoriteViewModel,
                 onNavigateToReasoning = { catId, catName ->
-                    navController.navigate("reasonings/$catId/${Uri.encode(catName)}")
+                    navController.navigateSafely("reasonings/$catId/${Uri.encode(catName)}")
                 },
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -509,10 +511,10 @@ fun MedRationalApp(
             SearchScreen(
                 searchViewModel = viewModel { SearchViewModel(initialQuery = initialQuery, initialCategoryId = initialCategoryId) },
                 onNavigateToReasoning = { categoryId, categoryName ->
-                    navController.navigate("reasonings/$categoryId/${Uri.encode(categoryName)}")
+                    navController.navigateSafely("reasonings/$categoryId/${Uri.encode(categoryName)}")
                 },
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -535,10 +537,10 @@ fun MedRationalApp(
                 categoryId = categoryId,
                 categoryName = categoryName,
                 categoryDescription = categoryDescription,
-                onAdvancedSearch = { query -> navController.navigate(searchRoute(query, categoryId)) },
+                onAdvancedSearch = { query -> navController.navigateSafely(searchRoute(query, categoryId)) },
                 viewModel = reasoningViewModel,
-                onFileClick = { reasoningId, fileId -> navController.navigate("file/$reasoningId/$fileId") },
-                onBackClick = { navController.popBackStack() }
+                onFileClick = { reasoningId, fileId -> navController.navigateSafely("file/$reasoningId/$fileId") },
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
@@ -553,7 +555,7 @@ fun MedRationalApp(
             FileDetailScreen(
                 reasoningId = backStackEntry.arguments?.getLong("reasoningId") ?: 0L,
                 fileId = backStackEntry.arguments?.getLong("fileId") ?: 0L,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStackSafely() }
             )
         }
 
