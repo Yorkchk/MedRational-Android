@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor User
+    participant Screen
+    participant Dl as AndroidDownloader
+    participant DM as DownloadManager
+    participant API as MedRational API
+
+    User->>Screen: tap Download
+    Screen->>Dl: downloadFile(url, fileName)
+    Dl->>Dl: freshAccessToken()<br/>(renews if the JWT expires within 5 min)
+    Dl->>DM: enqueue with Authorization header
+    DM->>API: GET /downloads/file/{id}
+    API->>API: record the download (Recent downloads)
+    API-->>DM: file
+    DM-->>User: system notification, file in Downloads

@@ -1,0 +1,5 @@
+flowchart TB
+    PR["Pull request"] -- "Android CI<br/>lint · unit tests · coverage · builds" --> Main["main"]
+    Main -- "publish-uat-apk" --> UAT["GitHub pre-release uat-n<br/>signed UAT APK for testers"]
+    Main -- "tag v*" --> Rel["release.yml"]
+    Rel --> Release["GitHub Release<br/>signed prod AAB + APK<br/>notes from CHANGELOG"]

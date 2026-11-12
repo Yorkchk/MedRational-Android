@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant VM as ViewModel
+    participant Api as ApiClient (OkHttp)
+    participant Auth as TokenRefreshAuthenticator
+    participant API as MedRational API
+
+    VM->>Api: request
+    Api->>API: Authorization: Bearer JWT
+    API-->>Api: 401 (JWT expired)
+    Api->>Auth: authenticate()
+    Auth->>API: POST /auth/refresh {refreshToken}
+    alt renewal accepted
+        API-->>Auth: new JWT + refresh token
+        Auth->>Auth: save them (TokenManager)
+        Auth-->>Api: same request with the new JWT
+        Api->>API: retry once
+        API-->>VM: 200
+    else renewal refused (401)
+        Auth->>Auth: clear the session
+        Auth-->>VM: user must sign in again
+    else offline or server error
+        Auth-->>VM: error shown, session kept
+    end
