@@ -1,0 +1,49 @@
+classDiagram
+    direction TB
+    class Category {
+        Long id
+        String name
+        String? description
+    }
+    class Reasoning {
+        Long id
+        Long categoryId
+        String title
+        String? content
+    }
+    class StudyFile {
+        Long id
+        Long reasoningId
+        String fileName
+        String? fileType
+        Long? fileSizeBytes
+        Boolean previewable
+        Double avgRating
+        Int totalRatings
+    }
+    class FileRatingSummary {
+        Long fileId
+        Double avgRating
+        Int totalRatings
+        Int? userRating
+    }
+    class WorkshopProject {
+        Long id
+        String title
+        ProjectType? projectType
+        ProjectStatus status
+        String? formLink
+        Int? capacity
+        String registrationOpensAt
+        String registrationClosesAt
+    }
+    class WorkshopAttachment {
+        Long id
+        String fileName
+        Boolean previewable
+    }
+
+    Category "1" *-- "0..*" Reasoning
+    Reasoning "1" *-- "0..*" StudyFile
+    StudyFile "1" -- "1" FileRatingSummary : rating
+    WorkshopProject "1" *-- "0..*" WorkshopAttachment

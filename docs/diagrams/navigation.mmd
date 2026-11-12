@@ -1,0 +1,12 @@
+flowchart TB
+    Start(("App start")) -- "signed out" --> Welcome["welcome"]
+    Start -- "signed in" --> Home
+    Welcome --> Login["login"]
+    Welcome --> Signup["signup"]
+    Signup --> Login
+    Login --> Forgot["forgot_password"]
+    Login --> Home
+
+    Home["categories (home)"] --> Reasonings["reasonings/<br/>{categoryId}"] --> File["file/<br/>{reasoningId}/{fileId}"]
+    Home --> Search["search"] --> File
+    Home --> Menu["☰ side menu<br/>novelties · workshops<br/>favorites · downloads<br/>suggestions · profile<br/>statistics (admin)"]

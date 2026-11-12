@@ -1,0 +1,8 @@
+flowchart TB
+    Backend["MedRational API"] -- "topic workshops-dev / -uat / workshops" --> FCM["Firebase Cloud Messaging"]
+    FCM --> Service["MedRationalMessagingService<br/>shows the notification"]
+    Service -- "channel workshop_reminders or new_files" --> Tap(["User taps it"])
+    Tap --> Route["pushRoute(data)<br/>workshops/{id} · file/{r}/{f} · novelties"]
+    Route --> Signed{"Signed in?"}
+    Signed -- "yes" --> Open["Open that screen"]
+    Signed -- "no" --> Login["login"] -- "after sign-in<br/>(pendingPushRoute)" --> Open

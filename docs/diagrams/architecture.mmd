@@ -1,0 +1,19 @@
+flowchart TB
+    UI["Compose screens<br/>(ui/…)"] -- "events" --> VM["ViewModels<br/>(StateFlow UI state)"]
+    VM -- "state" --> UI
+
+    VM --> Data
+
+    subgraph Data["Data layer (data/…)"]
+        direction TB
+        Api["ApiClient<br/>Retrofit + OkHttp"]
+        Tokens["TokenManager<br/>encrypted session"]
+        Down["AndroidDownloader"]
+        Store["FileRatingStore<br/>shared in memory"]
+        Prev["Preview cache<br/>PDF renderer"]
+    end
+
+    Api -- "HTTPS + JWT" --> Backend["MedRational API<br/>(Spring Boot)"]
+    Down --> DM["Android<br/>DownloadManager"] --> Backend
+    FCM["Firebase Cloud Messaging"] -- "push" --> UI
+    UI -. "crashes" .-> Crash["Firebase Crashlytics"]
