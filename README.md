@@ -12,7 +12,8 @@ Backend (Spring Boot REST API): **[Yorkchk/MedRational](https://github.com/Yorkc
 A walkthrough of the app's main features (about 3½ minutes): browsing, preview, sharing, search, workshop alerts and the admin tools.
 
 <!-- Upload SWISRA_Demo-github.mp4 in GitHub's README editor and replace the line below with the link GitHub inserts (keep it alone on its line). -->
-VIDEO_LINK_HERE
+https://github.com/user-attachments/assets/3565e57c-bd67-4ba5-91fb-26a5874c9df3
+
 
 ## About the project
 
