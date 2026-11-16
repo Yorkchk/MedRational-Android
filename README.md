@@ -7,6 +7,13 @@ Android app of **SWISRA** (*Study With Scome RAbat*), a study app for medical st
 
 Backend (Spring Boot REST API): **[Yorkchk/MedRational](https://github.com/Yorkchk/MedRational)**
 
+## Demo
+
+A walkthrough of the app's main features (about 3½ minutes): browsing, preview, sharing, search, workshop alerts and the admin tools.
+
+<!-- Upload SWISRA_Demo-github.mp4 in GitHub's README editor and replace the line below with the link GitHub inserts (keep it alone on its line). -->
+VIDEO_LINK_HERE
+
 ## About the project
 
 ### Why it exists
@@ -31,13 +38,6 @@ Category  (e.g. Cardiology)
 This repository is the Android app. Students browse that tree, read and preview files, download and share them, rate and favorite them, and follow the association's workshops ("projects"). Admins manage everything from the same screens: there is no separate admin app. All data comes from the [MedRational API](https://github.com/Yorkchk/MedRational).
 
 The app is written in Kotlin with Jetpack Compose, is in **French by default with English** available, has a light and a dark theme, and adapts its layout to tablets.
-
-## Demo
-
-A walkthrough of the app's main features (about 3½ minutes): browsing, preview, sharing, search, workshop alerts and the admin tools.
-
-<!-- Upload SWISRA_Demo.mp4 in GitHub's README editor and replace the line below with the link GitHub inserts (keep it alone on its line). -->
-VIDEO_LINK_HERE
 
 ## Screenshots
 
