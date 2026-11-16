@@ -32,6 +32,13 @@ This repository is the Android app. Students browse that tree, read and preview 
 
 The app is written in Kotlin with Jetpack Compose, is in **French by default with English** available, has a light and a dark theme, and adapts its layout to tablets.
 
+## Demo
+
+A walkthrough of the app's main features (about 3½ minutes): browsing, preview, sharing, search, workshop alerts and the admin tools.
+
+<!-- Upload SWISRA_Demo.mp4 in GitHub's README editor and replace the line below with the link GitHub inserts (keep it alone on its line). -->
+VIDEO_LINK_HERE
+
 ## Screenshots
 
 | Home | A category's reasonings | File page |
